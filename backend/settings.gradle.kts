@@ -22,4 +22,5 @@ plugins {
 include(
     ":services:auth-service",
     ":services:agent-service",
+    ":services:storage-service"
 )

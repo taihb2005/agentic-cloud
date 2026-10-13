@@ -24,6 +24,7 @@
             <option value="$PROJECT_DIR$/services" />
             <option value="$PROJECT_DIR$/services/agent-service" />
             <option value="$PROJECT_DIR$/services/auth-service" />
+            <option value="$PROJECT_DIR$/services/storage-service" />
           </set>
         </option>
       </GradleProjectSettings>
