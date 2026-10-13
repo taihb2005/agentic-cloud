@@ -1,0 +1,14 @@
+# Ignore all files by default
+*
+
+# Keep Gitignore itself
+!.gitignore
+
+# Keep Draw.io diagrams
+!*.drawio
+
+# Keep exported images
+!*.png
+!*.jpg
+!*.jpeg
+!*.svg
