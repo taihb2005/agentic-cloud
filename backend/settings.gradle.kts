@@ -20,7 +20,7 @@ plugins {
 }
 
 include(
-    ":services:auth-service",
+    ":services:user-service",
     ":services:agent-service",
     ":services:storage-service"
 )
