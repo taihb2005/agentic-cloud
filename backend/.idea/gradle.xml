@@ -23,8 +23,8 @@
             <option value="$PROJECT_DIR$/build-logic" />
             <option value="$PROJECT_DIR$/services" />
             <option value="$PROJECT_DIR$/services/agent-service" />
-            <option value="$PROJECT_DIR$/services/auth-service" />
             <option value="$PROJECT_DIR$/services/storage-service" />
+            <option value="$PROJECT_DIR$/services/user-service" />
           </set>
         </option>
       </GradleProjectSettings>
