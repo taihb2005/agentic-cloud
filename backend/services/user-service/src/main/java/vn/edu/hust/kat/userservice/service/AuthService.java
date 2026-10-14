@@ -45,15 +45,15 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email already registered: " + request.getEmail());
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new DuplicateResourceException("Username already registered: " + request.getUsername());
         }
 
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ROLE_USER"));
 
         User user = User.builder()
-                .name(request.getName())
+                .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .roles(Set.of(userRole))
@@ -72,11 +72,11 @@ public class AuthService {
     @Transactional
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", request.getEmail()));
+        User user = userRepository.findByEmail(request.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", request.getUsername()));
 
         // Revoke old refresh tokens
         refreshTokenRepository.revokeAllByUser(user);
@@ -100,7 +100,7 @@ public class AuthService {
         User user = token.getUser();
 
         // Rotate refresh token
-        token.setRevoked(true);
+        token.setRevokesAt(LocalDateTime.now());
         refreshTokenRepository.save(token);
 
         String newAccessToken = jwtService.generateAccessToken(user);
@@ -112,7 +112,7 @@ public class AuthService {
     @Transactional
     public void logout(String refreshToken) {
         refreshTokenRepository.findByToken(refreshToken).ifPresent(token -> {
-            token.setRevoked(true);
+            token.setRevokesAt(LocalDateTime.now());
             refreshTokenRepository.save(token);
         });
     }
@@ -132,6 +132,6 @@ public class AuthService {
         Set<String> roles = user.getRoles().stream()
                 .map(Role::getName)
                 .collect(Collectors.toSet());
-        return AuthResponse.of(accessToken, refreshToken, user.getId(), user.getName(), user.getEmail(), roles);
+        return AuthResponse.of(accessToken, refreshToken, user.getId(), user.getUsername(), user.getEmail(), roles);
     }
 }
