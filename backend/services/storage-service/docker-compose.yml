@@ -1,38 +1,18 @@
 services:
-  garage:
-    image: dxflrs/garage:v2.4.1
-    container_name: storage-garage
+  minio:
+    image: taihb2005/minio:1.0.0
+    container_name: minio-storage
     restart: unless-stopped
-    networks:
-      - garage_net
-    environment:
-      - GARAGE_DEFAULT_ACCESS_KEY=${GARAGE_DEFAULT_ACCESS_KEY}
-      - GARAGE_DEFAULT_SECRET_KEY=${GARAGE_DEFAULT_SECRET_KEY}
-      - GARAGE_DEFAULT_BUCKET=${GARAGE_DEFAULT_BUCKET:-default-bucket}
-    volumes:
-      - ./config/garage.toml:/etc/garage.toml # Mount the configuration file
-      - ./meta:/var/lib/garage/meta   # Mount metadata directory
-      - ./data:/var/lib/garage/data   # Mount data directory
     ports:
-      - "3900:3900" #S3 API Port
-      - "3901:3901" #RPC Port
-      - "3902:3902" #S3 web Port
-      - "3903:3903" #Admin Port
-
-  webui:
-    image: khairul169/garage-webui:latest
-    container_name: garage-webui
-    restart: unless-stopped
-    networks:
-      - garage_net
+      - "9000:9000"
+      - "9001:9001"
+    env_file:
+      - .env
     volumes:
-      - ./config/garage.toml:/etc/garage.toml:ro
-    ports:
-      - "3909:3909"
-    environment:
-      API_BASE_URL: "http://garage:3903"
-      S3_ENDPOINT_URL: "http://garage:3900"
-
-networks:
-  garage_net:
-    driver: bridge
+      - ${MINIO_HOST_VOLUME}:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
