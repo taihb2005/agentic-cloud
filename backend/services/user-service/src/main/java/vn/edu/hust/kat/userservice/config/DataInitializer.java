@@ -57,7 +57,7 @@ public class DataInitializer implements CommandLineRunner {
                 .orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_USER").build()));
 
             User admin = User.builder()
-                .name("Admin")
+                .username("Admin")
                 .email(adminEmail)
                 .password(passwordEncoder.encode(adminPassword))
                 .roles(Set.of(adminRole, userRole))

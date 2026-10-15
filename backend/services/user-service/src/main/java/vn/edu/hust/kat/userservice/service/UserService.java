@@ -11,6 +11,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -26,7 +28,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponse getUserById(Long id) {
+    public UserResponse getUserById(UUID id) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
         return UserResponse.from(user);
@@ -38,7 +40,7 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteUser(Long id) {
+    public void deleteUser(UUID id) {
         if (!userRepository.existsById(id)) {
             throw new ResourceNotFoundException("User", "id", id);
         }
