@@ -63,7 +63,7 @@ public class AuthService {
         log.info("New user registered: {}", user.getEmail());
 
         // Roles auto-embedded in JWT claims — no extra DB call needed on auth
-        String accessToken = jwtService.generateAccessToken(user);
+        String accessToken = jwtService.generateToken(user, JwtService.TokenType.ACCESS_TOKEN);
         String refreshToken = createRefreshToken(user);
 
         return buildAuthResponse(user, accessToken, refreshToken);
@@ -75,13 +75,13 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
 
-        User user = userRepository.findByEmail(request.getUsername())
+        User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", request.getUsername()));
 
         // Revoke old refresh tokens
         refreshTokenRepository.revokeAllByUser(user);
 
-        String accessToken = jwtService.generateAccessToken(user);
+        String accessToken = jwtService.generateToken(user, JwtService.TokenType.ACCESS_TOKEN);
         String refreshToken = createRefreshToken(user);
 
         log.info("User logged in: {}", user.getEmail());
@@ -93,7 +93,7 @@ public class AuthService {
         RefreshToken token = refreshTokenRepository.findByToken(request.getRefreshToken())
                 .orElseThrow(() -> new BadRequestException("Invalid refresh token"));
 
-        if (token.isRevoked() || token.isExpired()) {
+        if (token.isRevoked() || jwtService.isTokenValid(token.getToken())) {
             throw new BadRequestException("Refresh token is expired or revoked. Please login again.");
         }
 
@@ -103,7 +103,7 @@ public class AuthService {
         token.setRevokesAt(LocalDateTime.now());
         refreshTokenRepository.save(token);
 
-        String newAccessToken = jwtService.generateAccessToken(user);
+        String newAccessToken = jwtService.generateToken(user, JwtService.TokenType.ACCESS_TOKEN);
         String newRefreshToken = createRefreshToken(user);
 
         return buildAuthResponse(user, newAccessToken, newRefreshToken);
@@ -118,14 +118,14 @@ public class AuthService {
     }
 
     private String createRefreshToken(User user) {
-        String tokenValue = UUID.randomUUID().toString();
+        String refreshTokenValue = jwtService.generateToken(user, JwtService.TokenType.REFRESH_TOKEN);
+
         RefreshToken refreshToken = RefreshToken.builder()
-                .token(tokenValue)
+                .token(refreshTokenValue)
                 .user(user)
-                .expiresAt(LocalDateTime.now().plusSeconds(refreshTokenExpiry / 1000))
                 .build();
         refreshTokenRepository.save(refreshToken);
-        return tokenValue;
+        return refreshTokenValue;
     }
 
     private AuthResponse buildAuthResponse(User user, String accessToken, String refreshToken) {

@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import vn.edu.hust.kat.userservice.entity.CloudUserDetails;
 
 import javax.crypto.SecretKey;
 import java.util.*;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 public class JwtService {
 
     private static final String CLAIM_ROLES = "roles";
+    private static final String TOKEN_TYPE = "token_type";
 
     @Value("${app.jwt.secret}")
     private String jwtSecret;
@@ -27,22 +29,26 @@ public class JwtService {
     @Value("${app.jwt.access-token-expiry}")
     private long accessTokenExpiry;
 
+    @Value("${app.jwt.refresh-token-expiry}")
+    private long refreshTokenExpiry;
 
-    public String generateAccessToken(UserDetails userDetails) {
+    public String generateToken(CloudUserDetails userDetails, TokenType tokenType) {
+        long tokenExpiry = (tokenType == TokenType.ACCESS_TOKEN) ? accessTokenExpiry : refreshTokenExpiry;
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
         Map<String, Object> claims = new HashMap<>();
         claims.put(CLAIM_ROLES, roles);
+        claims.put(TOKEN_TYPE, tokenType.toString().toLowerCase());
 
-        return buildToken(claims, userDetails, accessTokenExpiry);
+        return buildToken(claims, userDetails, tokenExpiry);
     }
 
-    private String buildToken(Map<String, Object> claims, UserDetails userDetails, long expiry) {
+    private String buildToken(Map<String, Object> claims, CloudUserDetails userDetails, long expiry) {
         return Jwts.builder()
                 .claims(claims)
-                .subject(userDetails.getUsername())
+                .subject(userDetails.getUserId())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiry))
                 .signWith(getSigningKey())
@@ -95,5 +101,10 @@ public class JwtService {
                 Base64.getEncoder().encodeToString(jwtSecret.getBytes())
         );
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public enum TokenType {
+        ACCESS_TOKEN,
+        REFRESH_TOKEN
     }
 }

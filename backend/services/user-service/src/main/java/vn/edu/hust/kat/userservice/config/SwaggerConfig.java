@@ -38,17 +38,17 @@ public class SwaggerConfig {
                     - Flyway database migrations
                     
                     **Auth Flow:**
-                    1. Register → `POST /api/v1/auth/register`
-                    2. Login → `POST /api/v1/auth/login` → get `accessToken`
+                    1. Register → `POST /api/v1/user/service/auth/register`
+                    2. Login → `POST /api/v1/user-service/auth/login` → get `accessToken`
                     3. Add header: `Authorization: Bearer <accessToken>`
-                    4. Refresh → `POST /api/v1/auth/refresh`
+                    4. Refresh → `POST /api/v1/user-service/auth/refresh`
                     """)
                 .version("1.0.0")
                 .license(new License()
                     .name("MIT License")
                     .url("https://opensource.org/licenses/MIT")))
             .servers(List.of(
-                new Server().url("http://localhost:8080").description("Local Development"),
+                new Server().url("http://localhost:8081").description("Local Development"),
                 new Server().url("https://api.yourdomain.com").description("Production")
             ))
             .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
@@ -58,6 +58,6 @@ public class SwaggerConfig {
                     .type(SecurityScheme.Type.HTTP)
                     .scheme("bearer")
                     .bearerFormat("JWT")
-                    .description("Enter JWT token. Obtain it from POST /api/v1/auth/login")));
+                    .description("Enter JWT token. Obtain it from POST /api/v1/user-service/auth/login")));
     }
 }

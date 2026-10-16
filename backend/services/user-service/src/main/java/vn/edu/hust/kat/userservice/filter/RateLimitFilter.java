@@ -1,7 +1,6 @@
 package vn.edu.hust.kat.userservice.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import vn.edu.hust.kat.userservice.dto.response.ApiResponse;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
@@ -17,7 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
+import vn.edu.hust.kat.common.api.response.ApiResponse;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
@@ -57,7 +56,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().write(objectMapper.writeValueAsString(
-                ApiResponse.error("Too many requests. Please slow down and try again later.")
+                ApiResponse.error("Too many requests. Please slow down and try again later.", HttpStatus.TOO_MANY_REQUESTS)
             ));
         }
     }

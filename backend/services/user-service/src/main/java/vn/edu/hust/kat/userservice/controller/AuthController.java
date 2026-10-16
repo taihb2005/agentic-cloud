@@ -3,7 +3,7 @@ package vn.edu.hust.kat.userservice.controller;
 import vn.edu.hust.kat.userservice.dto.request.LoginRequest;
 import vn.edu.hust.kat.userservice.dto.request.RefreshTokenRequest;
 import vn.edu.hust.kat.userservice.dto.request.RegisterRequest;
-import vn.edu.hust.kat.userservice.dto.response.ApiResponse;
+import vn.edu.hust.kat.common.api.response.ApiResponse;
 import vn.edu.hust.kat.userservice.dto.response.AuthResponse;
 import vn.edu.hust.kat.userservice.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/v1/user-service/auth")
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "Register, login, refresh, and logout")
 public class AuthController {
@@ -27,21 +27,21 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.success("User registered successfully", response));
+            .body(ApiResponse.success("User registered successfully", response, HttpStatus.CREATED));
     }
 
     @PostMapping("/login")
     @Operation(summary = "Login and receive JWT tokens")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
-        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
+        return ResponseEntity.ok(ApiResponse.success("Login successful", response, HttpStatus.OK));
     }
 
     @PostMapping("/refresh")
     @Operation(summary = "Refresh access token using refresh token")
     public ResponseEntity<ApiResponse<AuthResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         AuthResponse response = authService.refresh(request);
-        return ResponseEntity.ok(ApiResponse.success("Token refreshed", response));
+        return ResponseEntity.ok(ApiResponse.success("Token refreshed", response, HttpStatus.OK));
     }
 
     @PostMapping("/logout")

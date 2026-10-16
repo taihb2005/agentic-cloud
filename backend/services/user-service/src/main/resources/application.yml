@@ -22,6 +22,8 @@ spring:
   jackson:
     default-property-inclusion: non_null
 
+server:
+  port: 8081
 
 # JWT
 app:
@@ -58,9 +60,9 @@ management:
 # Swagger
 springdoc:
   api-docs:
-    path: /v3/api-docs
+    path: /v3/user-service/api-docs
   swagger-ui:
-    path: /swagger-ui.html
+    path: /user-service/swagger-ui.html
     tags-sorter: alpha
     operations-sorter: alpha
 

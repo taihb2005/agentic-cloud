@@ -1,6 +1,7 @@
 package vn.edu.hust.kat.userservice.controller;
 
-import vn.edu.hust.kat.userservice.dto.response.ApiResponse;
+import org.springframework.http.HttpStatus;
+import vn.edu.hust.kat.common.api.response.ApiResponse;
 import vn.edu.hust.kat.userservice.dto.response.UserResponse;
 import vn.edu.hust.kat.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/v1/user-service/users")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Users", description = "User management endpoints")

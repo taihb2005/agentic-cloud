@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User implements UserDetails {
+public class User implements CloudUserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -76,6 +76,11 @@ public class User implements UserDetails {
         return roles.stream()
             .map(role -> new SimpleGrantedAuthority(role.getName()))
             .collect(Collectors.toSet());
+    }
+
+    @Override
+    public String getUserId() {
+        return id.toString();
     }
 
     @Override

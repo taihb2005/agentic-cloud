@@ -22,5 +22,7 @@ plugins {
 include(
     ":services:user-service",
     ":services:agent-service",
-    ":services:storage-service"
+    ":services:storage-service",
+    ":common",
+    ":api-gateway"
 )

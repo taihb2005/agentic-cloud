@@ -3,7 +3,7 @@ plugins {
     id("vn.edu.hust.kat.spring-boot-conventions")
 }
 
-group = "vn.edu.hust.kat"
+group = "vn.edu.hust.kat.userservice"
 version = "0.0.1-SNAPSHOT"
 description = "user-service"
 
@@ -84,4 +84,6 @@ dependencies {
     // ============================================================
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
+
+    implementation(project(":common"))
 }

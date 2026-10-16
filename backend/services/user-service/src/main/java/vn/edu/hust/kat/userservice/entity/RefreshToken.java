@@ -32,9 +32,6 @@ public class RefreshToken {
     @Column(name = "ip_address")
     private InetAddress ipAddress;
 
-    @Column(name = "expires_at", nullable = false)
-    private LocalDateTime expiresAt;
-
     @Column(name = "revokes_at")
     private LocalDateTime revokesAt;
 
@@ -46,8 +43,5 @@ public class RefreshToken {
         createdAt = LocalDateTime.now();
     }
 
-    public boolean isExpired() {
-        return LocalDateTime.now().isAfter(expiresAt);
-    }
     public boolean isRevoked() { return revokesAt != null; }
 }
