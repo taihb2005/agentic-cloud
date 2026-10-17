@@ -35,6 +35,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    @Value("${spring.application.name}")
+    private static String appName;
+    private static final String ENDPOINT_PATTERN = "/%s/%s";
+
     private final JwtAuthFilter jwtAuthFilter;
     private final RateLimitFilter rateLimitFilter;
     private final RequestIdFilter requestIdFilter;
@@ -53,12 +57,13 @@ public class SecurityConfig {
     private long maxAge;
 
     private static final String[] PUBLIC_ENDPOINTS = {
-            "/api/v1/user-service/auth/**",
+            String.format(ENDPOINT_PATTERN + "/**", appName, "auth"),
+            String.format(ENDPOINT_PATTERN + "/**", "user-service", "auth"),
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/actuator/health",
-            "/actuator/info",
+            String.format(ENDPOINT_PATTERN, "actuator", "health"),
+            String.format(ENDPOINT_PATTERN, "actuator", "info"),
             "/h2-console/**"
     };
 

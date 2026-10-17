@@ -8,11 +8,12 @@ COPY settings.gradle.kts .
 COPY gradle.properties* ./
 
 COPY build-logic ./build-logic
-COPY services/auth-service ./services/auth-service
+COPY common ./common
+COPY services/user-service ./services/user-service
 
 RUN chmod +x gradlew
 
-RUN ./gradlew :services:auth-service:bootJar \
+RUN ./gradlew :services:user-service:bootJar \
     -x test \
     --no-daemon
 
@@ -27,7 +28,7 @@ RUN addgroup -S appgroup && \
 USER appuser
 
 COPY --from=builder \
-    /app/services/auth-service/build/libs/*.jar \
+    /app/services/user-service/build/libs/*.jar \
     app.jar
 
 

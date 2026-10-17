@@ -7,8 +7,10 @@
         <processorPath useClasspath="false">
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.42/8365263844ebb62398e0dc33057ba10ba472d3b8/lombok-1.18.42.jar" />
         </processorPath>
+        <module name="agentic-cloud-platform.api-gateway.main" />
         <module name="agentic-cloud-platform.services.storage-service.main" />
         <module name="agentic-cloud-platform.services.user-service.main" />
+        <module name="agentic-cloud-platform.common.main" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="21">
@@ -25,11 +27,20 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="agentic-cloud-platform.api-gateway" options="-parameters" />
+      <module name="agentic-cloud-platform.api-gateway.main" options="-parameters" />
+      <module name="agentic-cloud-platform.api-gateway.test" options="-parameters" />
+      <module name="agentic-cloud-platform.common" options="-parameters" />
+      <module name="agentic-cloud-platform.common.main" options="-parameters" />
+      <module name="agentic-cloud-platform.common.test" options="-parameters" />
       <module name="agentic-cloud-platform.services.agent-service" options="-parameters" />
       <module name="agentic-cloud-platform.services.agent-service.main" options="-parameters" />
       <module name="agentic-cloud-platform.services.agent-service.test" options="-parameters" />
       <module name="agentic-cloud-platform.services.auth-service.main" options="-parameters" />
       <module name="agentic-cloud-platform.services.auth-service.test" options="-parameters" />
+      <module name="agentic-cloud-platform.services.metadata-service" options="-parameters" />
+      <module name="agentic-cloud-platform.services.metadata-service.main" options="-parameters" />
+      <module name="agentic-cloud-platform.services.metadata-service.test" options="-parameters" />
       <module name="agentic-cloud-platform.services.storage-service" options="-parameters" />
       <module name="agentic-cloud-platform.services.storage-service.main" options="-parameters" />
       <module name="agentic-cloud-platform.services.storage-service.test" options="-parameters" />

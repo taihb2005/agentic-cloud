@@ -15,7 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/user-service/auth")
+@RequestMapping("/user-service/auth")
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "Register, login, refresh, and logout")
 public class AuthController {

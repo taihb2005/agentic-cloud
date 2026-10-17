@@ -2,13 +2,13 @@ services:
   app:
     build:
       context: ../..
-      dockerfile: services/auth-service/Dockerfile
+      dockerfile: services/user-service/Dockerfile
     container_name: user-service
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
-      SPRING_PROFILES_ACTIVE: test
+#      SPRING_PROFILES_ACTIVE: test
       DB_HOST: mysql
       DB_PORT: 3306
       DB_NAME: ${DB_NAME}
@@ -20,7 +20,7 @@ services:
       mysql:
         condition: service_healthy
     networks:
-      - auth-service-network
+      - microservice-net
 
   mysql:
     image: mysql:8.0
@@ -39,7 +39,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - auth-service-network
+      - microservice-net
 
 #  nginx:
 #    image: nginx:alpine
@@ -60,5 +60,6 @@ volumes:
   mysql_data:
 
 networks:
-  auth-service-network:
-    driver: bridge
+  microservice-net:
+    name: microservice-net
+    external: true

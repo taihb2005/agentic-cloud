@@ -38,7 +38,6 @@ out/
 
 ### Environment ###
 .env
-config/garage.toml
 
 # Data directory
 meta

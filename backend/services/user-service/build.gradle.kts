@@ -45,7 +45,7 @@ dependencies {
     // OpenAPI / Swagger
     // ============================================================
 
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
 
 
     // ============================================================

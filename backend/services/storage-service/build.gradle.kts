@@ -3,7 +3,7 @@ plugins {
     id("vn.edu.hust.kat.spring-boot-conventions")
 }
 
-group = "vn.edu.hust.kat"
+group = "vn.edu.hust.kat.storageservice"
 version = "0.0.1-SNAPSHOT"
 description = "auth-service"
 
