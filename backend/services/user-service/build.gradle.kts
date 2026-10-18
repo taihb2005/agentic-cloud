@@ -52,7 +52,7 @@ dependencies {
     // Database
     // ============================================================
 
-    runtimeOnly("com.mysql:mysql-connector-j")
+    runtimeOnly("org.postgresql:postgresql")
 
     runtimeOnly("com.h2database:h2")
 
@@ -63,7 +63,7 @@ dependencies {
 
     implementation("org.flywaydb:flyway-core")
 
-    implementation("org.flywaydb:flyway-mysql")
+    implementation("org.flywaydb:flyway-database-postgresql")
 
 
     // ============================================================

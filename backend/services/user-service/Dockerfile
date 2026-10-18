@@ -4,34 +4,43 @@ WORKDIR /app
 
 COPY gradlew .
 COPY gradle ./gradle
-COPY settings.gradle.kts .
+COPY settings.gradle.kts ./
 COPY gradle.properties* ./
 
 COPY build-logic ./build-logic
 COPY common ./common
-COPY services/user-service ./services/user-service
+COPY services/user-service/build.gradle.kts ./services/user-service/build.gradle.kts
 
 RUN chmod +x gradlew
 
-RUN ./gradlew :services:user-service:bootJar \
-    -x test \
-    --no-daemon
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew :services:user-service:dependencies --no-daemon
+
+COPY services/user-service/src ./services/user-service/src
+COPY common ./common
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew :services:user-service:bootJar -x test --no-daemon
 
 
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-RUN addgroup -S appgroup && \
-    adduser -S appuser -G appgroup
-
-USER appuser
+RUN addgroup -S appgroup \
+    && adduser -S appuser -G appgroup \
+    && mkdir -p /var/log/user-service \
+    && touch /var/log/user-service/app.log \
+    && chown -R appuser:appgroup /var/log/user-service \
+    && chmod 664 /var/log/user-service/app.log
 
 COPY --from=builder \
     /app/services/user-service/build/libs/*.jar \
-    app.jar
+    ./app.jar
 
+RUN chown appuser:appgroup /app/app.jar
 
-EXPOSE 8080
+USER appuser
+
+EXPOSE 8081
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

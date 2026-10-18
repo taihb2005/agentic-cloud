@@ -25,6 +25,9 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     private final Environment environment;
+    @Value("${app.admin.username:admin}")
+    private String adminUsername;
+
     @Value("${app.admin.email:admin@example.com}")
     private String adminEmail;
 
@@ -42,7 +45,6 @@ public class DataInitializer implements CommandLineRunner {
             boolean isProdProfile = Arrays.asList(
                     environment.getActiveProfiles()
             ).contains("prod");
-            // prod profile mein → app band kar do
             if (isProdProfile) {
                 throw new IllegalStateException(
                         "Default admin password in production! " +
@@ -57,7 +59,7 @@ public class DataInitializer implements CommandLineRunner {
                 .orElseGet(() -> roleRepository.save(Role.builder().name("ROLE_USER").build()));
 
             User admin = User.builder()
-                .username("Admin")
+                .username(adminUsername)
                 .email(adminEmail)
                 .password(passwordEncoder.encode(adminPassword))
                 .roles(Set.of(adminRole, userRole))
