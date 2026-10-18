@@ -1,12 +1,13 @@
 package vn.edu.hust.kat.storageservice.entity;
 
+import io.hypersistence.utils.hibernate.type.basic.PostgreSQLLTreeType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -28,12 +29,17 @@ import java.util.UUID;
 public class FsNode {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+    private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private FsUser user;
+
+    @Type(PostgreSQLLTreeType.class)
+    @Column(name = "path", columnDefinition = "ltree")
+    private String materializedPath;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
@@ -67,9 +73,6 @@ public class FsNode {
     @Column(name = "etag", length = 100)
     private String etag;
 
-    @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted;
-
     @Column(name = "is_starred", nullable = false)
     private Boolean isStarred;
 
@@ -89,7 +92,6 @@ public class FsNode {
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
         if (updatedAt == null) updatedAt = LocalDateTime.now();
-        if (isDeleted == null) isDeleted = false;
         if (isStarred == null) isStarred = false;
         if (isFolder == null) isFolder = false;
     }
@@ -98,4 +100,6 @@ public class FsNode {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    public boolean isDeleted() { return deletedAt == null; }
 }

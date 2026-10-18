@@ -52,9 +52,15 @@ dependencies {
     // Database
     // ============================================================
 
-    runtimeOnly("com.mysql:mysql-connector-j")
+    runtimeOnly("org.postgresql:postgresql")
 
     runtimeOnly("com.h2database:h2")
+
+    // ============================================================
+    // Database Extensions
+    // ============================================================
+
+    implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.16.0")
 
 
     // ============================================================
