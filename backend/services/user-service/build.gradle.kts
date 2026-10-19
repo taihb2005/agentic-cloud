@@ -65,14 +65,6 @@ dependencies {
 
     implementation("org.flywaydb:flyway-database-postgresql")
 
-
-    // ============================================================
-    // Spring Session JDBC
-    // ============================================================
-
-    implementation("org.springframework.session:spring-session-jdbc")
-
-
     // ============================================================
     // Dev Tools
     // ============================================================
