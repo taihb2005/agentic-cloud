@@ -1,5 +1,7 @@
 package vn.edu.hust.kat.userservice.service;
 
+import vn.edu.hust.kat.common.kafka.event.BaseEvent;
+import vn.edu.hust.kat.common.kafka.payload.UserCreatedPayload;
 import vn.edu.hust.kat.userservice.dto.request.LoginRequest;
 import vn.edu.hust.kat.userservice.dto.request.RefreshTokenRequest;
 import vn.edu.hust.kat.userservice.dto.request.RegisterRequest;
@@ -10,6 +12,7 @@ import vn.edu.hust.kat.userservice.entity.User;
 import vn.edu.hust.kat.userservice.exception.BadRequestException;
 import vn.edu.hust.kat.userservice.exception.DuplicateResourceException;
 import vn.edu.hust.kat.userservice.exception.ResourceNotFoundException;
+import vn.edu.hust.kat.userservice.kafka.UserEventProducer;
 import vn.edu.hust.kat.userservice.repository.RefreshTokenRepository;
 import vn.edu.hust.kat.userservice.repository.RoleRepository;
 import vn.edu.hust.kat.userservice.repository.UserRepository;
@@ -23,6 +26,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
@@ -39,6 +43,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final UserEventProducer userEventProducer;
 
     @Value("${app.jwt.refresh-token-expiry}")
     private long refreshTokenExpiry;
@@ -61,6 +66,21 @@ public class AuthService {
 
         user = userRepository.save(user);
         log.info("New user registered: {}", user.getEmail());
+
+        //Send user created event to kafka
+        BaseEvent<UserCreatedPayload> event = BaseEvent.<UserCreatedPayload>builder()
+                .eventId(UUID.randomUUID().toString())
+                .eventType("USER_CREATED")
+                .timestamp(LocalDateTime.now())
+                .payload(UserCreatedPayload.builder()
+                        .id(user.getId().toString())
+                        .email(user.getEmail())
+                        .username(user.getUsername())
+                        .build()
+                )
+                .build();
+
+        userEventProducer.publishEvent(event);
 
         // Roles auto-embedded in JWT claims — no extra DB call needed on auth
         String accessToken = jwtService.generateToken(user, JwtService.TokenType.ACCESS_TOKEN);

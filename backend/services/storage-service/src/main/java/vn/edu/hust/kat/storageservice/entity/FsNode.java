@@ -102,4 +102,8 @@ public class FsNode {
     }
 
     public boolean isDeleted() { return deletedAt == null; }
+
+    public enum Status {
+        ACTIVE, DELETED, PENDING, TEMPORARY
+    }
 }

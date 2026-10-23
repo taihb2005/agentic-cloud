@@ -24,5 +24,6 @@ include(
     ":services:agent-service",
     ":services:storage-service",
     ":common",
-    ":api-gateway"
+    ":api-gateway",
+    ":common-proto"
 )

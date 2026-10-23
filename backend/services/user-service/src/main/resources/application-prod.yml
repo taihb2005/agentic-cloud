@@ -11,11 +11,30 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        "[enable.idempotence]": true
+        "[delivery.timeout.ms]": 120000
+        "[request.timeout.ms]": 30000
+        "[spring.json.add.type.headers]": true
+
   jpa:
     hibernate:
       ddl-auto: validate
   flyway:
     enabled: true
+    baseline-on-migrate: true
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    user: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
 app:
   admin:

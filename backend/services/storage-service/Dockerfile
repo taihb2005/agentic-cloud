@@ -5,20 +5,22 @@ WORKDIR /app
 COPY gradlew .
 COPY gradle ./gradle
 COPY settings.gradle.kts ./
-COPY gradle.properties* ./
+COPY gradle.properties ./
 
 COPY build-logic ./build-logic
-COPY common ./common
-COPY services/storage-service/build.gradle.kts ./services/storage-service/build.gradle.kts
+
+COPY common/build.gradle.kts ./common/
+COPY services/storage-service/build.gradle.kts ./services/storage-service/
 
 RUN chmod +x gradlew
 
-RUN ./gradlew :services:storage-service:dependencies --no-daemon
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew :services:storage-service:dependencies --no-daemon
 
+COPY common/src ./common/src
 COPY services/storage-service/src ./services/storage-service/src
-COPY common ./common
-RUN ./gradlew :services:storage-service:bootJar -x test --no-daemon
 
+RUN ./gradlew :services:storage-service:bootJar -x test --no-daemon
 
 FROM eclipse-temurin:21-jre-alpine
 

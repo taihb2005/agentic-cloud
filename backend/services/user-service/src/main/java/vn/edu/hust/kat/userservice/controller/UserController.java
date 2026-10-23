@@ -1,6 +1,5 @@
 package vn.edu.hust.kat.userservice.controller;
 
-import org.springframework.http.HttpStatus;
 import vn.edu.hust.kat.common.api.response.ApiResponse;
 import vn.edu.hust.kat.userservice.dto.response.UserResponse;
 import vn.edu.hust.kat.userservice.service.UserService;

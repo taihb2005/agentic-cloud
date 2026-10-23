@@ -1,6 +1,7 @@
 package vn.edu.hust.kat.userservice.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.shaded.com.google.protobuf.Api;
 import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,13 +36,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        return ResponseEntity.status(HttpStatus.OK)
             .body(ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND));
     }
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiResponse<Void>> handleDuplicate(DuplicateResourceException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
+        return ResponseEntity.status(HttpStatus.OK)
             .body(ApiResponse.error(ex.getMessage(), HttpStatus.CONFLICT));
     }
 
@@ -53,20 +54,26 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-            .body(ApiResponse.error("Invalid email or password", HttpStatus.UNAUTHORIZED));
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(ApiResponse.error("Invalid username or password", HttpStatus.UNAUTHORIZED));
     }
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ApiResponse<Void>> handleDisabled(DisabledException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        return ResponseEntity.status(HttpStatus.OK)
             .body(ApiResponse.error("Account is disabled. Please contact support.", HttpStatus.FORBIDDEN));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        return ResponseEntity.status(HttpStatus.OK)
             .body(ApiResponse.error("You don't have permission to access this resource", HttpStatus.FORBIDDEN));
+    }
+
+    @ExceptionHandler(UnsupportedOperationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnsupportedOperation(UnsupportedOperationException ex) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.error("Operation not supported for this api", HttpStatus.FORBIDDEN));
     }
 
     @ExceptionHandler(Exception.class)

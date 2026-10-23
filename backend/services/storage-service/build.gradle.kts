@@ -22,6 +22,11 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
+    // ============================================================
+    // KAFKA
+    // ============================================================
+
+    implementation("org.springframework.kafka:spring-kafka:3.3.16")
 
     // ============================================================
     // JWT
@@ -32,6 +37,13 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
 
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
+
+
+    // ============================================================
+    // Object Storage (MinIO / S3)
+    // ============================================================
+
+    implementation("io.minio:minio:8.5.17")
 
 
     // ============================================================
@@ -82,4 +94,11 @@ dependencies {
     // ============================================================
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
+
+    implementation("com.google.code.gson:gson:2.14.0")
+    implementation("org.springframework.boot:spring-boot-starter-grpc-server:4.1.0")
+    implementation("org.springframework.boot:spring-boot-starter-grpc-client:4.1.0")
+
+    implementation(project(":common"))
+    implementation(project(":common-proto"))
 }

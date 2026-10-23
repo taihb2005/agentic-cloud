@@ -3,7 +3,6 @@ package vn.edu.hust.kat.apigateway.filter;
 import io.jsonwebtoken.Claims;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -66,8 +65,14 @@ public class AuthFilter implements GlobalFilter, Ordered {
             Claims claims = jwtUtil.extractAllClaims(token);
             String userId = claims.getSubject(); // User id from subject
 
+            // Extract roles from JWT claims and forward as header
+            @SuppressWarnings("unchecked")
+            List<String> roles = claims.get("roles", List.class);
+            String rolesHeader = (roles != null) ? String.join(",", roles) : "";
+
             ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
                     .header("X-User-Id", userId)
+                    .header("X-User-Roles", rolesHeader)
                     .headers(headers -> headers.remove(HttpHeaders.AUTHORIZATION))
                     .build();
 

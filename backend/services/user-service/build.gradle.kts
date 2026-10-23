@@ -22,6 +22,11 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
+    // ============================================================
+    // KAFKA
+    // ============================================================
+
+    implementation("org.springframework.kafka:spring-kafka:3.3.16")
 
     // ============================================================
     // JWT
@@ -77,5 +82,12 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 
+    // ============================================================
+    // gRPC
+    // ============================================================
+    implementation("org.springframework.boot:spring-boot-starter-grpc-server:4.1.0")
+    implementation("org.springframework.boot:spring-boot-starter-grpc-client:4.1.0")
+
     implementation(project(":common"))
+    implementation(project(":common-proto"))
 }

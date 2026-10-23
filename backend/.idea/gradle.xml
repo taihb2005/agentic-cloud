@@ -23,6 +23,7 @@
             <option value="$PROJECT_DIR$/api-gateway" />
             <option value="$PROJECT_DIR$/build-logic" />
             <option value="$PROJECT_DIR$/common" />
+            <option value="$PROJECT_DIR$/common-proto" />
             <option value="$PROJECT_DIR$/services" />
             <option value="$PROJECT_DIR$/services/agent-service" />
             <option value="$PROJECT_DIR$/services/storage-service" />

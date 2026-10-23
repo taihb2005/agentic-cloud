@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="DiffGenerationConfig">
+  <component name="DiffGenerationConfig" isSnapshotScratchFile="true">
     <option name="snapshotDb" value="false" />
-    <option name="snapshotModelValue" value="agentic-cloud-platform.services.storage-service.main:agentic-cloud-platform.services.storage-service.main" />
+    <option name="snapshotDirValue" value="$PROJECT_DIR$/services/user-service/src/main/resources/db/migration" />
+    <option name="snapshotModelValue" value="agentic-cloud-platform.services.user-service.main:entityManagerFactory" />
+    <option name="snapshotScratchFile" value="true" />
+    <option name="sourceModelValue" value="agentic-cloud-platform.services.user-service.main:entityManagerFactory" />
+    <option name="targetDbValue" value="dbbd5477-21a6-4bed-8a35-8462156a29f8" />
   </component>
 </project>

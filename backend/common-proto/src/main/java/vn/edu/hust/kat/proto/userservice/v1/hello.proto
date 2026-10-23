@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "vn.edu.hust.kat.userservice.v1";
+option java_outer_classname = "CalculatorProto";
+
+service CalculatorService {
+  rpc Multiply (MultiplyRequest) returns (MultiplyResponse);
+}
+
+message MultiplyRequest {
+  int32 a = 1;
+  int32 b = 2;
+}
+
+message MultiplyResponse {
+  int32 result = 1;
+}

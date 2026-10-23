@@ -7,6 +7,7 @@ import vn.edu.hust.kat.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +20,15 @@ public class UserService {
 
     private final UserRepository userRepository;
 
+    /**
+     * Get the current authenticated user.
+     * <p>
+     * The GatewayAuthFilter sets the full User entity as the principal in
+     * SecurityContext, so we can extract it directly without an extra DB query.
+     */
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+        User user = getAuthenticatedUser();
         return UserResponse.from(user);
     }
 
@@ -45,5 +50,17 @@ public class UserService {
             throw new ResourceNotFoundException("User", "id", id);
         }
         userRepository.deleteById(id);
+    }
+
+    /**
+     * Extract the authenticated User entity from the SecurityContext.
+     * The principal is set as a User object by GatewayAuthFilter.
+     */
+    public User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+            throw new ResourceNotFoundException("User", "authentication", "No authenticated user found");
+        }
+        return (User) authentication.getPrincipal();
     }
 }

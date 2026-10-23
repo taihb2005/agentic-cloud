@@ -1,6 +1,6 @@
 package vn.edu.hust.kat.userservice.config;
 
-import vn.edu.hust.kat.userservice.filter.JwtAuthFilter;
+import vn.edu.hust.kat.userservice.filter.GatewayAuthFilter;
 import vn.edu.hust.kat.userservice.filter.RateLimitFilter;
 import vn.edu.hust.kat.userservice.filter.RequestIdFilter;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +39,7 @@ public class SecurityConfig {
     private static String appName;
     private static final String ENDPOINT_PATTERN = "/%s/%s";
 
-    private final JwtAuthFilter jwtAuthFilter;
+    private final GatewayAuthFilter gatewayAuthFilter;
     private final RateLimitFilter rateLimitFilter;
     private final RequestIdFilter requestIdFilter;
     private final UserDetailsService userDetailsService; // still needed for DaoAuthenticationProvider
@@ -82,7 +82,7 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(requestIdFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(gatewayAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.sameOrigin()) // allow H2 console in dev
                 );
