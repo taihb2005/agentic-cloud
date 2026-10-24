@@ -1,5 +1,6 @@
 package vn.edu.hust.kat.userservice.dto.response;
 
+import vn.edu.hust.kat.userservice.entity.Role;
 import vn.edu.hust.kat.userservice.entity.User;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,16 +17,18 @@ public class UserResponse {
     private String username;
     private String email;
     private Set<String> roles;
+    private UserStorageResponse storage;
     private boolean enabled;
     private LocalDateTime createdAt;
 
-    public static UserResponse from(User user) {
+    public static UserResponse from(User user, UserStorageResponse storage) {
         return UserResponse.builder()
             .id(user.getId())
             .username(user.getUsername())
             .email(user.getEmail())
-            .roles(user.getRoles().stream().map(r -> r.getName()).collect(Collectors.toSet()))
+            .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
             .enabled(user.isEnabled())
+            .storage(storage)
             .createdAt(user.getCreatedAt())
             .build();
     }

@@ -1,8 +1,10 @@
 package vn.edu.hust.kat.userservice.service;
 
+import vn.edu.hust.kat.common.api.exception.ResourceNotFoundException;
 import vn.edu.hust.kat.userservice.dto.response.UserResponse;
+import vn.edu.hust.kat.userservice.dto.response.UserStorageResponse;
 import vn.edu.hust.kat.userservice.entity.User;
-import vn.edu.hust.kat.userservice.exception.ResourceNotFoundException;
+import vn.edu.hust.kat.userservice.grpc.StorageGrpcClient;
 import vn.edu.hust.kat.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final StorageGrpcClient storageGrpcClient;
 
     /**
      * Get the current authenticated user.
@@ -29,19 +32,26 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser() {
         User user = getAuthenticatedUser();
-        return UserResponse.from(user);
+        UserStorageResponse userStorageResponse = storageGrpcClient.getUserStorage(user.getId());
+
+        return UserResponse.from(user, userStorageResponse);
     }
 
     @Transactional(readOnly = true)
     public UserResponse getUserById(UUID id) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
-        return UserResponse.from(user);
+        UserStorageResponse userStorageResponse = storageGrpcClient.getUserStorage(user.getId());
+
+        return UserResponse.from(user, userStorageResponse);
     }
 
     @Transactional(readOnly = true)
     public Page<UserResponse> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(UserResponse::from);
+        return userRepository.findAll(pageable).map(user -> {
+            UserStorageResponse userStorageResponse = storageGrpcClient.getUserStorage(user.getId());
+            return UserResponse.from(user, userStorageResponse);
+        });
     }
 
     @Transactional

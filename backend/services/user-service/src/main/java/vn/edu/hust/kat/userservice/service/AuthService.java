@@ -1,5 +1,8 @@
 package vn.edu.hust.kat.userservice.service;
 
+import vn.edu.hust.kat.common.api.exception.BadRequestException;
+import vn.edu.hust.kat.common.api.exception.DuplicateResourceException;
+import vn.edu.hust.kat.common.api.exception.ResourceNotFoundException;
 import vn.edu.hust.kat.common.kafka.event.BaseEvent;
 import vn.edu.hust.kat.common.kafka.payload.UserCreatedPayload;
 import vn.edu.hust.kat.userservice.dto.request.LoginRequest;
@@ -9,9 +12,6 @@ import vn.edu.hust.kat.userservice.dto.response.AuthResponse;
 import vn.edu.hust.kat.userservice.entity.RefreshToken;
 import vn.edu.hust.kat.userservice.entity.Role;
 import vn.edu.hust.kat.userservice.entity.User;
-import vn.edu.hust.kat.userservice.exception.BadRequestException;
-import vn.edu.hust.kat.userservice.exception.DuplicateResourceException;
-import vn.edu.hust.kat.userservice.exception.ResourceNotFoundException;
 import vn.edu.hust.kat.userservice.kafka.UserEventProducer;
 import vn.edu.hust.kat.userservice.repository.RefreshTokenRepository;
 import vn.edu.hust.kat.userservice.repository.RoleRepository;
@@ -26,7 +26,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;

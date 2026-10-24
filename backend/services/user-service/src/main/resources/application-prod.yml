@@ -14,6 +14,34 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
 
+  grpc:
+    client:
+      default-channel:
+        address: "static://localhost:9090"
+        default-load-balancing-policy: round_robin
+        enable-keep-alive: true
+        keep-alive-time: 5m
+        idle-timeout: 20s
+        health:
+          enabled: false
+      channels:
+        storage:
+          address: "dns://storage-service:8082"
+          default-deadline:
+            seconds: 2s
+          service-config:
+            method-config:
+              - name:
+                  - service: ''
+                retry-policy:
+                  max-attempts: 3
+                  initial-backoff: 100ms
+                  max-backoff: 1s
+                  backoff-multiplier: 2.0
+                  retryable-status-codes:
+                    - UNAVAILABLE
+                    - DEADLINE_EXCEEDED
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER:localhost:9092}
     producer:
@@ -51,4 +79,4 @@ logging:
 
 springdoc:
   swagger-ui:
-    enabled: false   # disable swagger in prod (optional)
+    enabled: false
