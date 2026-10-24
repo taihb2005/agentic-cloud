@@ -7,13 +7,13 @@ group = "vn.edu.hust.kat.common"
 version = "1.0.0"
 
 dependencies {
-    implementation("org.springframework:spring-web")
+    implementation(libs.spring.web)
 
     // ============================================================
     // Lombok
     // ============================================================
-    compileOnly("org.projectlombok:lombok:1.18.42")
-    annotationProcessor("org.projectlombok:lombok:1.18.42")
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
 
-    implementation("com.fasterxml.jackson.core:jackson-annotations:2.22")
+    implementation(libs.jackson.annotations)
 }

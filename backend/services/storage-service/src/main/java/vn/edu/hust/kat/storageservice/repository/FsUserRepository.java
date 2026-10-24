@@ -1,5 +1,6 @@
 package vn.edu.hust.kat.storageservice.repository;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import vn.edu.hust.kat.storageservice.entity.FsUser;
@@ -9,6 +10,6 @@ import java.util.UUID;
 
 @Repository
 public interface FsUserRepository extends JpaRepository<FsUser, UUID> {
-    Optional<FsUser> findById(UUID id);
-    boolean existsById(UUID id);
+    Optional<FsUser> findById(@NotNull UUID id);
+    boolean existsById(@NotNull UUID id);
 }

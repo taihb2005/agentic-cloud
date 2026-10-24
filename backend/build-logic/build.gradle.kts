@@ -12,8 +12,9 @@ repositories {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-gradle-plugin:3.5.7")
-    implementation("io.spring.gradle:dependency-management-plugin:1.1.7")
+    implementation("org.springframework.boot:spring-boot-gradle-plugin:${libs.versions.spring.boot.get()}")
+    implementation("io.spring.gradle:dependency-management-plugin:${libs.versions.spring.dependency.management.get()}")
+    implementation("com.google.protobuf:protobuf-gradle-plugin:${libs.versions.protobuf.plugin.get()}")
 }
 
 gradlePlugin {
@@ -34,6 +35,12 @@ gradlePlugin {
             id = "vn.edu.hust.kat.library-conventions"
             implementationClass =
                 "vn.edu.hust.kat.buildlogic.LibraryConventionsPlugin"
+        }
+
+        create("protobufConventions") {
+            id = "vn.edu.hust.kat.protobuf-conventions"
+            implementationClass =
+                "vn.edu.hust.kat.buildlogic.ProtobufConventionsPlugin"
         }
     }
 }

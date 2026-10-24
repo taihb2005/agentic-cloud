@@ -11,6 +11,22 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 
+
+  grpc:
+    server:
+      enabled: true
+      port: 9092
+      max-inbound-message-size: 10MB # Payload maximum size
+      keep-alive:
+        time: 1h
+        timeout: 20s
+        permit-without-calls: true
+        permit-time: 5m
+      reflection:
+        enabled: true
+      exception-handling:
+        enabled: true
+
   jackson:
     property-naming-strategy: SNAKE_CASE
 

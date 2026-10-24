@@ -1,33 +1,57 @@
-FROM eclipse-temurin:21-jdk-alpine AS builder
+# ============================================================================
+# storage-service  –  multi-stage build  (Gradle 9 / Spring Boot 4.1.1)
+# Build context: repository root (backend/)
+# ============================================================================
+
+# ── Stage 1: Build ──────────────────────────────────────────────────────────
+FROM eclipse-temurin:21-jdk AS builder
 
 WORKDIR /app
 
+# ---------- Gradle wrapper + properties (changes rarely → cached layer) -----
 COPY gradlew .
 COPY gradle ./gradle
-COPY settings.gradle.kts ./
 COPY gradle.properties ./
 
+# ---------- Root settings + version catalog --------------------------------
+# Gradle 9 requires libs.versions.toml to be present before evaluating
+# any build.gradle.kts that references the `libs` accessor.
+COPY settings.gradle.kts ./
+
+# ---------- Build-logic (convention plugins) --------------------------------
+# build-logic/settings.gradle.kts reads ../gradle/libs.versions.toml,
+# so the gradle/ dir (copied above) must already exist.
 COPY build-logic ./build-logic
 
-COPY common/build.gradle.kts ./common/
+# ---------- All module build scripts (needed by Gradle to configure) --------
+COPY common/build.gradle.kts          ./common/
+COPY common-proto/build.gradle.kts    ./common-proto/
+COPY api-gateway/build.gradle.kts     ./api-gateway/
 COPY services/storage-service/build.gradle.kts ./services/storage-service/
+COPY services/user-service/build.gradle.kts    ./services/user-service/
+COPY services/agent-service/build.gradle.kts   ./services/agent-service/
 
 RUN chmod +x gradlew
 
-RUN --mount=type=cache,target=/root/.gradle \
-    ./gradlew :services:storage-service:dependencies --no-daemon
+# ---------- Dependency resolution (cacheable layer) -------------------------
+RUN ./gradlew :services:storage-service:dependencies --no-daemon --no-watch-fs
 
-COPY common/src ./common/src
+# ---------- Application source code ----------------------------------------
+COPY common/src       ./common/src
+COPY common-proto/src ./common-proto/src
 COPY services/storage-service/src ./services/storage-service/src
 
-RUN ./gradlew :services:storage-service:bootJar -x test --no-daemon
+# ---------- Build the fat JAR -----------------------------------------------
+RUN ./gradlew :services:storage-service:bootJar -x test --no-daemon --no-watch-fs
 
-FROM eclipse-temurin:21-jre-alpine
+
+# ── Stage 2: Runtime ───────────────────────────────────────────────────────
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-RUN addgroup -S appgroup \
-    && adduser -S appuser -G appgroup \
+RUN groupadd --system appgroup \
+    && useradd --system --gid appgroup appuser \
     && mkdir -p /var/log/storage-service \
     && touch /var/log/storage-service/app.log \
     && chown -R appuser:appgroup /var/log/storage-service \

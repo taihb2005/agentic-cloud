@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package storage.v1;
+
+option java_package = "vn.edu.hust.kat.proto.storage.v1";
+option java_outer_classname = "StorageProto";
+option java_multiple_files = true;
+
+service StorageService {
+
+  rpc GetUserStorage(GetUserStorageRequest) returns (GetUserStorageResponse);
+}
+
+message GetUserStorageRequest {
+  string user_id = 1;
+}
+
+message GetUserStorageResponse {
+  string user_id = 1;
+  string storage_prefix = 2;
+  string storage_bucket_name = 3;
+  int64 storage_max_quota_bytes = 4;
+  int64 storage_current_quota_bytes = 5;
+  int64 root_node_id = 6;
+  string root_node_name = 7;
+  string root_node_path = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}

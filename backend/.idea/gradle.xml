@@ -16,6 +16,7 @@
           </compositeBuild>
         </compositeConfiguration>
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="gradleHome" value="C:\Gradle\gradle-8.10.1" />
         <option name="gradleJvm" value="23" />
         <option name="modules">
           <set>

@@ -1,0 +1,36 @@
+# ============================================================================
+# .dockerignore  –  Agentic Cloud Platform
+# Reduces Docker build context size and prevents cache invalidation
+# ============================================================================
+
+# IDE / Editor
+.idea/
+.vscode/
+*.iml
+
+# Gradle caches & build outputs (rebuilt inside container)
+.gradle/
+**/build/
+**/bin/
+
+# Git
+.git/
+.gitignore
+
+# Docker files themselves
+**/Dockerfile
+**/docker-compose*.yml
+**/.dockerignore
+docker/
+
+# Environment & secrets
+**/.env
+**/.env.*
+
+# OS files
+**/Thumbs.db
+**/.DS_Store
+
+# Documentation
+*.md
+LICENSE

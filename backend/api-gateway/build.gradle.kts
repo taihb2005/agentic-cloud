@@ -11,45 +11,43 @@ dependencies {
     // Core
     // ===========================================================
 
-    implementation("org.springframework.boot:spring-boot-starter-security")
-
-    implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webflux:4.3.5")
+    implementation(platform(libs.spring.cloud.dependencies))
 
     // ============================================================
     // JWT
     // ============================================================
 
-    implementation("io.jsonwebtoken:jjwt-api:0.13.0")
+    implementation(libs.jjwt.api)
 
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
+    runtimeOnly(libs.jjwt.impl)
 
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
+    runtimeOnly(libs.jjwt.jackson)
 
 
     // ============================================================
     // Rate Limiting
     // ============================================================
 
-    implementation("com.bucket4j:bucket4j-core:8.10.1")
+    implementation(libs.bucket4j.core)
 
 
     // ============================================================
     // OpenAPI / Swagger
     // ============================================================
 
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
+    implementation(libs.springdoc.openapi.webmvc)
 
     // ============================================================
     // Dev Tools
     // ============================================================
 
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    developmentOnly(libs.spring.boot.devtools)
 
     // ============================================================
     // Lombok
     // ============================================================
-    compileOnly("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
 
     implementation(project(":common"))
 }

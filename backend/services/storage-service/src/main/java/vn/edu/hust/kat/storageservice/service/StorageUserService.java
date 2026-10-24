@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.edu.hust.kat.common.api.exception.BadRequestException;
+import vn.edu.hust.kat.common.api.exception.ResourceNotFoundException;
 import vn.edu.hust.kat.storageservice.config.MinioProperties;
 import vn.edu.hust.kat.storageservice.dto.request.InitUserStorageRequest;
 import vn.edu.hust.kat.storageservice.dto.response.MinioObjectResponse;
@@ -39,7 +41,7 @@ public class StorageUserService {
         // 1. Kiểm tra Idempotency: Người dùng đã tồn tại chưa
         Optional<FsUser> existingUserOpt = fsUserRepository.findById(userId);
         if (existingUserOpt.isPresent()) {
-            return buildAlreadyExistsResponse(existingUserOpt.get());
+            return getUserStorage(existingUserOpt.get().getId());
         }
 
         // 2. Xác định các thông số cấu hình mặc định
@@ -64,8 +66,6 @@ public class StorageUserService {
                     .storageBucketName(createdObject.getBucketName())
                     .storageMaxQuotaBytes(quotaBytes)
                     .storageCurrentQuotaBytes(0L)
-                    .createdAt(now)
-                    .updatedAt(now)
                     .build();
 
             fsUser = fsUserRepository.save(fsUser);
@@ -83,8 +83,8 @@ public class StorageUserService {
                     .rootNodeId(rootNode.getId())
                     .rootNodeName(rootNode.getName())
                     .rootNodePath(rootNode.getMaterializedPath())
-                    .status("INITIALIZED")
                     .createdAt(fsUser.getCreatedAt())
+                    .updatedAt(fsUser.getUpdatedAt())
                     .build();
 
         } catch (Exception dbEx) {
@@ -95,25 +95,33 @@ public class StorageUserService {
         }
     }
 
-    private UserStorageResponse buildAlreadyExistsResponse(FsUser existingUser) {
-        UUID userId = existingUser.getId();
-        log.info("Người dùng '{}' đã tồn tại, bỏ qua bước tạo mới.", userId);
+    public boolean isUserNew(UUID userId) {
+        return fsUserRepository.existsById(userId);
+    }
+
+    public UserStorageResponse getUserStorage(UUID userId) {
+        if (userId == null || userId.toString().isEmpty() || userId.toString().isBlank()) {
+            throw new BadRequestException("Id không hợp lệ");
+        }
+        FsUser fsUser = fsUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Thông tin người dùng không tồn tại"));
+        log.info("Đang lấy thông tin người dùng có id {}", userId);
 
         Optional<FsNode> rootNodeOpt = fsNodeService.findRootNodeByUserId(userId);
         Long rootNodeId = rootNodeOpt.map(FsNode::getId).orElse(null);
         String rootNodePath = rootNodeOpt.map(FsNode::getMaterializedPath).orElse(Constants.STORAGE_ROOT_NAME);
 
         return UserStorageResponse.builder()
-                .userId(userId)
-                .storagePrefix(existingUser.getStoragePrefix())
-                .storageBucketName(existingUser.getStorageBucketName())
-                .storageMaxQuotaBytes(existingUser.getStorageMaxQuotaBytes())
-                .storageCurrentQuotaBytes(existingUser.getStorageCurrentQuotaBytes())
+                .userId(fsUser.getId())
+                .storagePrefix(fsUser.getStoragePrefix())
+                .storageBucketName(fsUser.getStorageBucketName())
+                .storageMaxQuotaBytes(fsUser.getStorageMaxQuotaBytes())
+                .storageCurrentQuotaBytes(fsUser.getStorageCurrentQuotaBytes())
                 .rootNodeId(rootNodeId)
                 .rootNodeName(Constants.STORAGE_ROOT_NAME)
                 .rootNodePath(rootNodePath)
-                .status("ALREADY_EXISTS")
-                .createdAt(existingUser.getCreatedAt())
+                .createdAt(fsUser.getCreatedAt())
+                .updatedAt(fsUser.getUpdatedAt())
                 .build();
     }
 }

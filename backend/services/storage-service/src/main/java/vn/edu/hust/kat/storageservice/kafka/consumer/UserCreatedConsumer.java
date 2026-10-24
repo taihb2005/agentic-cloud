@@ -48,7 +48,7 @@ public class UserCreatedConsumer {
                             .build();
 
                     UserStorageResponse response = storageUserService.initUserStorage(request);
-                    log.info("Đã khởi tạo xong cây thư mục và storage cho user {} (status: {})", payload.getId(), response.getStatus());
+                    log.info("Đã khởi tạo xong cây thư mục và storage cho user {}", payload.getId());
                 }
 
                 default -> log.warn("Bỏ qua event type không được hỗ trợ: {}", eventType);

@@ -12,92 +12,90 @@ dependencies {
     // Core
     // ============================================================
 
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation(libs.spring.boot.starter.web)
 
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation(libs.spring.boot.starter.data.jpa)
 
-    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation(libs.spring.boot.starter.security)
 
-    implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation(libs.spring.boot.starter.validation)
 
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation(libs.spring.boot.starter.actuator)
 
     // ============================================================
     // KAFKA
     // ============================================================
 
-    implementation("org.springframework.kafka:spring-kafka:3.3.16")
+    implementation(libs.spring.boot.starter.kafka)
 
     // ============================================================
     // JWT
     // ============================================================
 
-    implementation("io.jsonwebtoken:jjwt-api:0.13.0")
+    implementation(libs.jjwt.api)
 
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
+    runtimeOnly(libs.jjwt.impl)
 
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
+    runtimeOnly(libs.jjwt.jackson)
 
 
     // ============================================================
     // Object Storage (MinIO / S3)
     // ============================================================
 
-    implementation("io.minio:minio:8.5.17")
+    implementation(libs.minio)
 
 
     // ============================================================
     // Rate Limiting
     // ============================================================
 
-    implementation("com.bucket4j:bucket4j-core:8.10.1")
+    implementation(libs.bucket4j.core)
 
 
     // ============================================================
     // OpenAPI / Swagger
     // ============================================================
 
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
+    implementation(libs.springdoc.openapi.webmvc)
 
 
     // ============================================================
     // Database
     // ============================================================
 
-    runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly(libs.postgresql)
 
-    runtimeOnly("com.h2database:h2")
+    runtimeOnly(libs.h2)
 
     // ============================================================
     // Database Extensions
     // ============================================================
 
-    implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.16.0")
+    implementation(libs.hypersistence.utils)
 
 
     // ============================================================
     // Flyway
     // ============================================================
 
-    implementation("org.flywaydb:flyway-core")
+    implementation(libs.flyway.core)
 
-    implementation("org.flywaydb:flyway-database-postgresql")
+    implementation(libs.flyway.postgresql)
 
     // ============================================================
     // Dev Tools
     // ============================================================
 
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    developmentOnly(libs.spring.boot.devtools)
 
     // ============================================================
     // Lombok
     // ============================================================
-    compileOnly("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
 
-    implementation("com.google.code.gson:gson:2.14.0")
-    implementation("org.springframework.boot:spring-boot-starter-grpc-server:4.1.0")
-    implementation("org.springframework.boot:spring-boot-starter-grpc-client:4.1.0")
+    implementation(libs.spring.boot.starter.grpc.server)
 
     implementation(project(":common"))
     implementation(project(":common-proto"))
