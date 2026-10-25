@@ -22,6 +22,8 @@ dependencies {
 
     implementation(libs.spring.boot.starter.actuator)
 
+    implementation(libs.spring.boot.starter.flyway)
+
     // ============================================================
     // KAFKA
     // ============================================================
@@ -85,7 +87,9 @@ dependencies {
     // ============================================================
     // gRPC
     // ============================================================
+    implementation(libs.protobuf.java)
     implementation(libs.spring.boot.starter.grpc.server)
+    implementation(libs.spring.boot.starter.grpc.client)
 
     implementation(project(":common"))
     implementation(project(":common-proto"))

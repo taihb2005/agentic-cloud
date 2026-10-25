@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${USER_DB_HOST}:${USER_DB_PORT}/${USER_DB_NAME}
+    username: ${USER_DB_USERNAME}
+    password: ${USER_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       minimum-idle: 5
@@ -16,34 +16,11 @@ spring:
 
   grpc:
     client:
-      default-channel:
-        address: "static://localhost:9090"
-        default-load-balancing-policy: round_robin
-        enable-keep-alive: true
-        keep-alive-time: 5m
-        idle-timeout: 20s
-        health:
-          enabled: false
-      channels:
+      channel:
         storage:
-          address: "dns://storage-service:8082"
-          default-deadline:
-            seconds: 2s
-          service-config:
-            method-config:
-              - name:
-                  - service: ''
-                retry-policy:
-                  max-attempts: 3
-                  initial-backoff: 100ms
-                  max-backoff: 1s
-                  backoff-multiplier: 2.0
-                  retryable-status-codes:
-                    - UNAVAILABLE
-                    - DEADLINE_EXCEEDED
-
+          target: "storage-service:9092"
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER:localhost:9092}
+    bootstrap-servers: ${USER_KAFKA_BOOTSTRAP_SERVER:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -60,15 +37,15 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-    user: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${USER_DB_HOST}:${USER_DB_PORT}/${USER_DB_NAME}
+    user: ${USER_DB_USERNAME}
+    password: ${USER_DB_PASSWORD}
 
 app:
   admin:
-    username: ${ADMIN_USERNAME}
-    email: ${ADMIN_EMAIL}
-    password: ${ADMIN_PASSWORD}
+    username: ${USER_ADMIN_USERNAME}
+    email: ${USER_ADMIN_EMAIL}
+    password: ${USER_ADMIN_PASSWORD}
 
 logging:
   level:

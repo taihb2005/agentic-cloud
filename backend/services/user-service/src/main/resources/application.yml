@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:test}
+    active: ${USER_SPRING_PROFILES_ACTIVE:${SPRING_PROFILES_ACTIVE:test}}
   application:
     name: user-service
 
@@ -28,9 +28,9 @@ server:
 # JWT
 app:
   jwt:
-    secret: ${JWT_SECRET}
-    access-token-expiry: ${JWT_ACCESS_EXPIRY:900000}       # 15 min
-    refresh-token-expiry: ${JWT_REFRESH_EXPIRY:604800000}  # 7 days
+    secret: ${USER_JWT_SECRET:${JWT_SECRET}}
+    access-token-expiry: ${USER_JWT_ACCESS_EXPIRY:${JWT_ACCESS_EXPIRY:900000}}       # 15 min
+    refresh-token-expiry: ${USER_JWT_REFRESH_EXPIRY:${JWT_REFRESH_EXPIRY:604800000}}  # 7 days
 
   # Rate Limiting
   rate-limit:
@@ -41,7 +41,7 @@ app:
 
   # CORS
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+    allowed-origins: ${USER_CORS_ALLOWED_ORIGINS:${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}}
     allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
     allowed-headers: "*"
     allow-credentials: true
