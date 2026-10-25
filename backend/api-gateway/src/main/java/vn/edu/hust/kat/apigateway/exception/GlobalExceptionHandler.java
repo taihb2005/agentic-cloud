@@ -1,8 +1,9 @@
 package vn.edu.hust.kat.apigateway.exception;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.webflux.error.ErrorWebExceptionHandler;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
@@ -16,14 +17,11 @@ import vn.edu.hust.kat.common.api.response.ApiResponse;
 
 // Handler global exception from api gateway
 @Component
+@RequiredArgsConstructor
 @Order(-1)
 public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
 
-    private final ObjectMapper objectMapper;
-
-    public GlobalExceptionHandler(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
+    private final JsonMapper jsonMapper;
 
     @Override
     public Mono<Void> handle(
@@ -48,14 +46,14 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
             message.append(responseStatusException.getMessage());
         }
 
-        ApiResponse error = ApiResponse.error(message.toString(), statusCode);
+        ApiResponse<String> error = ApiResponse.error(message.toString(), statusCode);
 
         response.setStatusCode(HttpStatus.OK);
         response.getHeaders()
                 .setContentType(MediaType.APPLICATION_JSON);
 
         try {
-            byte[] bytes = objectMapper.writeValueAsBytes(error);
+            byte[] bytes = jsonMapper.writeValueAsBytes(error);
 
             DataBuffer buffer = response.bufferFactory()
                     .wrap(bytes);

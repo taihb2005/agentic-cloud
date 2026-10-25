@@ -12,6 +12,9 @@ dependencies {
     // ===========================================================
 
     implementation(platform(libs.spring.cloud.dependencies))
+    implementation(libs.spring.boot.starter.webflux)
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.cloud.starter.gateway.server.webflux)
 
     // ============================================================
     // JWT

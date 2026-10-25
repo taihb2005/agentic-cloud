@@ -50,18 +50,28 @@ public class AuthFilter implements GlobalFilter, Ordered {
         }
 
         // Check authorization header
-        if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-            return onError(exchange, HttpStatus.UNAUTHORIZED);
+        if (!request.getHeaders().containsHeader(HttpHeaders.AUTHORIZATION)) {
+            return Mono.error(
+                    new ResponseStatusException(HttpStatus.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.getReasonPhrase())
+            );
         }
 
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return onError(exchange, HttpStatus.UNAUTHORIZED);
+            return Mono.error(
+                    new ResponseStatusException(HttpStatus.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.getReasonPhrase())
+            );
         }
 
         String token = authHeader.substring(7);
 
         try {
+            if (!jwtUtil.isTokenValid(token)) {
+                return Mono.error(
+                        new ResponseStatusException(HttpStatus.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.getReasonPhrase())
+                );
+            }
+
             Claims claims = jwtUtil.extractAllClaims(token);
             String userId = claims.getSubject(); // User id from subject
 
@@ -86,11 +96,6 @@ public class AuthFilter implements GlobalFilter, Ordered {
         }
     }
 
-    private Mono<Void> onError(ServerWebExchange exchange, HttpStatus status) {
-        ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(status);
-        return response.setComplete();
-    }
 
     @Override
     public int getOrder() {
