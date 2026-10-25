@@ -39,8 +39,5 @@ services:
       - "5050:80"
     networks:
       - microservice-net
-
-networks:
-  microservice-net:
-    name: microservice-net
-    external: true
+      - user-db-net
+      - storage-db-net

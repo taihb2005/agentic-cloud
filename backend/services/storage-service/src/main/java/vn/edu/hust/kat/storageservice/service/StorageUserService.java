@@ -54,7 +54,7 @@ public class StorageUserService {
         log.debug("Cấu hình lưu trữ: bucket={}, prefix={}, quota={} bytes", bucketName, storagePrefix, quotaBytes);
 
         // 3. Gọi MinIO tạo folder TRƯỚC. Chỉ khi MinIO trả về s3ObjectKey hợp lệ mới đi tiếp.
-        MinioObjectResponse createdObject = minioStorageService.initUserDirectory(bucketName, storagePrefix);
+        MinioObjectResponse createdObject = minioStorageService.createDirectory(bucketName, storagePrefix);
 
         // 4. Lưu Metadata (FsUser + Root FsNode) sau khi MinIO đã thành công
         try {

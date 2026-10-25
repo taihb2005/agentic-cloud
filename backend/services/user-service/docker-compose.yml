@@ -1,5 +1,5 @@
 services:
-  app:
+  user-service:
     build:
       context: ../..
       dockerfile: services/user-service/Dockerfile
@@ -23,12 +23,13 @@ services:
       USER_CORS_ALLOWED_ORIGINS: ${USER_CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       USER_KAFKA_BOOTSTRAP_SERVER: ${USER_KAFKA_BOOTSTRAP_SERVER}
     depends_on:
-      postgres:
+      postgres-user-service:
         condition: service_healthy
     networks:
       - microservice-net
+      - user-db-net
 
-  postgres:
+  postgres-user-service:
     image: postgres:17
     container_name: user-service-db
     hostname: postgres
@@ -47,12 +48,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - microservice-net
+      - user-db-net
 
 volumes:
   user_service_postgres_data:
-
-networks:
-  microservice-net:
-    name: microservice-net
-    external: true

@@ -1,5 +1,5 @@
 services:
-  app:
+  storage-service:
     build:
       context: ../..
       dockerfile: services/storage-service/Dockerfile
@@ -22,12 +22,13 @@ services:
       STORAGE_MINIO_ROOT_PASSWORD: ${STORAGE_MINIO_ROOT_PASSWORD}
       STORAGE_DEFAULT_QUOTA_BYTES: ${STORAGE_DEFAULT_QUOTA_BYTES}
     depends_on:
-      postgres:
+      postgres-storage-service:
         condition: service_healthy
     networks:
       - microservice-net
+      - storage-db-net
 
-  postgres:
+  postgres-storage-service:
     image: postgres:17
     container_name: storage-service-db
     hostname: postgres
@@ -46,7 +47,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - microservice-net
+      - storage-db-net
 
   minio:
     image: taihb2005/minio:1.0.0
@@ -72,8 +73,3 @@ services:
 
 volumes:
   storage_service_postgres_data:
-
-networks:
-  microservice-net:
-    name: microservice-net
-    external: true

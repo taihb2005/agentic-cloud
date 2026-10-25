@@ -1,0 +1,29 @@
+networks:
+  microservice-net:
+    name: microservice-net
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.0.0/24
+          gateway: 172.30.0.1
+
+  user-db-net:
+    name: user-db-net
+    driver: bridge
+    internal: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.10.0/24
+          gateway: 172.30.10.1
+
+  storage-db-net:
+    name: storage-db-net
+    driver: bridge
+    internal: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.30.0/24
+          gateway: 172.30.30.1

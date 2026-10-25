@@ -22,8 +22,10 @@ public class MinioStorageService {
 
     /**
      * Khởi tạo folder prefix trên MinIO và trả về s3ObjectKey sau khi thành công.
+     * @param bucketName tên của bucket đang muốn khởi tạo folder
+     * @param storagePrefix tiền tố của folder cha mong muốn khởi tạo. Ví dụ '(user_id)/(parent_id)/(..)'
      */
-    public MinioObjectResponse initUserDirectory(String bucketName, String storagePrefix) {
+    public MinioObjectResponse createDirectory(String bucketName, String storagePrefix) {
         String normalizedKey = normalizeFolderKey(storagePrefix);
 
         try {

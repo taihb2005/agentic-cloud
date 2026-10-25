@@ -1,0 +1,8 @@
+name: agentic-cloud-platform
+
+include:
+  - docker/docker-compose.network.yml
+  - docker/common-service.yml
+  - api-gateway/docker-compose.yml
+  - services/user-service/docker-compose.yml
+  - services/storage-service/docker-compose.yml

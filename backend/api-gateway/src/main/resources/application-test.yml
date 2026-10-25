@@ -15,11 +15,13 @@ spring:
               filters:
                 - StripPrefix=2
 
-#            # Route 2: Storage Service
-#            - id: storage-service
-#              uri: http://localhost:8082
-#              predicates:
-#                - Path=/api/v1/storage-service/**
+            # Route 2: Storage Service
+            - id: storage-service
+              uri: http://storage-service:8082
+              predicates:
+                - Path=/api/v1/storage-service/**
+              filters:
+                - StripPrefix=2
 #
 #            # Route 3: Agent Service
 #            - id: agent-service

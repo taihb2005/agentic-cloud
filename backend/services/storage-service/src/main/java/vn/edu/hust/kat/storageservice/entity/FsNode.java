@@ -55,8 +55,9 @@ public class FsNode {
     @Column(name = "is_folder", nullable = false)
     private Boolean isFolder;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "node_status", length = 20)
-    private String nodeStatus;
+    private Status nodeStatus;
 
     @Column(name = "storage_bucket_name", length = 100)
     private String storageBucketName;

@@ -4,6 +4,7 @@
     <persistence-units>
       <persistence-unit moduleName="agentic-cloud-platform.services.user-service.main" name="agentic-cloud-platform.services.user-service.main" framework="JPA" ormUnit="agentic-cloud-platform.services.user-service.main:agentic-cloud-platform.services.user-service.main" defaultDataSourceId="dbbd5477-21a6-4bed-8a35-8462156a29f8" />
       <persistence-unit moduleName="agentic-cloud-platform.services.user-service.main" name="entityManagerFactory" framework="JPA" ormUnit="agentic-cloud-platform.services.user-service.main:entityManagerFactory" />
+      <persistence-unit moduleName="agentic-cloud-platform.services.storage-service.main" name="agentic-cloud-platform.services.storage-service.main" framework="JPA" ormUnit="agentic-cloud-platform.services.storage-service.main:agentic-cloud-platform.services.storage-service.main" />
     </persistence-units>
   </component>
 </project>

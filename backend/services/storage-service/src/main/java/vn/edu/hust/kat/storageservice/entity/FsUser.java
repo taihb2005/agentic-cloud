@@ -19,6 +19,7 @@ import java.util.UUID;
 public class FsUser implements Persistable<UUID> {
 
     @Id
+    @Column(name = "id", nullable = false)
     private UUID id;
 
     @Column(name = "storage_prefix", nullable = false)
