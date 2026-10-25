@@ -22,6 +22,8 @@ dependencies {
 
     implementation(libs.spring.boot.starter.actuator)
 
+    implementation(libs.spring.boot.starter.flyway)
+
     // ============================================================
     // KAFKA
     // ============================================================
@@ -95,6 +97,7 @@ dependencies {
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
 
+    implementation(libs.protobuf.java)
     implementation(libs.spring.boot.starter.grpc.server)
 
     implementation(project(":common"))

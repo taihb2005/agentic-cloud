@@ -8,18 +8,19 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      KAFKA_BOOTSTRAP_SERVER: ${KAFKA_BOOTSTRAP_SERVER}
-      MINIO_ENABLED: ${MINIO_ENABLED}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
-      MINIO_DEFAULT_BUCKET: ${MINIO_DEFAULT_BUCKET}
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      STORAGE_SPRING_PROFILES_ACTIVE: ${STORAGE_SPRING_PROFILES_ACTIVE}
+      STORAGE_DB_HOST: ${STORAGE_DB_HOST}
+      STORAGE_DB_PORT: ${STORAGE_DB_PORT}
+      STORAGE_DB_NAME: ${STORAGE_DB_NAME}
+      STORAGE_DB_USERNAME: ${STORAGE_DB_USERNAME}
+      STORAGE_DB_PASSWORD: ${STORAGE_DB_PASSWORD}
+      STORAGE_KAFKA_BOOTSTRAP_SERVER: ${STORAGE_KAFKA_BOOTSTRAP_SERVER}
+      STORAGE_MINIO_ENABLED: ${STORAGE_MINIO_ENABLED}
+      STORAGE_MINIO_ENDPOINT: ${STORAGE_MINIO_ENDPOINT}
+      STORAGE_MINIO_DEFAULT_BUCKET: ${STORAGE_MINIO_DEFAULT_BUCKET}
+      STORAGE_MINIO_ROOT_USER: ${STORAGE_MINIO_ROOT_USER}
+      STORAGE_MINIO_ROOT_PASSWORD: ${STORAGE_MINIO_ROOT_PASSWORD}
+      STORAGE_DEFAULT_QUOTA_BYTES: ${STORAGE_DEFAULT_QUOTA_BYTES}
     depends_on:
       postgres:
         condition: service_healthy
@@ -32,9 +33,9 @@ services:
     hostname: postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${STORAGE_DB_NAME}
+      POSTGRES_USER: ${STORAGE_DB_USERNAME}
+      POSTGRES_PASSWORD: ${STORAGE_DB_PASSWORD}
     volumes:
       - storage_service_postgres_data:/var/lib/postgresql/data
     ports:
@@ -55,10 +56,11 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-    env_file:
-      - .env
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${STORAGE_MINIO_ROOT_PASSWORD}
     volumes:
-      - ${MINIO_HOST_VOLUME}:/data
+      - ${STORAGE_MINIO_HOST_VOLUME}:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]

@@ -34,7 +34,7 @@ public class MinioStorageService {
                     PutObjectArgs.builder()
                             .bucket(bucketName)
                             .object(normalizedKey)
-                            .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                            .stream(new ByteArrayInputStream(new byte[0]), 0L, -1L)
                             .build()
             );
 

@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${STORAGE_SPRING_PROFILES_ACTIVE:${SPRING_PROFILES_ACTIVE:dev}}
   application:
     name: storage-service
 
@@ -26,11 +26,11 @@ server:
 
 app:
   minio:
-    enabled: ${MINIO_ENABLED:true}
-    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
-    access-key: ${MINIO_ROOT_USER:taihb2005}
-    secret-key: ${MINIO_ROOT_PASSWORD:admin@123}
-    default-bucket: ${MINIO_DEFAULT_BUCKET:smart-cloud-storage}
+    enabled: ${STORAGE_MINIO_ENABLED:${MINIO_ENABLED:true}}
+    endpoint: ${STORAGE_MINIO_ENDPOINT:${MINIO_ENDPOINT:http://localhost:9000}}
+    access-key: ${STORAGE_MINIO_ROOT_USER:${MINIO_ROOT_USER:taihb2005}}
+    secret-key: ${STORAGE_MINIO_ROOT_PASSWORD:${MINIO_ROOT_PASSWORD:admin@123}}
+    default-bucket: ${STORAGE_MINIO_DEFAULT_BUCKET:${MINIO_DEFAULT_BUCKET:smart-cloud-storage}}
     default-quota-bytes: ${STORAGE_DEFAULT_QUOTA_BYTES:16106127360} # 15 GB
     user-prefix-pattern: "users/%s/"
 

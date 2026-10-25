@@ -3,7 +3,7 @@ package vn.edu.hust.kat.storageservice.kafka.consumer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -21,7 +21,7 @@ import java.util.UUID;
 @Slf4j
 public class UserCreatedConsumer {
 
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final StorageUserService storageUserService;
 
     @KafkaListener(
@@ -31,7 +31,7 @@ public class UserCreatedConsumer {
     public void consume(String message) {
         log.info("Nhận được message từ Kafka topic 'user.events': {}", message);
         try {
-            JsonNode jsonNode = objectMapper.readTree(message);
+            JsonNode jsonNode = jsonMapper.readTree(message);
             String eventType = jsonNode.path("eventType").asText();
 
             switch (eventType) {
@@ -48,7 +48,7 @@ public class UserCreatedConsumer {
                             .build();
 
                     UserStorageResponse response = storageUserService.initUserStorage(request);
-                    log.info("Đã khởi tạo xong cây thư mục và storage cho user {}", payload.getId());
+                    log.info("Đã khởi tạo xong cây thư mục và storage cho user {}", response);
                 }
 
                 default -> log.warn("Bỏ qua event type không được hỗ trợ: {}", eventType);
@@ -64,9 +64,9 @@ public class UserCreatedConsumer {
             Class<T> payloadClass
     ) throws JsonProcessingException {
 
-        JavaType type = objectMapper.getTypeFactory()
+        JavaType type = jsonMapper.getTypeFactory()
                 .constructParametricType(BaseEvent.class, payloadClass);
 
-        return objectMapper.readValue(json, type);
+        return jsonMapper.readValue(json, type);
     }
 }
