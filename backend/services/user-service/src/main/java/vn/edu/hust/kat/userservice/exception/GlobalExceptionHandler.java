@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
                 errors.put(error.getField(), error.getDefaultMessage())
         );
 
-        return ResponseEntity.badRequest()
+        return ResponseEntity.ok()
                 .body(ApiResponse.error("Sai định dạng: " + errors, HttpStatus.BAD_REQUEST));
     }
 
@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(BadRequestException ex) {
-        return ResponseEntity.badRequest()
+        return ResponseEntity.ok()
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST));
     }
 
@@ -72,13 +72,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnsupportedOperationException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnsupportedOperation(UnsupportedOperationException ex) {
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponse.error("Phương thưức không hỗ trợ", HttpStatus.FORBIDDEN));
+                .body(ApiResponse.error("Phương thức không hỗ trợ", HttpStatus.FORBIDDEN));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex) {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        return ResponseEntity.ok()
                 .body(ApiResponse.error("Đã có lỗi xảy ra. Vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR));
     }
 }

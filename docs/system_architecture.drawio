@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.6 Chrome/144.0.7559.236 Electron/40.8.4 Safari/537.36" version="29.6.6">
   <diagram name="Page-1" id="5oKqB8BRIh8knqe8con9">
-    <mxGraphModel dx="1285" dy="764" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="894" dy="531" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -10,7 +10,7 @@
         <mxCell id="b4q4bavGYctqDzqPK1dF-5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="API Gateway&lt;div&gt;(Google Cloud Gateway, Spring Cloud Gateway,...)&lt;/div&gt;" vertex="1">
           <mxGeometry height="80" width="140" x="340" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="b4q4bavGYctqDzqPK1dF-6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Auth Service&lt;div&gt;(Xác thực người dùng)&lt;/div&gt;" vertex="1">
+        <mxCell id="b4q4bavGYctqDzqPK1dF-6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="User Service" vertex="1">
           <mxGeometry height="70" width="140" x="90" y="420" as="geometry" />
         </mxCell>
         <mxCell id="b4q4bavGYctqDzqPK1dF-8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Storage Service&lt;div&gt;(Core của hệ thống lưu trữ đám mây, chuẩn S3)&lt;/div&gt;" vertex="1">
@@ -88,8 +88,8 @@
             <mxPoint x="340" y="452.5" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="b4q4bavGYctqDzqPK1dF-37" parent="1" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="Internal network (HTTPS)" vertex="1">
-          <mxGeometry height="30" width="100" x="240" y="460" as="geometry" />
+        <mxCell id="b4q4bavGYctqDzqPK1dF-37" parent="1" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;" value="RPC" vertex="1">
+          <mxGeometry height="30" width="100" x="260" y="450" as="geometry" />
         </mxCell>
         <mxCell id="mbLzPLePh14Vjdpi6q_--1" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" value="CSDL&lt;br&gt;quan hệ" vertex="1">
           <mxGeometry height="120" width="65" x="370" y="530" as="geometry" />

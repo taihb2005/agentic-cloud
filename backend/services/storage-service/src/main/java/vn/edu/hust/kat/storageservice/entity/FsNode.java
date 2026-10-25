@@ -102,7 +102,7 @@ public class FsNode {
         updatedAt = LocalDateTime.now();
     }
 
-    public boolean isDeleted() { return deletedAt == null; }
+    public boolean isDeleted() { return deletedAt != null; }
 
     public enum Status {
         ACTIVE, DELETED, PENDING, TEMPORARY

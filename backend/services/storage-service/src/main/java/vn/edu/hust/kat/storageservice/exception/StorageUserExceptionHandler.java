@@ -15,7 +15,7 @@ public class StorageUserExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleMissingHeader(
             MissingRequestHeaderException ex
     ) {
-        return ResponseEntity
-                .badRequest().body(ApiResponse.error("Thiếu header được yêu cầu", HttpStatus.BAD_REQUEST));
+        return ResponseEntity.ok()
+                .body(ApiResponse.error("Thiếu header được yêu cầu", HttpStatus.BAD_REQUEST));
     }
 }

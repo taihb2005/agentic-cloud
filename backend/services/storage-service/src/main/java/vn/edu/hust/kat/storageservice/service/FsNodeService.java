@@ -88,9 +88,12 @@ public class FsNodeService {
         FsNode parentNode;
 
         if (isRootIdentifier(parentIdStr)) {
+            log.info("Thư mục cha là thư mục gốc");
+
             parentNode = fsNodeRepository.findByUserIdAndParentIsNull(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Thư mục gốc không tồn tại"));
         } else {
+            log.info("Thư mục cha không phải là thư mục gốc");
             Long parentId = parseParentId(parentIdStr);
             parentNode = fsNodeRepository.findById(parentId)
                     .orElseThrow(() -> new ResourceNotFoundException("Thư mục cha không tồn tại"));
@@ -102,6 +105,8 @@ public class FsNodeService {
         }
 
         if (isNodeDeleted(parentNode)) {
+            log.info("Thư mục cha đã bị xóa");
+
             throw new ResourceNotFoundException("Thư mục cha không tồn tại");
         }
 

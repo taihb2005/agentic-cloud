@@ -50,7 +50,7 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new DuplicateResourceException("Username already registered: " + request.getUsername());
+            throw new DuplicateResourceException("Người dùng đã được đăng ký: " + request.getUsername());
         }
 
         Role userRole = roleRepository.findByName("ROLE_USER")
@@ -110,10 +110,10 @@ public class AuthService {
     @Transactional
     public AuthResponse refresh(RefreshTokenRequest request) {
         RefreshToken token = refreshTokenRepository.findByToken(request.getRefreshToken())
-                .orElseThrow(() -> new BadRequestException("Invalid refresh token"));
+                .orElseThrow(() -> new BadRequestException("Token không hợp lệ"));
 
         if (token.isRevoked() || jwtService.isTokenValid(token.getToken())) {
-            throw new BadRequestException("Refresh token is expired or revoked. Please login again.");
+            throw new BadRequestException("Token đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại");
         }
 
         User user = token.getUser();
