@@ -16,5 +16,5 @@ public class CreateFolderRequest {
     private String name;
 
     @JsonProperty("parent_id")
-    private Long parentId;
+    private String parentId;
 }

@@ -1,17 +1,13 @@
 package vn.edu.hust.kat.storageservice.service;
 
-import io.minio.BucketExistsArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.ObjectWriteResponse;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
+import io.minio.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import vn.edu.hust.kat.storageservice.dto.response.MinioObjectResponse;
 
 import java.io.ByteArrayInputStream;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -21,39 +17,58 @@ public class MinioStorageService {
     private final MinioClient minioClient;
 
     /**
-     * Khởi tạo folder prefix trên MinIO và trả về s3ObjectKey sau khi thành công.
+     * Khởi tạo folder storagePrefix trên MinIO và trả về s3ObjectKey sau khi thành công.
      * @param bucketName tên của bucket đang muốn khởi tạo folder
-     * @param storagePrefix tiền tố của folder cha mong muốn khởi tạo. Ví dụ '(user_id)/(parent_id)/(..)'
+     * @param storagePrefix tiền tố của user khi khởi tạo storage'
      */
     public MinioObjectResponse createDirectory(String bucketName, String storagePrefix) {
-        String normalizedKey = normalizeFolderKey(storagePrefix);
+        // Sinh key phẳng: có dạng user/<user_id>/random_uuid
+        String normalizedPrefix = (storagePrefix.endsWith("/") ? storagePrefix : storagePrefix + "/");
+
+        String objectKey = normalizedPrefix + UUID.randomUUID() + "/";
 
         try {
-            ensureBucketExists(bucketName);
-
-            // Tạo một empty object có giá trị 0 byte để nhận diện là thư mục
+            // Đẩy 1 object rỗng (0-byte) lên MinIO
             ObjectWriteResponse response = minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(bucketName)
-                            .object(normalizedKey)
+                            .object(objectKey)
                             .stream(new ByteArrayInputStream(new byte[0]), 0L, -1L)
+                            .contentType("application/x-directory")
                             .build()
             );
 
-            MinioObjectResponse minioObjectResponse = MinioObjectResponse.builder()
-                                .bucketName(response.bucket())
-                                .objectKey(response.object())
-                                .etag(response.etag())
-                                .build();
-
-            log.info("Khởi tạo thành công folder trên MinIO: bucket={}, object={}, etag={}",
-                    bucketName, response.object(), response.etag());
-
-            // Trả về object key thực tế từ phản hồi của MinIO
-            return minioObjectResponse;
+            return MinioObjectResponse.builder()
+                    .bucketName(bucketName)
+                    .objectKey(objectKey)
+                    .etag(response.etag())
+                    .build();
         } catch (Exception e) {
-            log.error("Lỗi khi khởi tạo thư mục trên MinIO cho bucket={}, prefix={}", bucketName, normalizedKey, e);
-            throw new RuntimeException("Không thể khởi tạo không gian lưu trữ trên MinIO", e);
+            throw new RuntimeException("Không thể tạo thư mục vật lý trên MinIO: " + e.getMessage(), e);
+        }
+    }
+
+    public MinioObjectResponse getObjectMetadata(String bucketName, String objectKey) {
+        String normalizedKey = normalizeFolderKey(objectKey);
+
+        try {
+            StatObjectResponse statObject = minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(normalizedKey)
+                            .build()
+            );
+
+            return MinioObjectResponse.builder()
+                    .bucketName(statObject.bucket())
+                    .objectKey(statObject.object())
+                    .size(statObject.size())
+                    .etag(statObject.etag())
+                    .contentType(statObject.contentType())
+                    .build();
+        } catch (Exception e) {
+            log.error("Lỗi khi lấy metadata trên MinIO cho bucket={}, objectKey={}", bucketName, normalizedKey, e);
+            throw new RuntimeException("Không thể lây metadata của object");
         }
     }
 

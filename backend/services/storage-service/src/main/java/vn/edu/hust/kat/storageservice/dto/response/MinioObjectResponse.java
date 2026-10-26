@@ -13,5 +13,8 @@ import lombok.NoArgsConstructor;
 public class MinioObjectResponse {
     private String bucketName;
     private String objectKey;
+    private Long size;
     private String etag;
+    private String contentType;
+    private String lastModified;
 }

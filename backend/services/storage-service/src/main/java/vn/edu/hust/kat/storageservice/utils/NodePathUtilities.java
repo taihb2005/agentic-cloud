@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 public final class NodePathUtilities {
 
     public static final String SEPARATOR = ".";
+    public static final String SEPARATOR_SLASH = "\\";
     public static final String SEPARATOR_REGEX = "\\.";
 
     // Regex kiểm tra 1 nhãn đơn lẻ
@@ -71,6 +72,33 @@ public final class NodePathUtilities {
             return Collections.emptyList();
         }
         return Arrays.asList(path.trim().split(SEPARATOR_REGEX));
+    }
+
+    /**
+     * Chuyển ltree path sang path dạng filesystem.
+     *
+     * Ví dụ:
+     * "root.u_123.u_456.u_789" -> "/u_123/u_456/u_789"
+     * "root"                   -> "/"
+     * "u_123.u_456"            -> "/u_123/u_456"
+     */
+    public static String toSlashPath(String path) {
+        if (path == null || path.isBlank()) {
+            return "/";
+        }
+
+        List<String> labels = split(path);
+
+        // Loại bỏ root ở đầu nếu có
+        if (!labels.isEmpty() && "root".equals(labels.getFirst())) {
+            labels = labels.subList(1, labels.size());
+        }
+
+        if (labels.isEmpty()) {
+            return "/";
+        }
+
+        return "/" + String.join("/", labels);
     }
 
     /**

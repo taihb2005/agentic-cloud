@@ -3,6 +3,7 @@ package vn.edu.hust.kat.apigateway.exception;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.webflux.error.ErrorWebExceptionHandler;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -18,6 +19,7 @@ import vn.edu.hust.kat.common.api.response.ApiResponse;
 // Handler global exception from api gateway
 @Component
 @RequiredArgsConstructor
+@Slf4j
 @Order(-1)
 public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
 
@@ -28,6 +30,7 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
             ServerWebExchange exchange,
             Throwable exception
     ) {
+        log.error("Đã có lỗi xảy ra {}", exception.getMessage());
         ServerHttpResponse response = exchange.getResponse();
 
         if (response.isCommitted()) {
@@ -35,7 +38,7 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
         }
 
         HttpStatus statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-        StringBuilder message = new StringBuilder("Internal server error");
+        StringBuilder message = new StringBuilder("Đã có lỗi xảy ra. Vui lòng thử lại sau");
 
         if (exception instanceof ResponseStatusException responseStatusException) {
             //Replace with the desired http code

@@ -15,6 +15,7 @@ public class ApiResponse<T> {
     private boolean success;
     private String message;
     private Integer code;
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     private T data;
     private String error;
 

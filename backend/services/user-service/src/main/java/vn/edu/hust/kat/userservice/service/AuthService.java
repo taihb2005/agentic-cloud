@@ -112,7 +112,7 @@ public class AuthService {
         RefreshToken token = refreshTokenRepository.findByToken(request.getRefreshToken())
                 .orElseThrow(() -> new BadRequestException("Token không hợp lệ"));
 
-        if (token.isRevoked() || jwtService.isTokenValid(token.getToken())) {
+        if (token.isRevoked() || !jwtService.isTokenValid(token.getToken())) {
             throw new BadRequestException("Token đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại");
         }
 

@@ -8,6 +8,7 @@ import org.hibernate.annotations.Type;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -86,6 +87,9 @@ public class FsNode {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "delete_batch_id")
+    private UUID deleteBatchId;
+
     @OneToOne(mappedBy = "node", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private FsShare share;
 
@@ -102,7 +106,7 @@ public class FsNode {
         updatedAt = LocalDateTime.now();
     }
 
-    public boolean isDeleted() { return deletedAt != null; }
+    public boolean isDeleted() { return deletedAt != null && deleteBatchId != null; }
 
     public enum Status {
         ACTIVE, DELETED, PENDING, TEMPORARY

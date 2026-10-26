@@ -1,15 +1,11 @@
 package vn.edu.hust.kat.storageservice.service;
 
-import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,8 +54,8 @@ public class FsNodeService {
             throw new BadRequestException("User ID không hợp lệ");
         }
 
-        // 1. Lấy và kiểm tra hợp lệ thư mục cha chỉ trong 1 truy vấn DB
-        FsNode parentNode = resolveAndValidateParentNode(userId, parentIdStr);
+        // 1. Lấy và kiểm tra hợp lệ thư mục cha
+        FsNode parentNode = resolveAndValidateNode(userId, parentIdStr, true);
 
         // 2. Chuẩn hóa các bộ lọc
         Boolean isFolder = parseNodeType(nodeType);
@@ -84,34 +80,226 @@ public class FsNodeService {
         return PagedResponse.from(nodePage.map(NodeResponse::from));
     }
 
-    private FsNode resolveAndValidateParentNode(UUID userId, String parentIdStr) {
+    /**
+     * Lấy metadata của node trên minio
+     * @param userId user id của người dùng
+     * @param nodeId id của node đang muốn lấy metadata
+     */
+    @Transactional(readOnly = true)
+    public NodeResponse getNodeMetadata(UUID userId, String nodeId) {
+        if (userId == null) {
+            throw new BadRequestException("User id không hợp lệ");
+        }
+
+        // Kiểm tra tính hợp lệ của node id người dùng gủi lên
+        FsNode node = resolveAndValidateNode(userId, nodeId, true);
+
+        return NodeResponse.from(node);
+    }
+
+    /**
+     * Di chuyển node
+     * @param srcNodeIdStr Node id của node gốc cần di chuyển
+     * @param needSrcActive Node id của node nguồn có cần active không
+     * @param dstNodeIdStr Node id của node cần di chuyển đến
+     * @param needDstActive Node id của node đích có cần active không
+     */
+    @Transactional
+    public NodeResponse moveNode(UUID userId, String srcNodeIdStr, boolean needSrcActive, String dstNodeIdStr, boolean needDstActive) {
+        if (userId == null) {
+            throw new BadRequestException("User ID không hợp lệ");
+        }
+
+        FsNode srcNode = resolveAndValidateNode(userId, srcNodeIdStr, needSrcActive);
+        FsNode dstNode = resolveAndValidateNode(userId, dstNodeIdStr, needDstActive);
+        Long srcNodeId = srcNode.getId();
+        Long dstNodeId = dstNode.getId();
+        String srcNodePath = srcNode.getMaterializedPath();
+        String dstNodePath = dstNode.getMaterializedPath();
+
+        boolean isValid = !fsNodeRepository.isAncestor(srcNodeId, dstNodeId) && !srcNodeId.equals(dstNodeId);
+        if (!isValid) {
+            throw new BadRequestException("Thư mục đích tới không được phép là con của thư mục nguồn");
+        }
+
+        try {
+            if (srcNode.getIsFolder()) {
+                int affected = fsNodeRepository.moveFolderAndDescendents(srcNodeId, dstNodeId, srcNodePath, dstNodePath);
+                log.info("Di chuyển thư mục từ {} đến {} thành công, có {} dòng ảnh hưởng", srcNodeId, dstNodeId, affected);
+            } else {
+                int affected = fsNodeRepository.moveFile(srcNodeId, dstNodeId, srcNodePath);
+                log.info("Di chuyển file từ {} đến {} thành công, có {} dòng ảnh hưởng", srcNodeId, dstNodeId, affected);
+            }
+
+            FsNode updatedNode = fsNodeRepository.findById(srcNodeId).orElseThrow(
+                    () -> new RuntimeException("Không thể di chuyển node")
+            );
+
+            return NodeResponse.from(updatedNode);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new BadRequestException(e.getMessage());
+        }
+    }
+
+    /**
+     * Đưa node vào thùng rác. Nếu là thư mục sẽ xóa đệ quy bằng ltree.
+     */
+    @Transactional
+    public void softDeleteNode(UUID userId, String nodeIdStr) {
+        if (userId == null) {
+            throw new BadRequestException("User ID không hợp lệ");
+        }
+
+        FsNode node = resolveAndValidateNode(userId, nodeIdStr, true);
+
+        if (node.getParent() == null || Constants.STORAGE_ROOT_NAME.equalsIgnoreCase(node.getName())) {
+            throw new BadRequestException("Không thể xóa thư mục gốc");
+        }
+
+        Long nodeId = node.getId();
+        String nodePath = node.getMaterializedPath();
+        UUID deleteBatchId = UUID.randomUUID();
+
+        try {
+            if (node.getIsFolder()) {
+                int affected = fsNodeRepository.softDeleteFolderAndDescendants(userId, nodePath, deleteBatchId);
+                log.info("Di chuyển thư mục {} ra thùng rác thành công, có {} dòng bị ảnh hưởng", nodeId, affected);
+            } else {
+                int affected = fsNodeRepository.softDeleteFile(userId, nodeId, deleteBatchId);
+                log.info("Di chuyển node {} ra thùng rác thành công, có {} dòng bị ảnh hưởng", nodeId, affected);
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new BadRequestException(e.getMessage());
+        }
+    }
+
+
+    /**
+     * Khôi phục node đã xóa từ thùng rác.
+     * Nếu node là thư mục, toàn bộ subtree thuộc cùng delete batch
+     * sẽ được khôi phục.
+     * Nếu thư mục cha đã bị xóa, node sẽ được đưa về thư mục gốc.
+     */
+    @Transactional
+    public NodeResponse restoreNode(UUID userId, String nodeIdStr) {
+        if (userId == null) {
+            throw new BadRequestException("User ID không hợp lệ");
+        }
+
+
+        FsNode node = resolveAndValidateNode(userId, nodeIdStr, false);
+        Long nodeId = node.getId();
+
+        if (!isNodeDeleted(node)) {
+            throw new BadRequestException("Không thể khôi phục lại node chưa bị xóa");
+        }
+
+        UUID deleteBatchId = node.getDeleteBatchId();
+
+        if (deleteBatchId == null) {
+            throw new BadRequestException("Không tìm thấy thông tin deletion batch của node");
+        }
+
+        // Xác định thư mục cha sau khi restore.
+        FsNode targetParent;
+        boolean needRebaseToRoot = false;
+
+        if (node.getParent() == null) {
+            targetParent = fsNodeRepository
+                    .findByUserIdAndParentIsNull(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Thư mục gốc không tồn tại"));
+        } else if (isNodeDeleted(node.getParent())) {
+            // Parent thực sự của node đã bị xóa → đưa node về Root
+            targetParent = fsNodeRepository
+                    .findByUserIdAndParentIsNull(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Thư mục gốc không tồn tại"));
+            needRebaseToRoot = true;
+
+            log.info("Parent của node {} đã bị xóa, node sẽ được đưa về root", nodeId);
+        } else {
+            // Parent vẫn tồn tại và đang ACTIVE thì node sẽ được đưa về cha của nó
+            targetParent = node.getParent();
+        }
+
+        Long targetParentId = targetParent.getId();
+
+        // Kiểm tra trùng lặp
+        boolean duplicated = fsNodeRepository.existsActiveNodeByParentAndName(userId, targetParentId, node.getName(), nodeId);
+
+        if (duplicated) {
+            String folderDesc = targetParent.getParent() == null ? "thư mục gốc" : "thư mục cha";
+
+            throw new BadRequestException("Đã tồn tại file hoặc thư mục cùng tên '" + node.getName() + "' trong " + folderDesc);
+        }
+
+        /*
+         * Path mới của node.
+         *
+         * Nếu parent không bị xóa:
+         *
+         *     parent.path + node.id
+         *
+         * Nếu parent đã bị xóa:
+         *
+         *     root.path + node.id
+         */
+        String oldPath = node.getMaterializedPath();
+
+        int affected;
+
+        if (node.getIsFolder()) {
+            affected = fsNodeRepository.restoreFolderAndDescendants(userId, oldPath, deleteBatchId);
+            log.info("Khôi phục thư mục thành công, nodeId={}, có {} dòng bị ảnh hưởng", nodeId, affected);
+        } else {
+            affected = fsNodeRepository.restoreFile(userId,nodeId, deleteBatchId);
+            log.info("Khôi phục file thành công, nodeId={}, có {} dòng bị ảnh hưởng", nodeId, affected);
+        }
+
+        if (affected <= 0) {
+            throw new BadRequestException("Không thể khôi phục node");
+        }
+
+        if (needRebaseToRoot) {
+            moveNode(userId, nodeIdStr, false, targetParentId.toString(), true);
+        }
+
+        FsNode updatedNode = fsNodeRepository.findById(nodeId).orElseThrow(
+                () -> new RuntimeException("Không thể khôi phục node")
+        );
+
+        return NodeResponse.from(updatedNode);
+    }
+
+    public FsNode resolveAndValidateNode(UUID userId, String nodeIdStr, boolean needActiveNode) {
         FsNode parentNode;
 
-        if (isRootIdentifier(parentIdStr)) {
-            log.info("Thư mục cha là thư mục gốc");
+        if (isRootIdentifier(nodeIdStr)) {
+            log.info("Node cha là thư mục gốc");
 
             parentNode = fsNodeRepository.findByUserIdAndParentIsNull(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Thư mục gốc không tồn tại"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Node gốc không tồn tại"));
         } else {
-            log.info("Thư mục cha không phải là thư mục gốc");
-            Long parentId = parseParentId(parentIdStr);
+            log.info("Node không phải là thư mục gốc");
+            Long parentId = parseParentId(nodeIdStr);
             parentNode = fsNodeRepository.findById(parentId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Thư mục cha không tồn tại"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Node không tồn tại"));
 
             // Kiểm tra quyền sở hữu ngay trên object thay vì query lại DB
             if (!userId.equals(parentNode.getUser().getId())) {
-                throw new ResourceNotFoundException("Thư mục cha không tồn tại");
+                throw new ResourceNotFoundException("Node không tồn tại");
             }
         }
 
-        if (isNodeDeleted(parentNode)) {
+        if (isNodeDeleted(parentNode) && needActiveNode) {
             log.info("Thư mục cha đã bị xóa");
 
-            throw new ResourceNotFoundException("Thư mục cha không tồn tại");
+            throw new ResourceNotFoundException("Thư mục không tồn tại");
         }
 
         if (!Boolean.TRUE.equals(parentNode.getIsFolder())) {
-            throw new BadRequestException("Thư mục cha không hợp lệ");
+            throw new BadRequestException("Thư mục không hợp lệ");
         }
 
         return parentNode;
@@ -138,6 +326,23 @@ public class FsNodeService {
         }
     }
 
+    public Long parseNodeId(String nodeIdStr) {
+        if (nodeIdStr == null || nodeIdStr.isBlank()) {
+            throw new BadRequestException("Node ID không hợp lệ");
+        }
+        String trimmed = nodeIdStr.trim();
+        try {
+            return Long.parseLong(trimmed);
+        } catch (NumberFormatException e) {
+            try {
+                UUID.fromString(trimmed);
+                throw new ResourceNotFoundException("Node không tồn tại");
+            } catch (IllegalArgumentException ex) {
+                throw new BadRequestException("Node ID không hợp lệ");
+            }
+        }
+    }
+
     private Boolean parseNodeType(String nodeType) {
         if (nodeType == null || nodeType.isBlank()) {
             return null;
@@ -150,7 +355,8 @@ public class FsNodeService {
     }
 
     public boolean isNodeDeleted(FsNode node) {
-        return node.isDeleted() || node.getNodeStatus() == FsNode.Status.DELETED;
+        return (node.isDeleted() || node.getNodeStatus() == FsNode.Status.DELETED) &&
+                node.getDeleteBatchId() != null;
     }
 
     private Sort parseSort(List<String> sorts) {

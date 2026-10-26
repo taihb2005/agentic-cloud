@@ -1,8 +1,10 @@
 package vn.edu.hust.kat.apigateway.filter;
 
 import io.jsonwebtoken.Claims;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -13,25 +15,17 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import vn.edu.hust.kat.apigateway.util.JwtUtil;
 
 import java.util.List;
 
-@Component
-public class AuthFilter implements GlobalFilter, Ordered {
-    private static final Logger logger = LogManager.getLogger(AuthFilter.class);
+@Slf4j
+public class AuthFilter implements GatewayFilter {
 
     private final JwtUtil jwtUtil;
-
-    // List of public API does not need to authorization
-    private static final List<String> OPEN_ENDPOINTS = List.of(
-            "/api/v1/user-service/auth/login",
-            "/api/v1/user-service/auth/register",
-            "/swagger-ui.html",
-            "/swagger-ui/**",
-            "/v3/api-docs/**"
-    );
 
     public AuthFilter(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
@@ -42,12 +36,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        logger.info("Request: {} {}", exchange.getRequest().getMethod(), path);
-
-        // Skip public endpoints
-        if (OPEN_ENDPOINTS.stream().anyMatch(path::startsWith)) {
-            return chain.filter(exchange);
-        }
+        log.info("Request: {} {}", exchange.getRequest().getMethod(), path);
 
         // Check authorization header
         if (!request.getHeaders().containsHeader(HttpHeaders.AUTHORIZATION)) {
@@ -96,9 +85,4 @@ public class AuthFilter implements GlobalFilter, Ordered {
         }
     }
 
-
-    @Override
-    public int getOrder() {
-        return -1; // Top-order filter
-    }
 }
