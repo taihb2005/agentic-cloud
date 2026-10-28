@@ -20,7 +20,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class FsFolderService {
+public class FsNodeFolderService {
     private final FsUserRepository fsUserRepository;
     private final FsNodeRepository fsNodeRepository;
     private final FsNodeService fsNodeService;

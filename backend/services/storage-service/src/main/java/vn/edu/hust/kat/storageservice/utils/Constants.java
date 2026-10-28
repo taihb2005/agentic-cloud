@@ -4,4 +4,7 @@ public class Constants {
     public static final String NULL = "null";
     public static final String STORAGE_ROOT_NAME = "root";
     public static final String STORAGE_ROOT_PATH = STORAGE_ROOT_NAME + "/";
+
+    public static final String NODE_DELETE_PERMANENTLY = "NODE_DELETE_PERMANENTLY";
+    public static final String FS_NODES = "fs_nodes";
 }

@@ -72,6 +72,24 @@ public class MinioStorageService {
         }
     }
 
+    public void deleteObject(String bucketName, String objectKey) {
+        if (bucketName == null || objectKey == null || objectKey.isBlank()) {
+            return;
+        }
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .build()
+            );
+            log.info("Đã xóa object trên MinIO: bucket={}, key={}", bucketName, objectKey);
+        } catch (Exception ex) {
+            log.error("Lỗi khi xóa object '{}' trên bucket '{}'", objectKey, bucketName, ex);
+            throw new RuntimeException("Lỗi khi xóa object trên MinIO: " + ex.getMessage(), ex);
+        }
+    }
+
     /**
      * Hàm dọn dẹp khi quá trình lưu metadata vào DB thất bại sau khi đã tạo trên MinIO.
      */

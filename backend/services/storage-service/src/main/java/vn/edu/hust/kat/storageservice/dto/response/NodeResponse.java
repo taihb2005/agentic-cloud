@@ -53,6 +53,9 @@ public class NodeResponse {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
+    @JsonProperty("deleted_at")
+    private LocalDateTime deletedAt;
+
     public static NodeResponse from(FsNode node) {
         if (node == null) {
             return null;
@@ -63,13 +66,14 @@ public class NodeResponse {
                 .path(node.getMaterializedPath())
                 .name(node.getName())
                 .isFolder(node.getIsFolder())
-                .nodeStatus(node.getNodeStatus().toString())
+                .nodeStatus(node.getNodeStatus() != null ? node.getNodeStatus().toString() : null)
                 .mimeType(node.getMimeType())
                 .sizeBytes(node.getSizeBytes() != null ? node.getSizeBytes() : 0L)
                 .etag(node.getEtag())
                 .isStarred(node.getIsStarred())
                 .createdAt(node.getCreatedAt())
                 .updatedAt(node.getUpdatedAt())
+                .deletedAt(node.getDeletedAt())
                 .build();
     }
 }

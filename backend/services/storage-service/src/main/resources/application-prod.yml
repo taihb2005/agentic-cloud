@@ -64,6 +64,14 @@ app:
     default-bucket: ${STORAGE_MINIO_DEFAULT_BUCKET:smart-cloud-storage}
     default-quota-bytes: ${STORAGE_DEFAULT_QUOTA_BYTES:16106127360} # 15 GB
     user-prefix-pattern: "users/%s/"
+  node_async_threshold: 50
+  kafka:
+    topics:
+      user-service:
+        user-created: "user.events.user-created"
+      storage-service:
+        node-permanent-delete: "storage.node.node-permanent-delete"
+
 
 logging:
   level:

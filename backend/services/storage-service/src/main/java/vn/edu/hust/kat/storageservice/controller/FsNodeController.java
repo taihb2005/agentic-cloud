@@ -1,6 +1,5 @@
 package vn.edu.hust.kat.storageservice.controller;
 
-import io.minio.messages.RestoreRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,30 +10,28 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.hust.kat.common.api.response.ApiResponse;
+import vn.edu.hust.kat.common.api.response.BatchOperationResponse;
+import vn.edu.hust.kat.storageservice.dto.request.BatchNodesRequest;
 import vn.edu.hust.kat.storageservice.dto.request.CreateFolderRequest;
 import vn.edu.hust.kat.storageservice.dto.request.MoveNodeRequest;
-import vn.edu.hust.kat.storageservice.dto.response.NodeResponse;
-import vn.edu.hust.kat.storageservice.dto.response.PagedResponse;
+import vn.edu.hust.kat.storageservice.dto.request.UpdateNodeRequest;
+import vn.edu.hust.kat.storageservice.dto.response.*;
 import vn.edu.hust.kat.storageservice.entity.FsUser;
-import vn.edu.hust.kat.storageservice.service.FsFolderService;
+import vn.edu.hust.kat.storageservice.service.FsNodeFolderService;
 import vn.edu.hust.kat.storageservice.service.FsNodeService;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping({
-        "/storage-service/nodes",
-        "/nodes",
-        "/api/v1/storage-service/nodes"
-})
+@RequestMapping({"/storage-service/nodes",})
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Node API", description = "Các API quản lý node")
 public class FsNodeController {
 
     private final FsNodeService fsNodeService;
-    private final FsFolderService fsFolderService;
+    private final FsNodeFolderService fsFolderService;
 
     @GetMapping
     @Operation(summary = "Lấy danh sách file/folder con (Duyệt thư mục)")
@@ -96,63 +93,53 @@ public class FsNodeController {
                 .body(ApiResponse.success("Lấy metadata thành công", nodeResponse));
     }
 
-    @PostMapping("/folders")
-    public ResponseEntity<ApiResponse<NodeResponse>> createFolder(
+    @PatchMapping("{id}")
+    public ResponseEntity<ApiResponse<NodeResponse>> updateNode(
             @AuthenticationPrincipal FsUser user,
-            @RequestBody CreateFolderRequest request
+            @Valid @PathVariable String id,
+            @Valid@RequestBody UpdateNodeRequest request
     ) {
         UUID userId = (user != null) ? user.getId() : null;
 
-        log.info("Tạo thư mục con cho userId={}, parentId={}, name={}", userId, request.getParentId(), request.getName());
+        log.info("Cập nhật thông tin node userId={}, node={}", userId, id);
 
-        NodeResponse nodeResponse = fsFolderService.createFolder(userId, request.getParentId(), request.getName());
+        NodeResponse nodeResponse = fsNodeService.updateNode(userId, id, request);
 
         return ResponseEntity.ok()
-                .body(ApiResponse.success("Tạo thư mục thành công", nodeResponse));
+                .body(ApiResponse.success("Cập nhật thành công", nodeResponse));
     }
 
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Đưa node vào thùng rác")
-    public ResponseEntity<ApiResponse<Void>> softDeleteNode(
+    @DeleteMapping
+    @Operation(summary = "Đưa danh sách node vào thùng rác (Xóa mềm)")
+    public ResponseEntity<ApiResponse<BatchOperationResponse<DeleteResult, NodeFailureResult>>> softDeleteNodes(
             @AuthenticationPrincipal FsUser user,
-            @PathVariable String id
+            @Valid @RequestBody BatchNodesRequest request
     ) {
         UUID userId = (user != null) ? user.getId() : null;
 
-        log.info("Xóa mềm node: userId={}, nodeId={}", userId, id);
+        List<String> nodeIds = (request != null && request.getNodeIds() != null) ? request.getNodeIds() : List.of();
+        log.info("Xóa mềm nodes: userId={}, nodeIds={}", userId, nodeIds);
 
-        fsNodeService.softDeleteNode(userId, id);
+        BatchOperationResponse<DeleteResult, NodeFailureResult> response = fsNodeService.softDeleteNodes(userId, nodeIds);
+        String message = response.getFailedCount() == 0 ? "Xóa node hoàn tất" : "Xóa node hoàn tất, có node thất bại";
 
-        return ResponseEntity.ok(ApiResponse.success("Đã chuyển vào thùng rác thành công", null));
+        return ResponseEntity.ok(ApiResponse.success(message, response));
     }
 
     @PostMapping("/move")
-    @Operation(summary = "Di chuyển node")
-    public ResponseEntity<ApiResponse<NodeResponse>> restoreNode(
+    @Operation(summary = "Di chuyển danh sách node sang thư mục đích")
+    public ResponseEntity<ApiResponse<BatchOperationResponse<MoveResult, NodeFailureResult>>> moveNodes(
             @AuthenticationPrincipal FsUser user,
             @Valid @RequestBody MoveNodeRequest request
     ) {
         UUID userId = (user != null) ? user.getId() : null;
 
-        log.info("Di chuyển node: userId={}, srcNodeId={}, dstNodeId={}", userId, request.getSrcNodeId(), request.getDstNodeId());
+        log.info("Di chuyển nodes: userId={}, srcNodeIds={}, dstNodeId={}",
+                userId, request != null ? request.getSrcNodeIds() : null, request != null ? request.getDstNodeId() : null);
 
-        NodeResponse nodeResponse = fsNodeService.moveNode(userId, request.getSrcNodeId(), true, request.getDstNodeId(), true);
+        BatchOperationResponse<MoveResult, NodeFailureResult> response = fsNodeService.moveNodes(userId, request);
+        String message = response.getFailedCount() == 0 ? "Di chuyển node hoàn tất" : "Di chuyển node hoàn tất, có node thất bại";
 
-        return ResponseEntity.ok(ApiResponse.success("Di chuyển thanh công", nodeResponse));
-    }
-
-    @PostMapping("/{id}/restore")
-    @Operation(summary = "Khôi phục Node đã xóa từ thùng rác")
-    public ResponseEntity<ApiResponse<NodeResponse>> restoreNode(
-            @AuthenticationPrincipal FsUser user,
-            @PathVariable String id
-    ) {
-        UUID userId = (user != null) ? user.getId() : null;
-
-        log.info("Khôi phục node: userId={}, nodeId={}", userId, id);
-
-        NodeResponse nodeResponse = fsNodeService.restoreNode(userId, id);
-
-        return ResponseEntity.ok(ApiResponse.success("Khôi phục thành công", nodeResponse));
+        return ResponseEntity.ok(ApiResponse.success(message, response));
     }
 }

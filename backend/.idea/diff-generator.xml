@@ -5,7 +5,7 @@
     <option name="snapshotDirValue" value="$PROJECT_DIR$/services/user-service/src/main/resources/db/migration" />
     <option name="snapshotModelValue" value="agentic-cloud-platform.services.user-service.main:entityManagerFactory" />
     <option name="snapshotScratchFile" value="true" />
-    <option name="sourceModelValue" value="agentic-cloud-platform.services.storage-service.main:agentic-cloud-platform.services.storage-service.main" />
+    <option name="sourceModelValue" value="agentic-cloud-platform.services.storage-service.main:entityManagerFactory" />
     <option name="targetDbValue" value="661e8ad0-0825-4829-9856-d47621c01df8" />
   </component>
 </project>

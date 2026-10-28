@@ -1,5 +1,6 @@
 package vn.edu.hust.kat.storageservice.repository;
 
+import lombok.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,7 +9,9 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import vn.edu.hust.kat.storageservice.dto.request.UpdateNodeRequest;
 import vn.edu.hust.kat.storageservice.entity.FsNode;
+import vn.edu.hust.kat.storageservice.entity.FsUser;
 
 import java.time.LocalDateTime;
 
@@ -22,15 +25,9 @@ public interface FsNodeRepository extends JpaRepository<FsNode, Long>, JpaSpecif
     // Tìm node cha của user
     Optional<FsNode> findByUserIdAndParentIsNull(UUID userId);
 
-    boolean existsByUserIdAndParentIsNull(UUID userId);
-
-    boolean existsByUserIdAndId(UUID userId, Long nodeId);
-
     boolean existsByParentAndName(FsNode parent, String name);
 
-    List<FsNode> findByUserIdAndParentId(UUID userId, Long parentId);
-
-    Optional<FsNode> findByIdAndUserId(Long id, UUID userId);
+    void deleteById(@NonNull Long id);
 
     @Query("SELECT n FROM FsNode n WHERE n.user.id = :userId AND n.parent IS NULL AND n.name = :name")
     Optional<FsNode> findRootNodeByName(@Param("userId") UUID userId, @Param("name") String name);
@@ -109,7 +106,7 @@ public interface FsNodeRepository extends JpaRepository<FsNode, Long>, JpaSpecif
     """, nativeQuery = true)
     int moveFile(
            @Param("srcNodeId") Long srcNodeId,
-           @Param("dstParentId") Long dstParentId,
+           @Param("dstNodeId") Long dstNodeId,
            @Param("dstParentPath") String dstParentPath
     );
 
@@ -224,4 +221,96 @@ public interface FsNodeRepository extends JpaRepository<FsNode, Long>, JpaSpecif
             @Param("name") String name,
             @Param("nodeId") Long nodeId
     );
+
+    @Query(value = """
+        SELECT * FROM fs_nodes
+        WHERE user_id = :userId 
+          AND (deleted_at IS NOT NULL OR node_status = 'DELETED') 
+          AND (
+              (:parentId IS NOT NULL AND parent_id = :parentId)
+              OR (:parentId IS NULL AND (
+                  parent_id IS NULL OR parent_id NOT IN (
+                      SELECT fn.id FROM fs_nodes fn 
+                      WHERE fn.user_id = :userId 
+                        AND (fn.deleted_at IS NOT NULL OR fn.node_status = 'DELETED')
+                  )
+              ))
+          )
+          AND (CAST(:isFolder AS boolean) IS NULL OR is_folder = CAST(:isFolder AS boolean)) 
+          AND (:name IS NULL OR name ILIKE CONCAT('%', CAST(:name AS text), '%')) 
+          AND (:mimeType IS NULL OR mime_type = CAST(:mimeType AS varchar))
+        """,
+            countQuery = """
+        SELECT count(*) FROM fs_nodes
+        WHERE user_id = :userId
+          AND (deleted_at IS NOT NULL OR node_status = 'DELETED')
+          AND (
+              (:parentId IS NOT NULL AND parent_id = :parentId)
+              OR (:parentId IS NULL AND (
+                  parent_id IS NULL OR parent_id NOT IN (
+                      SELECT fn.id FROM fs_nodes fn
+                      WHERE fn.user_id = :userId
+                        AND (fn.deleted_at IS NOT NULL OR fn.node_status = 'DELETED')
+                  )
+              ))
+          )
+          AND (CAST(:isFolder AS boolean) IS NULL OR is_folder = CAST(:isFolder AS boolean))
+          AND (:name IS NULL OR name ILIKE CONCAT('%', CAST(:name AS text), '%'))
+          AND (:mimeType IS NULL OR mime_type = CAST(:mimeType AS varchar))
+        """, nativeQuery = true)
+    Page<FsNode> findTrashNodes(
+            @Param("userId") UUID userId,
+            @Param("parentId") Long parentId,
+            @Param("isFolder") Boolean isFolder,
+            @Param("name") String name,
+            @Param("mimeType") String mimeType,
+            Pageable pageable
+    );
+
+    @Query(value = """
+        SELECT * FROM fs_nodes
+        WHERE user_id = :userId 
+          AND (deleted_at IS NOT NULL OR node_status = 'DELETED')
+    """, nativeQuery = true)
+    List<FsNode> findAllTrashByUserId(@Param("userId") UUID userId);
+
+    @Query(value = """
+        SELECT * FROM fs_nodes
+        WHERE user_id = :userId 
+          AND id IN (:ids)
+          AND (deleted_at IS NOT NULL OR node_status = 'DELETED')
+    """, nativeQuery = true)
+    List<FsNode> findTrashNodesByIds(@Param("userId") UUID userId, @Param("ids") List<Long> ids);
+
+    @Query(value = """
+        SELECT * FROM fs_nodes
+        WHERE user_id = :userId
+          AND id = :id
+          AND (deleted_at IS NOT NULL OR node_status = 'DELETED')
+    """, nativeQuery = true)
+    Optional<FsNode> findTrashNodeByIdAndUserId(@Param("id") Long id, @Param("userId") UUID userId);
+
+    @Query(value = """
+        SELECT * FROM fs_nodes
+        WHERE user_id = :userId 
+          AND path <@ CAST(:nodePath AS ltree)
+          AND (deleted_at IS NOT NULL OR node_status = 'DELETED')
+    """, nativeQuery = true)
+    List<FsNode> findDescendantsIncludingSelfInTrash(@Param("userId") UUID userId, @Param("nodePath") String nodePath);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        DELETE FROM fs_nodes
+        WHERE user_id = :userId
+          AND id IN (:ids)
+    """, nativeQuery = true)
+    int deletePermanent(@Param("userId") UUID userId, @Param("ids") List<Long> ids);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        DELETE FROM fs_nodes 
+        WHERE user_id = :userId 
+          AND (deleted_at IS NOT NULL OR node_status = 'DELETED')
+    """, nativeQuery = true)
+    int deleteAllTrashByUserId(@Param("userId") UUID userId);
 }

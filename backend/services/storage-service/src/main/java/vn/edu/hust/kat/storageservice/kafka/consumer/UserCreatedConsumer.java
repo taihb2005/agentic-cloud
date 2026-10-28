@@ -10,6 +10,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import vn.edu.hust.kat.common.kafka.event.BaseEvent;
 import vn.edu.hust.kat.common.kafka.payload.UserCreatedPayload;
+import vn.edu.hust.kat.storageservice.config.KafkaTopicProperties;
 import vn.edu.hust.kat.storageservice.dto.request.InitUserStorageRequest;
 import vn.edu.hust.kat.storageservice.dto.response.UserStorageResponse;
 import vn.edu.hust.kat.storageservice.service.StorageUserService;
@@ -25,11 +26,11 @@ public class UserCreatedConsumer {
     private final StorageUserService storageUserService;
 
     @KafkaListener(
-            topics = "user.events",
+            topics = "${app.kafka.topics.user-service.user-created}",
             groupId = "storage-service-group"
     )
     public void consume(String message) {
-        log.info("Nhận được message từ Kafka topic 'user.events': {}", message);
+        log.info("Nhận được message từ Kafka topic 'user.events.user-created': {}", message);
         try {
             JsonNode jsonNode = jsonMapper.readTree(message);
             String eventType = jsonNode.path("eventType").asText();

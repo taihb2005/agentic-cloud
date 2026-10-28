@@ -46,6 +46,10 @@ app:
     username: ${USER_ADMIN_USERNAME}
     email: ${USER_ADMIN_EMAIL}
     password: ${USER_ADMIN_PASSWORD}
+  kafka:
+    topics:
+        user-service:
+          user-created: "user.events.user-created"
 
 logging:
   level:
