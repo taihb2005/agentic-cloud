@@ -95,6 +95,7 @@ flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 
 # ── Object Storage ──────────────────────────────────────────────────────────
 minio = { module = "io.minio:minio", version.ref = "minio" }
+minio-admin = { module = "io.minio:minio-admin", version.ref = "minio"}
 
 # ── Testing ──────────────────────────────────────────────────────────────────
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit-bom" }

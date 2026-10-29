@@ -31,4 +31,10 @@ public class MinioProperties {
 
     @Value("${app.minio.user-prefix-pattern}:users/%s/")
     private String userPrefixPattern;
+
+    @Value("${app.minio.presigned-url-expiry-seconds:900}")
+    private int presignedUrlExpirySeconds;
+
+    @Value("${app.minio.public-endpoint}")
+    private String publicEndpoint;
 }

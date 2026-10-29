@@ -13,6 +13,7 @@ import vn.edu.hust.kat.storageservice.kafka.event.NodePermanentDeleteEvent;
 import vn.edu.hust.kat.storageservice.repository.InboxEventRepository;
 import vn.edu.hust.kat.storageservice.service.FsNodeService;
 import vn.edu.hust.kat.storageservice.service.MinioStorageService;
+import vn.edu.hust.kat.storageservice.service.QuotaService;
 import vn.edu.hust.kat.storageservice.utils.Constants;
 
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ public class NodePermanentDeleteConsumer {
     private final FsNodeService fsNodeService;
     private final MinioStorageService minioService;
     private final JsonMapper jsonMapper;
+    private final QuotaService quotaService;
 
     @KafkaListener(
             topics = "${app.kafka.topics.storage-service.node-permanent-delete}",
@@ -44,7 +46,7 @@ public class NodePermanentDeleteConsumer {
                             NodePermanentDeleteEvent.class
                     );
 
-            UUID eventId = event.eventId();
+            UUID eventId = event.getEventId();
 
             log.info("Xử lý yêu cầu xóa thùng rác của event {}", event);
 
@@ -62,18 +64,23 @@ public class NodePermanentDeleteConsumer {
                             .build()
             );
 
-            if (event.objects() == null) {
+            if (event.getObjects() == null) {
                 return;
             }
 
+            UUID userId = event.getUserId();
+
             // Xóa object trên Minio
-            for (NodePermanentDeleteEvent.DeleteObject object : event.objects()) {
-                minioService.deleteObject(object.bucketName(), object.objectKey());
+            for (NodePermanentDeleteEvent.DeleteObject object : event.getObjects()) {
+                minioService.deleteObject(object.getBucketName(), object.getObjectKey());
             }
 
             // Xóa node trên database đặt trong transaction
-            for (NodePermanentDeleteEvent.DeleteObject object : event.objects()) {
-                fsNodeService.deleteNode(object.nodeId());
+            for (NodePermanentDeleteEvent.DeleteObject object : event.getObjects()) {
+                Long size = object.getSize();
+
+                fsNodeService.deleteNode(object.getNodeId());
+                quotaService.subtractToUserCurrentQuota(userId, size);
             }
 
         } catch (DataIntegrityViolationException ex) {

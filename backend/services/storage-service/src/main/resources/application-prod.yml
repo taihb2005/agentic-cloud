@@ -64,6 +64,8 @@ app:
     default-bucket: ${STORAGE_MINIO_DEFAULT_BUCKET:smart-cloud-storage}
     default-quota-bytes: ${STORAGE_DEFAULT_QUOTA_BYTES:16106127360} # 15 GB
     user-prefix-pattern: "users/%s/"
+    public-endpoint: ${STORAGE_PUBLIC_MINIO_ENDPOINT:http://localhost:9000}
+    presigned-url-expiry-seconds: ${PRESIGNED_EXPIRY}
   node_async_threshold: 50
   kafka:
     topics:
@@ -71,6 +73,7 @@ app:
         user-created: "user.events.user-created"
       storage-service:
         node-permanent-delete: "storage.node.node-permanent-delete"
+        minio-events: ${STORAGE_NOTIFY_KAFKA_TOPIC}
 
 
 logging:

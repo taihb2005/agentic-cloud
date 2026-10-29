@@ -21,6 +21,8 @@ services:
       STORAGE_MINIO_ROOT_USER: ${STORAGE_MINIO_ROOT_USER}
       STORAGE_MINIO_ROOT_PASSWORD: ${STORAGE_MINIO_ROOT_PASSWORD}
       STORAGE_DEFAULT_QUOTA_BYTES: ${STORAGE_DEFAULT_QUOTA_BYTES}
+      STORAGE_NOTIFY_KAFKA_TOPIC: ${STORAGE_NOTIFY_KAFKA_TOPIC}
+      PRESIGNED_EXPIRY: ${PRESIGNED_EXPIRY}
     depends_on:
       postgres-storage-service:
         condition: service_healthy
@@ -60,6 +62,10 @@ services:
     environment:
       MINIO_ROOT_USER: ${STORAGE_MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${STORAGE_MINIO_ROOT_PASSWORD}
+      MINIO_NOTIFY_KAFKA_ENABLE_storage: "on"
+      MINIO_NOTIFY_KAFKA_BROKERS_storage: ${STORAGE_KAFKA_BOOTSTRAP_SERVER}
+      MINIO_NOTIFY_KAFKA_TOPIC_storage: ${STORAGE_NOTIFY_KAFKA_TOPIC}
+
     volumes:
       - ${STORAGE_MINIO_HOST_VOLUME}:/data
     command: server /data --console-address ":9001"

@@ -27,6 +27,10 @@ public interface FsNodeRepository extends JpaRepository<FsNode, Long>, JpaSpecif
 
     boolean existsByParentAndName(FsNode parent, String name);
 
+    Optional<FsNode> findFirstByFileHashAndNodeStatusAndDeletedAtIsNull(String fileHash, FsNode.Status nodeStatus);
+
+    Optional<FsNode> findByS3ObjectKeyAndNodeStatus(String s3ObjectKey, FsNode.Status nodeStatus);
+
     void deleteById(@NonNull Long id);
 
     @Query("SELECT n FROM FsNode n WHERE n.user.id = :userId AND n.parent IS NULL AND n.name = :name")

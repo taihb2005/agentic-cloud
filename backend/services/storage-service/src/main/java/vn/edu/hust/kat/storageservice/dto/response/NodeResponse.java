@@ -44,6 +44,9 @@ public class NodeResponse {
     @JsonProperty("etag")
     private String etag;
 
+    @JsonProperty("file_hash")
+    private String fileHash;
+
     @JsonProperty("is_starred")
     private Boolean isStarred;
 
@@ -70,6 +73,7 @@ public class NodeResponse {
                 .mimeType(node.getMimeType())
                 .sizeBytes(node.getSizeBytes() != null ? node.getSizeBytes() : 0L)
                 .etag(node.getEtag())
+                .fileHash(node.getFileHash())
                 .isStarred(node.getIsStarred())
                 .createdAt(node.getCreatedAt())
                 .updatedAt(node.getUpdatedAt())

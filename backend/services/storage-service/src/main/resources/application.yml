@@ -33,6 +33,14 @@ app:
     default-bucket: ${STORAGE_MINIO_DEFAULT_BUCKET:${MINIO_DEFAULT_BUCKET:smart-cloud-storage}}
     default-quota-bytes: ${STORAGE_DEFAULT_QUOTA_BYTES:16106127360} # 15 GB
     user-prefix-pattern: "users/%s/"
+    presigned-url-expiry-seconds: ${STORAGE_MINIO_PRESIGNED_EXPIRY:900}
+  kafka:
+    topics:
+      user-service:
+        user-created: "${USER_CREATED_TOPIC:user.events.user-created}"
+      storage-service:
+        node-permanent-delete: "${NODE_PERMANENT_DELETE_TOPIC:storage.node.node-permanent-delete}"
+        minio-events: "${STORAGE_MINIO_EVENTS_TOPIC:minio.events.object-created}"
 
 # Actuator
 management:

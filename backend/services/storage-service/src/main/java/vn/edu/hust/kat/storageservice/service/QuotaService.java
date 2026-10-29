@@ -12,6 +12,7 @@ import vn.edu.hust.kat.storageservice.dto.request.InitUserStorageRequest;
 import vn.edu.hust.kat.storageservice.dto.response.UserQuotaResponse;
 import vn.edu.hust.kat.storageservice.entity.FsNode;
 import vn.edu.hust.kat.storageservice.entity.FsUser;
+import vn.edu.hust.kat.storageservice.exception.InsufficientException;
 import vn.edu.hust.kat.storageservice.repository.FsUserRepository;
 import vn.edu.hust.kat.storageservice.utils.Constants;
 
@@ -67,5 +68,47 @@ public class QuotaService {
                 .usagePercentage(usagePercentage)
                 .status(status)
                 .build();
+    }
+
+    @Transactional
+    public void updateUserCurrentQuota(UUID userId, Long currentQuota) {
+        fsUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+
+        fsUserRepository.updateCurrentQuota(userId, currentQuota);
+    }
+
+    @Transactional
+    public void addToUserCurrentQuota(UUID userId, Long willToAddQuota) {
+        fsUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+
+        if (isQuotaExceededWithUpcomingNode(userId, willToAddQuota)) {
+            throw new InsufficientException("Không đủ dung lượng để thực hiện hành động này");
+        }
+
+        int affected = fsUserRepository.addToCurrentQuota(userId, willToAddQuota);
+        log.info("Cập nhật dung lượng thành công, có {} dòng ảnh hưởng", affected);
+    }
+
+    @Transactional
+    public void subtractToUserCurrentQuota(UUID userId, Long willToSubtractQuota) {
+        fsUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+
+        if (isQuotaExceededWithUpcomingNode(userId, willToSubtractQuota)) {
+            throw new InsufficientException("Không đủ dung lượng để thực hiện hành động này");
+        }
+
+        int affected = fsUserRepository.subtractToCurrentQuota(userId, willToSubtractQuota);
+        log.info("Cập nhật dung lượng thành công, có {} dòng ảnh hưởng", affected);
+    }
+
+    public boolean isQuotaExceededWithUpcomingNode(UUID userId, Long sizeBytes) {
+        fsUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại"));
+
+
+        return fsUserRepository.isQuotaExceeded(userId, sizeBytes);
     }
 }

@@ -1,20 +1,42 @@
 package vn.edu.hust.kat.storageservice.service;
 
 import io.minio.*;
-import lombok.RequiredArgsConstructor;
+import io.minio.errors.ErrorResponseException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import vn.edu.hust.kat.storageservice.config.MinioProperties;
 import vn.edu.hust.kat.storageservice.dto.response.MinioObjectResponse;
 
 import java.io.ByteArrayInputStream;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
-@RequiredArgsConstructor
+
 @Slf4j
 public class MinioStorageService {
 
-    private final MinioClient minioClient;
+    private final MinioClient internalMinioClient;
+    private final MinioClient publicMinioClient;
+    private final MinioProperties minioProperties;
+
+    public MinioStorageService(
+            @Qualifier("internalMinioClient")
+            MinioClient internalMinioClient,
+
+            @Qualifier("publicMinioClient")
+            MinioClient publicMinioClient,
+
+            MinioProperties minioProperties
+    ) {
+        this.internalMinioClient = internalMinioClient;
+        this.publicMinioClient = publicMinioClient;
+        this.minioProperties = minioProperties;
+    }
 
     /**
      * Khởi tạo folder storagePrefix trên MinIO và trả về s3ObjectKey sau khi thành công.
@@ -29,7 +51,7 @@ public class MinioStorageService {
 
         try {
             // Đẩy 1 object rỗng (0-byte) lên MinIO
-            ObjectWriteResponse response = minioClient.putObject(
+            ObjectWriteResponse response = internalMinioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(bucketName)
                             .object(objectKey)
@@ -52,7 +74,7 @@ public class MinioStorageService {
         String normalizedKey = normalizeFolderKey(objectKey);
 
         try {
-            StatObjectResponse statObject = minioClient.statObject(
+            StatObjectResponse statObject = internalMinioClient.statObject(
                     StatObjectArgs.builder()
                             .bucket(bucketName)
                             .object(normalizedKey)
@@ -77,7 +99,7 @@ public class MinioStorageService {
             return;
         }
         try {
-            minioClient.removeObject(
+            internalMinioClient.removeObject(
                     RemoveObjectArgs.builder()
                             .bucket(bucketName)
                             .object(objectKey)
@@ -98,7 +120,7 @@ public class MinioStorageService {
             return;
         }
         try {
-            minioClient.removeObject(
+            internalMinioClient.removeObject(
                     RemoveObjectArgs.builder()
                             .bucket(bucketName)
                             .object(objectKey)
@@ -110,12 +132,66 @@ public class MinioStorageService {
         }
     }
 
+    /**
+     * Sinh Presigned URL với quyền PUT để client tải file trực tiếp lên MinIO.
+     * @param bucketName tên bucket
+     * @param objectKey đường dẫn lưu file trên MinIO
+     * @param expirySeconds hạn của url
+     * @return Presigned URL
+     */
+    public String generatePresignedUploadUrl(String bucketName, String objectKey, int expirySeconds) {
+        try {
+            ensureBucketExists(bucketName);
+
+            return publicMinioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Http.Method.PUT)
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .expiry(expirySeconds, TimeUnit.SECONDS)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("Lỗi khi tạo presigned upload URL cho bucket={}, key={}", bucketName, objectKey, e);
+            throw new RuntimeException("Không thể tạo URL tải lên cho file: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Kiểm tra xem object có thực sự tồn tại trên MinIO hay không.
+     */
+    public boolean doesObjectExist(String bucketName, String objectKey) {
+        if (bucketName == null || objectKey == null || objectKey.isBlank()) {
+            return false;
+        }
+        try {
+            internalMinioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .build()
+            );
+            return true;
+        } catch (ErrorResponseException e) {
+            String code = e.errorResponse().code();
+            if ("NoSuchKey".equals(code) || "NoSuchBucket".equals(code)) {
+                return false;
+            }
+            log.warn("Lỗi kiểm tra object trên MinIO: bucket={}, key={}, code={}", bucketName, objectKey, code);
+            return false;
+        } catch (Exception e) {
+            log.warn("Ngoại lệ khi kiểm tra object trên MinIO: bucket={}, key={}", bucketName, objectKey, e);
+            return false;
+        }
+    }
+
+
     private void ensureBucketExists(String bucketName) throws Exception {
-        boolean found = minioClient.bucketExists(
+        boolean found = internalMinioClient.bucketExists(
                 BucketExistsArgs.builder().bucket(bucketName).build()
         );
         if (!found) {
-            minioClient.makeBucket(
+            internalMinioClient.makeBucket(
                     MakeBucketArgs.builder().bucket(bucketName).build()
             );
             log.info("Đã tạo mới bucket '{}' trên MinIO", bucketName);

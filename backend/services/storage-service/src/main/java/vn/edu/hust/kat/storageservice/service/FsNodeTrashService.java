@@ -349,11 +349,12 @@ public class FsNodeTrashService {
                 for (FsNode d : descendants) {
                     allNodeIdsToDelete.add(d.getId());
 
-                    deleteObjects.add(new NodePermanentDeleteEvent.DeleteObject(
-                            d.getId(),
-                            d.getStorageBucketName(),
-                            d.getS3ObjectKey()
-                    ));
+                    deleteObjects.add(NodePermanentDeleteEvent.DeleteObject.builder()
+                            .nodeId(d.getId())
+                            .bucketName(d.getStorageBucketName())
+                            .objectKey(d.getS3ObjectKey())
+                            .size(d.getSizeBytes())
+                            .build());
 
                     log.info("Các node sẽ bị xóa, kèm objects {} {}", allNodeIdsToDelete, deleteObjects);
                 }

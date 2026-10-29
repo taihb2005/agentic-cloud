@@ -75,6 +75,9 @@ public class FsNode {
     @Column(name = "etag", length = 100)
     private String etag;
 
+    @Column(name = "file_hash", length = 128)
+    private String fileHash;
+
     @Column(name = "is_starred", nullable = false)
     private Boolean isStarred;
 

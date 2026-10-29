@@ -23,6 +23,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
 
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+
       # Storage
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
     networks:
@@ -41,3 +43,14 @@ services:
       - microservice-net
       - user-db-net
       - storage-db-net
+
+  mc:
+    image: taihb2005/minio-mc:1.0.0
+    container_name: minio-mc
+    depends_on:
+      - minio
+    networks:
+      - microservice-net
+    entrypoint: /bin/sh
+    stdin_open: true
+    tty: true

@@ -24,6 +24,7 @@ public class KafkaTopicProperties {
     @Setter
     public static class StorageService {
         private String nodePermanentDelete;
+        private String minioEvents;
     }
 }
 

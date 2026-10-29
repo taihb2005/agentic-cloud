@@ -24,7 +24,7 @@ import vn.edu.hust.kat.storageservice.service.StorageUserService;
 import java.util.UUID;
 
 @RestController
-@RequestMapping({"/storage-service/storage/users",})
+@RequestMapping({"/storage-service/storage/users", "/storage/users"})
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Storage User & Quota API", description = "Các API quản lý không gian lưu trữ và quota của người dùng")
