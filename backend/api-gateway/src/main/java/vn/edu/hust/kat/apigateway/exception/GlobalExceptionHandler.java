@@ -30,7 +30,7 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
             ServerWebExchange exchange,
             Throwable exception
     ) {
-        log.error("Đã có lỗi xảy ra {}", exception.getMessage());
+        log.error("Đã có lỗi xảy ra {}", exception.toString());
         ServerHttpResponse response = exchange.getResponse();
 
         if (response.isCommitted()) {

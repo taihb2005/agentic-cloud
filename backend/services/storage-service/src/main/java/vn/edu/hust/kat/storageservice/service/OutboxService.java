@@ -30,12 +30,12 @@ public class OutboxService {
      */
     @Transactional
     public void createNodePermanentDeleteEvent(NodePermanentDeleteEvent event) {
-        if (event == null || event.eventId() == null) {
+        if (event == null || event.getEventId() == null) {
             throw new IllegalArgumentException("Event Id không được null");
         }
 
         String topic = kafkaTopicProperties.getStorageService().getNodePermanentDelete();
-        UUID batchDeleteId = event.batchDeleteId();
+        UUID batchDeleteId = event.getBatchDeleteId();
 
         JsonNode payload = jsonMapper.valueToTree(event);
 

@@ -158,6 +158,29 @@ public class MinioStorageService {
     }
 
     /**
+     * Sinh Presigned URL với quyền GET để client tải file trực tiếp từ MinIO.
+     * @param bucketName tên bucket
+     * @param objectKey đường dẫn object trên MinIO
+     * @param expirySeconds hạn của url
+     * @return Presigned URL
+     */
+    public String generatePresignedDownloadUrl(String bucketName, String objectKey, int expirySeconds) {
+        try {
+            return publicMinioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Http.Method.GET)
+                            .bucket(bucketName)
+                            .object(objectKey)
+                            .expiry(expirySeconds, TimeUnit.SECONDS)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("Lỗi khi tạo presigned download URL cho bucket={}, key={}", bucketName, objectKey, e);
+            throw new RuntimeException("Không thể tạo URL tải xuống cho file: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Kiểm tra xem object có thực sự tồn tại trên MinIO hay không.
      */
     public boolean doesObjectExist(String bucketName, String objectKey) {
