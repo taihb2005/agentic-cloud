@@ -70,115 +70,107 @@ Mọi phản hồi JSON từ `storage-service` đều bọc trong cấu trúc ch
 
 ---
 
-## 3. Thiết kế Chi tiết API
+## 3. Thiết kế Chi tiết API (Đã Triển khai & Mở rộng)
 
-### 3.1. Nhóm API Duyệt cây thư mục & Smart Views
+### 3.1. Nhóm API Duyệt cây thư mục & Quản lý Node (Hiện thực thực tế: `FsNodeController`, `FsNodeFolderController`)
 
-| Method  | Path                          | Request (Query / Body)                                              | Response (`data`)              | Mô tả chi tiết                                                                                          |
-| :------ | :---------------------------- | :------------------------------------------------------------------ | :----------------------------- | :------------------------------------------------------------------------------------------------------ |
-| `GET`   | `/nodes`                      | Query: `parentId`, `kind` (`FILE`/`FOLDER`), `page`, `size`, `sort` | `Page<NodeResponse>`           | Liệt kê các node con trực tiếp. Bỏ trống `parentId` để lấy thư mục gốc (Root).                          |
-| `POST`  | `/nodes/folders`              | Body: `CreateFolderRequest`                                         | `201` — `NodeResponse`         | Tạo thư mục mới ở trạng thái `ACTIVE`.                                                                  |
-| `GET`   | `/nodes/{nodeId}`             | Path: `nodeId`                                                      | `200` — `NodeDetailResponse`   | Xem chi tiết metadata của node (kèm quyền hiện tại và metadata AI).                                     |
-| `GET`   | `/nodes/{nodeId}/breadcrumbs` | Path: `nodeId`                                                      | `200` — `List<BreadcrumbItem>` | Lấy đường dẫn từ Root tới node hiện tại để hiển thị thanh điều hướng.                                   |
-| `PATCH` | `/nodes/{nodeId}`             | Body: `UpdateNodeRequest`                                           | `200` — `NodeResponse`         | Đổi tên, di chuyển sang thư mục khác (`parentId`), gắn/bỏ dấu sao (`isStarred`), cập nhật `customTags`. |
-| `POST`  | `/nodes/{nodeId}/copy`        | Body: `CopyNodeRequest`                                             | `201` — `NodeResponse`         | Nhân bản file/folder sang thư mục đích (hỗ trợ Copy-on-Write hoặc S3 CopyObject).                       |
-| `GET`   | `/nodes/starred`              | Query: `page`, `size`, `sort`                                       | `200` — `Page<NodeResponse>`   | Danh sách các file/folder được đánh dấu quan trọng (`isStarred = true`).                                |
-| `GET`   | `/nodes/recent`               | Query: `limit` (mặc định `20`)                                      | `200` — `List<NodeResponse>`   | Danh sách các tệp vừa truy cập hoặc chỉnh sửa gần đây.                                                  |
+| Method  | Path | Request (Query / Body) | Response (`data`) | Trạng thái | Mô tả chi tiết |
+| :--- | :--- | :--- | :--- | :---: | :--- |
+| `GET` | `/storage-service/nodes` | Query: `parent_id`, `node_type`, `name`, `mime_type`, `page`, `size`, `sort` | `PagedResponse<NodeResponse>` | **Đã triển khai** | Liệt kê các node con trực tiếp. Bỏ trống `parent_id` để lấy thư mục gốc (Root). |
+| `POST` | `/storage-service/nodes/folders` | Body: `CreateFolderRequest` (`name`, `parent_id`) | `NodeResponse` | **Đã triển khai** | Tạo thư mục mới ở trạng thái `ACTIVE`. |
+| `GET` | `/storage-service/nodes/{id}` | Path: `id` (String) | `NodeResponse` | **Đã triển khai** | Lấy metadata chi tiết của một node. |
+| `PATCH` | `/storage-service/nodes/{id}` | Body: `UpdateNodeRequest` (`name`, `starred`) | `NodeResponse` | **Đã triển khai** | Đổi tên hoặc cập nhật trạng thái quan trọng (`starred`). |
+| `DELETE`| `/storage-service/nodes` | Body: `BatchNodesRequest` (`node_ids`) | `BatchOperationResponse<DeleteResult, NodeFailureResult>` | **Đã triển khai** | **Xóa mềm (Soft Delete):** Đưa danh sách node vào thùng rác. |
+| `POST` | `/storage-service/nodes/move` | Body: `MoveNodeRequest` (`src_node_ids`, `dst_node_id`) | `BatchOperationResponse<MoveResult, NodeFailureResult>` | **Đã triển khai** | Di chuyển danh sách node sang thư mục đích (`dst_node_id = null` để về Root). |
+| `GET` | `/storage-service/nodes/{nodeId}/breadcrumbs` | Path: `nodeId` | `List<BreadcrumbItem>` | *Đề xuất mở rộng* | Lấy đường dẫn từ Root tới node hiện tại. |
+| `POST` | `/storage-service/nodes/{nodeId}/copy` | Body: `CopyNodeRequest` | `NodeResponse` | *Đề xuất mở rộng* | Nhân bản file/folder sang thư mục đích. |
 
-#### Mẫu Payload:
+#### Mẫu Payload Thực tế:
 
 - **`CreateFolderRequest`:**
-
 ```json
 {
   "name": "Tai-lieu-du-an-2026",
-  "parentId": "24f47bb8-b1b7-4e41-a704-dc67cd4e23e0"
+  "parent_id": "1"
 }
 ```
 
 - **`UpdateNodeRequest`:**
-
 ```json
 {
   "name": "Bao-cao-tai-chinh-Q3",
-  "parentId": "24f47bb8-b1b7-4e41-a704-dc67cd4e23e0",
-  "isStarred": true,
-  "customTags": ["tai-chinh", "quan-trong"]
+  "starred": true
+}
+```
+
+- **`MoveNodeRequest`:**
+```json
+{
+  "src_node_ids": ["8", "12"],
+  "dst_node_id": "5"
 }
 ```
 
 ---
 
-### 3.2. Nhóm API Thùng rác (Trash), Khôi phục & Quản lý Dung lượng (Quota)
+### 3.2. Nhóm API Thùng rác (Trash) & Hạn mức (Quota) (Hiện thực thực tế: `FsNodeTrashController`, `StorageUserController`)
 
-| Method   | Path                        | Request                       | Response (`data`)            | Mô tả chi tiết                                                                                                                                           |
-| :------- | :-------------------------- | :---------------------------- | :--------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DELETE` | `/nodes/{nodeId}`           | Path: `nodeId`                | `200` — `MessageResponse`    | **Xóa mềm (Soft Delete):** Đánh dấu `isDeleted = true` đệ quy toàn bộ cây con.                                                                           |
-| `GET`    | `/nodes/trash`              | Query: `page`, `size`, `sort` | `200` — `Page<NodeResponse>` | Liệt kê các node gốc đang nằm trong thùng rác của user.                                                                                                  |
-| `POST`   | `/nodes/{nodeId}/restore`   | Path: `nodeId`                | `200` — `NodeResponse`       | Khôi phục node từ thùng rác. Nếu thư mục cha đã bị xóa, tự động khôi phục về Root hoặc báo lỗi `409` tùy cờ `restoreToRoot`.                             |
-| `DELETE` | `/nodes/{nodeId}/permanent` | Path: `nodeId`                | `200` — `MessageResponse`    | **Xóa vĩnh viễn:** Xóa bản ghi DB, giải phóng Quota, xóa object trên MinIO (nếu không còn tệp nào tham chiếu cùng hash) và xóa chỉ mục bên `ai-service`. |
-| `DELETE` | `/nodes/trash/empty`        | Không có                      | `202` — `MessageResponse`    | Dọn sạch toàn bộ thùng rác của user (xử lý bất đồng bộ).                                                                                                 |
-| `GET`    | `/quota`                    | Không có                      | `200` — `QuotaResponse`      | Lấy thông tin dung lượng đã dùng, tổng dung lượng giới hạn và phân bổ theo loại tệp.                                                                     |
+| Method | Path | Request (Query / Body) | Response (`data`) | Trạng thái | Mô tả chi tiết |
+| :--- | :--- | :--- | :--- | :---: | :--- |
+| `GET` | `/storage-service/nodes/trash` | Query: `parent_id`, `node_type`, `name`, `mime_type`, `page`, `size`, `sort` | `PagedResponse<NodeResponse>` | **Đã triển khai** | Liệt kê các node đang nằm trong thùng rác của user. |
+| `POST` | `/storage-service/nodes/trash/restore` | Body: `BatchNodesRequest` (`node_ids`) | `BatchOperationResponse<RestoreResult, NodeFailureResult>` | **Đã triển khai** | Khôi phục danh sách node từ thùng rác về vị trí cũ (hoặc Root). |
+| `DELETE`| `/storage-service/nodes/trash/permanent`| Body (optional): `BatchNodesRequest` (`node_ids`) | `BatchOperationResponse<Void, NodeFailureResult>` | **Đã triển khai** | **Xóa vĩnh viễn:** Xóa node chỉ định hoặc dọn sạch thùng rác (bất đồng bộ qua Outbox/Kafka). |
+| `GET` | `/storage-service/storage/users/quota/{id}` | Path: `id` (UUID) | `UserQuotaResponse` | **Đã triển khai** | Kiểm tra hạn mức lưu trữ, dung lượng đã dùng và % sử dụng của user. |
+| `GET` | `/storage-service/storage/users/storage/{id}` | Path: `id` (UUID) | `UserStorageResponse` | **Đã triển khai** | Lấy thông tin cấu hình storage và node gốc của user. |
+| `POST` | `/storage-service/storage/users/init` | Body: `InitUserStorageRequest` | `UserStorageResponse` | **Đã triển khai** | Khởi tạo storage và thư mục root cho người dùng mới. |
+| `POST` | `/storage-service/storage/users/{userId}/init` | Path: `userId` (UUID) | `UserStorageResponse` | **Đã triển khai** | Khởi tạo nhanh storage cho user qua path variable. |
 
-#### Mẫu Payload `QuotaResponse`:
+#### Mẫu Payload `UserQuotaResponse`:
 
 ```json
 {
-  "usedBytes": 5368709120,
-  "LimitBytes": 16106127360,
-  "usagePercentage": 33.33,
-  "breakdownByType": {
-    "DOCUMENT": 1073741824,
-    "IMAGE": 2147483648,
-    "VIDEO": 2147483648,
-    "OTHER": 0
-  }
+  "user_id": "7ac9e9d3-79a2-44ec-806d-7029af302116",
+  "storage_id": "9bc1e284-56a1-43ef-92e1-884021235678",
+  "current_quota": 5368709120,
+  "max_quota": 16106127360,
+  "unit": "MB",
+  "usage_percentage": 33.33,
+  "status": "NORMAL"
 }
 ```
 
 ---
 
-### 3.3. Nhóm API Upload (Hỗ trợ Smart Deduplication) & Download
+### 3.3. Nhóm API Upload & Download (Hiện thực thực tế: `FileUploadController`, `FileDownloadController`)
 
-Để tối ưu băng thông cho Cloud Thông Minh, bước khởi tạo Upload nhận thêm mã băm `sha256Checksum` (tùy chọn). Nếu tệp có cùng mã băm đã tồn tại trên hệ thống và hợp lệ, service có thể kích hoạt **Instant Upload (Deduplication)** hoặc cấp Presigned URL như thông thường.
+| Method | Path | Request | Response (`data`) | Trạng thái | Mô tả chi tiết |
+| :--- | :--- | :--- | :--- | :---: | :--- |
+| `POST` | `/storage-service/files/upload-urls` | Body: `UploadUrlRequest` (`files`) | `UploadUrlsResponse` | **Đã triển khai** | Kiểm tra Quota, tạo node `PENDING_UPLOAD` và cấp Presigned PUT URL (hoặc `instant_uploaded = true` nếu trùng hash). |
+| `POST` | `/storage-service/files/download-urls` | Body: `DownloadUrlRequest` (`files`) | `DownloadUrlsResponse` | **Đã triển khai** | Kiểm tra quyền sở hữu và cấp Presigned GET URL có thời hạn để client tải file trực tiếp từ MinIO. |
 
-| Method | Path                           | Request                                      | Response (`data`)               | Mô tả chi tiết                                                                                                                         |
-| :----- | :----------------------------- | :------------------------------------------- | :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/uploads/initiate`            | Body: `InitiateUploadRequest`                | `201` — `UploadSessionResponse` | Kiểm tra Quota, tạo node `PENDING_UPLOAD` và trả về Presigned URL (hoặc báo `instantUploaded: true` nếu trùng hash).                   |
-| `POST` | `/uploads/{nodeId}/complete`   | Body: `CompleteUploadRequest`                | `200` — `NodeResponse`          | Gọi `HEAD Object` lên MinIO để xác thực dung lượng/ETag, chuyển trạng thái sang `ACTIVE`, cộng Quota và bắn sự kiện sang `ai-service`. |
-| `GET`  | `/nodes/{nodeId}/download-url` | Query: `disposition` (`attachment`/`inline`) | `200` — `DownloadUrlResponse`   | Kiểm tra quyền `VIEWER` trở lên và cấp Presigned GET URL có thời hạn ngắn (ví dụ 15 phút).                                             |
-
-#### Mẫu Payload:
-
-- **`InitiateUploadRequest`:**
-
+#### Mẫu Payload `UploadUrlRequest`:
 ```json
 {
-  "name": "hop-dong-kinh-te.pdf",
-  "parentId": "24f47bb8-b1b7-4e41-a704-dc67cd4e23e0",
-  "mimeType": "application/pdf",
-  "sizeBytes": 2097152,
-  "sha256Checksum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "files": [
+    {
+      "parent_id": "1",
+      "name": "bao-cao-q3.pdf",
+      "size": 10485760,
+      "mime_type": "application/pdf",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
 }
 ```
 
-- **`UploadSessionResponse`:**
-
+#### Mẫu Payload `DownloadUrlRequest`:
 ```json
 {
-  "node": {
-    "id": "d098aed5-c455-4bfa-881e-33bc128282ec",
-    "name": "hop-dong-kinh-te.pdf",
-    "isFolder": false,
-    "nodeStatus": "PENDING_UPLOAD"
-  },
-  "instantUploaded": false,
-  "uploadUrl": "http://localhost:9000/smart-cloud-bucket/...",
-  "method": "PUT",
-  "expiresAt": "2026-10-20T10:15:00Z",
-  "requiredHeaders": {
-    "Content-Type": "application/pdf"
-  }
+  "files": [
+    {
+      "node_id": "18"
+    }
+  ]
 }
 ```
 

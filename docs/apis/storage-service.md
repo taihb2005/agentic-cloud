@@ -1,249 +1,624 @@
-# Storage Service API
+# Storage Service API Specification
 
-Tài liệu này mô tả API cho `storage-service` để quản lý cây metadata file/folder,
-upload/download object trên S3-compatible storage và chia sẻ node.
+Tài liệu này mô tả chi tiết toàn bộ các RESTful API của dịch vụ lưu trữ `storage-service`, được cập nhật trực tiếp dựa trên mã nguồn Java thực tế gồm các Controller, DTO, Entity, Security Filter và Exception Handler.
 
-## Phạm vi và thông tin chung
+---
 
-- Target domain: `localhost:8082` (cổng expose trong mạng nội bộ của storage là 8082)
+## 1. Tổng quan Kiến trúc & Thông tin Mạng
 
-- Public base URL qua API Gateway: `http://localhost:8089/api/v1/storage-service`
-- API Gateway hiện định tuyến `/api/v1/storage-service/**` tới `storage-service`
-  tại `http://localhost:8082`.
-- Content type: `application/json`, ngoại trừ request upload trực tiếp lên URL
-  được ký bởi object storage.
-- Các API dưới đây yêu cầu `Authorization: Bearer <access-token>`. Gateway xác
-  thực JWT, bỏ header `Authorization` trước khi chuyển tiếp và thêm `X-User-Id`
-  chứa UUID của user. Service phải lấy chủ sở hữu từ identity đã xác thực, không
-  nhận `userId` làm căn cứ phân quyền từ body/query.
-- Response JSON của API nghiệp vụ dùng envelope chung `ApiResponse`:
+- **Cổng dịch vụ nội bộ (Internal Port):** `8082` (`http://localhost:8082`)
+- **Public Base URL qua API Gateway:** `http://localhost:8089/api/v1/storage-service`
+  - API Gateway cấu hình rewrite `.stripPrefix(2)` đối với `/api/v1/storage-service/**` => chuyển tiếp thành `/storage-service/**` tới `http://storage-service:8082`.
+  - Các Controller trong `storage-service` đều hỗ trợ tiền tố chuẩn `/storage-service/...` (và một số route hỗ trợ thêm đường dẫn không có tiền tố như `/files`, `/nodes`, `/storage/users`).
+- **Content-Type:** `application/json` (trừ khi Client gửi dữ liệu trực tiếp lên S3/MinIO qua Presigned URL).
+
+### Cơ chế Xác thực & Định danh Người dùng
+
+Hệ thống hoạt động theo mô hình Gateway Authentication:
+1. Client gửi request kèm header `Authorization: Bearer <access-token>` tới **API Gateway**.
+2. **API Gateway** xác thực JWT, trích xuất thông tin user và gắn các header nội bộ:
+   - `X-User-Id`: UUID của người dùng hiện tại (bắt buộc).
+   - `X-User-Roles`: Danh sách vai trò của người dùng (ví dụ: `ROLE_USER`, `ROLE_ADMIN`).
+3. `GatewayAuthFilter` trong `storage-service` đọc `X-User-Id` để nạp thông tin người dùng (`FsUser`) vào Spring `SecurityContextHolder`. Các API lấy thông tin người dùng hiện tại qua annotation `@AuthenticationPrincipal FsUser user`.
+
+---
+
+## 2. Cấu trúc Response & Xử lý Batch chuẩn
+
+### 2.1. Envelope chuẩn (`ApiResponse<T>`)
+
+Mọi phản hồi từ `storage-service` đều được bọc trong envelope `ApiResponse`:
 
 ```json
 {
   "success": true,
-  "message": "Folder created",
-  "code": 201,
+  "message": "Thành công",
+  "code": 200,
   "data": {},
-  "timestamp": "2026-10-18T10:00:00Z"
+  "timestamp": "2026-10-30T10:00:00Z"
 }
 ```
 
-Các thông tin api trả ra đều được đặt ở trong cụm `data`. Nếu không mô tả gì thêm, mặc định data được trả ra trong cụm này.
+### 2.2. Phân trang chuẩn (`PagedResponse<T>`)
 
-## Quy ước metadata và quyền truy cập
-
-- `nodeId`, `parentId`, `userId`, `shareId` là UUID; `userId` được lấy từ
-  `X-User-Id` do gateway xác thực.
-- Folder là node có `isFolder: true`; file là node có `isFolder: false`.
-  Folder không có object key. File chỉ chuyển sang trạng thái sẵn sàng sau khi
-  upload được xác nhận với object storage.
-- `parentId` không truyền hoặc `null` có nghĩa là thư mục gốc của user hiện tại.
-  Mọi truy vấn và thao tác phải kiểm tra quyền trên toàn bộ đường dẫn node, không
-  chỉ dựa vào việc biết UUID.
-- API chỉ trả node chưa bị xóa mặc định. `isDeleted`/`deletedAt` dùng cho thùng
-  rác; xóa ở phiên bản này là xóa mềm metadata và không đồng nghĩa xóa object
-  khỏi S3.
-- `nodeStatus` là chuỗi trong entity, chưa có enum hay quy ước trạng thái trong
-  source. Đề xuất chuẩn hóa các giá trị `PENDING_UPLOAD`, `ACTIVE`, `FAILED`;
-  folder được tạo ở trạng thái `ACTIVE`.
-- Permission code được lưu qua `FsNodePermission.code`, nhưng danh sách code
-  chưa được khai báo trong source. Service cần seed và công bố các code hỗ trợ
-  (ví dụ `READ`, `WRITE`) trước khi bật API phân quyền chia sẻ.
-
-## API đề xuất
-
-### Nhóm liên quan đến người dùng
-
-### Duyệt và quản lý cây file/folder
-
-| Method   | Path                      | Request                                           | Response                     | Mô tả                                                                                                    |
-| -------- | ------------------------- | ------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/nodes`                  | Query: `parentId`, `kind`, `page`, `size`, `sort` | `200` — trang `NodeResponse` | Liệt kê con trực tiếp trong một folder; bỏ `parentId` để liệt kê root. `kind` nhận `FILE` hoặc `FOLDER`. |
-| `POST`   | `/nodes/folders`          | `CreateFolderRequest`                             | `201` — `NodeResponse`       | Tạo folder trong root hoặc folder cha.                                                                   |
-| `GET`    | `/nodes/{nodeId}`         | Path: `nodeId`                                    | `200` — `NodeResponse`       | Lấy metadata của một node; không trả danh sách toàn bộ con.                                              |
-| `PATCH`  | `/nodes/{nodeId}`         | `UpdateNodeRequest`                               | `200` — `NodeResponse`       | Đổi tên, di chuyển file/folder và/hoặc đổi trạng thái starred.                                           |
-| `DELETE` | `/nodes/{nodeId}`         | Path: `nodeId`                                    | `200` — message              | Xóa mềm node. Khi xóa folder, áp dụng đệ quy cho cây con.                                                |
-| `POST`   | `/nodes/{nodeId}/restore` | Path: `nodeId`                                    | `200` — `NodeResponse`       | Khôi phục node đã xóa; từ chối nếu folder cha đang bị xóa hoặc phát sinh trùng tên.                      |
-
-Query phân trang mặc định `page=0`, `size=20`; giới hạn `size` tối đa cần được
-cấu hình. Thứ tự mặc định nên là `name,asc`. Chỉ cho phép sort theo các trường
-metadata được API công bố.
-
-`CreateFolderRequest`:
+Các API trả về danh sách phân trang dùng DTO `PagedResponse<T>` trong `data`:
 
 ```json
 {
-  "name": "reports",
-  "parentId": "24f47bb8-b1b7-4e41-a704-dc67cd4e23e0"
+  "content": [],
+  "page": 0,
+  "size": 20,
+  "total_elements": 100,
+  "total_pages": 5,
+  "last": false
 }
 ```
 
-`UpdateNodeRequest` nhận một hoặc nhiều thuộc tính; thuộc tính không gửi giữ
-nguyên giá trị hiện tại. `parentId: null` chuyển node về root.
+### 2.3. Thao tác hàng loạt (`BatchOperationResponse<S, F>`)
+
+Các API thực hiện thao tác trên nhiều node (di chuyển, xóa mềm, khôi phục, xóa vĩnh viễn) sử dụng `BatchOperationResponse` để cung cấp chi tiết kết quả từng phần:
 
 ```json
 {
-  "name": "annual-reports",
-  "parentId": "24f47bb8-b1b7-4e41-a704-dc67cd4e23e0",
-  "isStarred": true
+  "total": 3,
+  "success_count": 2,
+  "failed_count": 1,
+  "succeeded": [
+    { "node_id": "1", "parent_id": "10" }
+  ],
+  "failed": [
+    {
+      "code": "NODE_NOT_FOUND",
+      "message": "Node không tồn tại",
+      "data": { "node_id": "99" }
+    }
+  ]
 }
 ```
 
-Service phải từ chối di chuyển folder vào chính nó hoặc hậu duệ của nó, đồng
-thời kiểm tra quyền ghi trên node nguồn và folder đích. Kiểm tra tên trùng phải
-thực hiện trong cùng parent trước khi insert/update.
+Các mã lỗi nghiệp vụ chuẩn trong `OperationFailure` (`FailureCode`):
+- `NOT_FOUND`, `FORBIDDEN`, `CONFLICT`, `INVALID_REQUEST`, `ALREADY_EXISTS`, `INVALID_STATE`, `INTERNAL_ERROR`
+- `NODE_NOT_FOUND`, `BAD_REQUEST`, `MOVE_FAILED`, `NAME_ALREADY_EXISTS`, `INVALID_DESTINATION`, `DESTINATION_ERROR`, `DESTINATION_NOT_FOUND`
 
-### Upload và download object
+---
 
-| Method | Path                           | Request                 | Response                        | Mô tả                                                                          |
-| ------ | ------------------------------ | ----------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
-| `POST` | `/uploads`                     | `InitiateUploadRequest` | `201` — `UploadSessionResponse` | Tạo metadata file ở trạng thái `PENDING_UPLOAD` và cấp URL upload có thời hạn. |
-| `POST` | `/uploads/{nodeId}/complete`   | `CompleteUploadRequest` | `200` — `NodeResponse`          | Xác minh object đã upload rồi chuyển metadata sang `ACTIVE`.                   |
-| `GET`  | `/nodes/{nodeId}/download-url` | Path: `nodeId`          | `200` — `DownloadUrlResponse`   | Cấp URL download có thời hạn sau khi kiểm tra quyền đọc.                       |
+## 3. Danh mục API
 
-`InitiateUploadRequest`:
+| Nhóm chức năng | Method | Đường dẫn API | Mô tả |
+|---|---|---|---|
+| **Storage User & Quota** | `GET` | `/storage-service/storage/users/quota/{id}` | Lấy thông tin Quota và phần trăm dung lượng đã dùng |
+| | `GET` | `/storage-service/storage/users/storage/{id}` | Lấy metadata không gian lưu trữ và node gốc của user |
+| | `POST` | `/storage-service/storage/users/init` | Khởi tạo storage và thư mục root cho user |
+| | `POST` | `/storage-service/storage/users/{userId}/init` | Khởi tạo nhanh storage bằng path variable |
+| **Quản lý Thư mục** | `POST` | `/storage-service/nodes/folders` | Tạo mới một thư mục con |
+| **Duyệt & Thao tác Node** | `GET` | `/storage-service/nodes` | Duyệt danh sách file/folder con (hỗ trợ lọc và phân trang) |
+| | `GET` | `/storage-service/nodes/{id}` | Lấy thông tin metadata chi tiết của một node |
+| | `PATCH` | `/storage-service/nodes/{id}` | Đổi tên hoặc cập nhật trạng thái quan trọng (starred) |
+| | `DELETE` | `/storage-service/nodes` | Xóa mềm danh sách node (chuyển vào thùng rác) |
+| | `POST` | `/storage-service/nodes/move` | Di chuyển danh sách node sang thư mục đích |
+| **Quản lý Thùng rác** | `GET` | `/storage-service/nodes/trash` | Danh sách node đang nằm trong thùng rác |
+| | `POST` | `/storage-service/nodes/trash/restore` | Khôi phục danh sách node từ thùng rác |
+| | `DELETE` | `/storage-service/nodes/trash/permanent` | Xóa vĩnh viễn các node hoặc dọn sạch thùng rác |
+| **Tải lên Tệp (Upload)** | `POST` | `/storage-service/files/upload-urls` | Xin cấp Presigned URL để upload file lên MinIO |
+| **Tải xuống Tệp (Download)** | `POST` | `/storage-service/files/download-urls` | Xin cấp Presigned URL để tải file từ MinIO |
+| **Chia sẻ File/Folder & Phân quyền** | `POST` | `/storage-service/nodes/{id}/share` | Thiết lập chia sẻ (`USER_GROUP` hoặc `PUBLIC_LINK`) với đúng 1 quyền (`VIEW`/`EDIT`) |
+| | `GET` | `/storage-service/nodes/{id}/share` | Xem chi tiết cấu hình chia sẻ hiện tại (Chỉ Chủ sở hữu) |
+| | `PUT` | `/storage-service/nodes/{id}/share/users` | Cập nhật danh sách user hoặc đổi quyền nhóm user |
+| | `DELETE` | `/storage-service/nodes/{id}/share` | Hủy toàn bộ chia sẻ trên node về trạng thái riêng tư (`PRIVATE`) |
+| | `PUT` | `/storage-service/nodes/{id}/password` | Đặt hoặc thay đổi mật khẩu bảo vệ node (Chủ sở hữu) |
+| | `POST` | `/storage-service/nodes/{id}/verify-password` | Nhập mật khẩu để mở khóa node và nhận `share_access_token` |
+| | `GET` | `/storage-service/nodes/shared-with-me` | Danh sách file/folder được chia sẻ với user hiện tại |
+| | `GET` | `/storage-service/shares/public/{token}` | Xem thông tin và truy cập file/folder qua Public Link |
+| *(Xem đặc tả chi tiết tại [node_sharing.md](storage/node_sharing.md))* | | | |
+
+---
+
+## 4. Chi tiết từng Nhóm API
+
+### 4.1. Nhóm Storage User & Quota (`StorageUserController`)
+
+Base route: `/storage-service/storage/users` (hoặc `/storage/users`)
+
+#### 4.1.1. Lấy thông tin hạn mức lưu trữ (Quota)
+
+- **Endpoint:** `GET /storage-service/storage/users/quota/{id}`
+- **Phân quyền:** `@PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")`
+- **Path Parameter:** `id` (UUID, Bắt buộc) - ID của người dùng
+- **Response `200 OK` (`ApiResponse<UserQuotaResponse>`):**
 
 ```json
 {
-  "name": "report.pdf",
-  "parentId": "24f47bb8-b1b7-4e41-a704-dc67cd4e23e0",
-  "mimeType": "application/pdf",
-  "sizeBytes": 1048576
-}
-```
-
-`UploadSessionResponse`:
-
-```json
-{
-  "node": {
-    "id": "d098aed5-c455-4bfa-881e-33bc128282ec",
-    "name": "report.pdf",
-    "isFolder": false,
-    "nodeStatus": "PENDING_UPLOAD"
+  "success": true,
+  "message": "Lấy thông tin thành công",
+  "code": 200,
+  "data": {
+    "user_id": "7ac9e9d3-79a2-44ec-806d-7029af302116",
+    "storage_id": "9bc1e284-56a1-43ef-92e1-884021235678",
+    "current_quota": 52428800,
+    "max_quota": 10737418240,
+    "unit": "MB",
+    "usage_percentage": 0.49,
+    "status": "NORMAL"
   },
-  "uploadUrl": "https://storage.example/...",
-  "method": "PUT",
-  "expiresAt": "2026-10-18T10:15:00Z",
-  "requiredHeaders": {
-    "Content-Type": "application/pdf"
-  }
+  "timestamp": "2026-10-30T10:00:00Z"
 }
 ```
 
-`CompleteUploadRequest` có thể truyền `etag` nhận được từ storage. Service phải
-đọc metadata object từ S3/MinIO (ví dụ qua HEAD), kiểm tra object key thuộc upload
-session, kích thước và content type theo policy rồi mới đánh dấu node `ACTIVE`;
-không tin kích thước hay ETag do client tự khai báo. Thao tác complete nên idempotent
-cho cùng `nodeId`.
+#### 4.1.2. Lấy thông tin không gian lưu trữ (User Storage)
 
-`DownloadUrlResponse` chỉ chứa URL được ký và thời hạn:
+- **Endpoint:** `GET /storage-service/storage/users/storage/{id}`
+- **Phân quyền:** `@PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")`
+- **Path Parameter:** `id` (UUID, Bắt buộc) - ID của người dùng
+- **Response `200 OK` (`ApiResponse<UserStorageResponse>`):**
 
 ```json
 {
-  "downloadUrl": "https://storage.example/...",
-  "expiresAt": "2026-10-18T10:15:00Z"
+  "success": true,
+  "message": "Lấy thông tin thành công",
+  "code": 200,
+  "data": {
+    "user_id": "7ac9e9d3-79a2-44ec-806d-7029af302116",
+    "storage_prefix": "users/alice",
+    "storage_bucket_name": "agentic-cloud",
+    "storage_max_quota_bytes": 10737418240,
+    "storage_current_quota_bytes": 52428800,
+    "root_node_id": 1,
+    "root_node_name": "root",
+    "root_node_path": "root",
+    "created_at": "2026-10-30T08:00:00",
+    "updated_at": "2026-10-30T08:05:00"
+  },
+  "timestamp": "2026-10-30T10:00:00Z"
 }
 ```
 
-URL ký phải có thời hạn ngắn, được giới hạn đúng object và method cần thiết. Không
-trả `storageBucketName` hoặc `s3ObjectKey` ra client. Nếu upload không hoàn tất,
-node `PENDING_UPLOAD` cần được dọn theo chính sách hết hạn; thời hạn và cơ chế dọn
-cần được triển khai cùng service.
+#### 4.1.3. Khởi tạo không gian lưu trữ cho người dùng mới
 
-### Chia sẻ và phân quyền user
-
-| Method   | Path                                   | Request                  | Response                           | Mô tả                                                                                          |
-| -------- | -------------------------------------- | ------------------------ | ---------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `GET`    | `/nodes/{nodeId}/shares`               | Path: `nodeId`           | `200` — `ShareResponse`            | Liệt kê link share và user được cấp quyền trên node; chỉ owner/người có quyền quản lý share.   |
-| `PUT`    | `/nodes/{nodeId}/share-link`           | `CreateShareLinkRequest` | `201` hoặc `200` — `ShareResponse` | Tạo hoặc cập nhật link công khai cho node.                                                     |
-| `DELETE` | `/nodes/{nodeId}/share-link`           | Path: `nodeId`           | `200` — message                    | Thu hồi link công khai.                                                                        |
-| `GET`    | `/shares/public/{token}`               | Path: token              | `200` — metadata và URL download   | Truy cập link công khai còn hiệu lực; kiểm tra hạn dùng và số lượt truy cập trước khi cấp URL. |
-| `PUT`    | `/nodes/{nodeId}/permissions/{userId}` | `GrantPermissionRequest` | `200` — `NodePermissionResponse`   | Cấp hoặc cập nhật quyền cho một user.                                                          |
-| `DELETE` | `/nodes/{nodeId}/permissions/{userId}` | Path: `nodeId`, `userId` | `200` — message                    | Thu hồi quyền user trên node.                                                                  |
-
-`CreateShareLinkRequest`:
+- **Endpoint:** `POST /storage-service/storage/users/init`
+- **Request Body (`InitUserStorageRequest`):**
 
 ```json
 {
-  "expiresAt": "2026-10-25T10:00:00Z",
-  "maxAccessCount": 20
+  "userId": "7ac9e9d3-79a2-44ec-806d-7029af302116",
+  "username": "alice",
+  "email": "alice@example.com",
+  "customQuotaBytes": 10737418240
 }
 ```
 
-Server sinh token ngẫu nhiên khó đoán; URL chia sẻ không được dùng trực tiếp UUID
-của node. Khi `expiresAt` hoặc `maxAccessCount` không được gửi, policy mặc định
-cần được xác định và công bố. Link thu hồi/hết hạn hoặc đã đạt giới hạn lượt truy
-cập trả `404 Not Found` hoặc `410 Gone` theo policy được thống nhất; đề xuất dùng
-`410 Gone` cho link đã tồn tại nhưng không còn hiệu lực.
+| Trường | Kiểu | Bắt buộc | Mô tả |
+|---|---|:---:|---|
+| `userId` | UUID | Có | ID định danh của người dùng |
+| `username` | string | Không | Tên tài khoản |
+| `email` | string | Không | Email người dùng |
+| `customQuotaBytes` | integer (Long) | Không | Hạn mức riêng (nếu không set sẽ lấy default hệ thống) |
 
-`GrantPermissionRequest`:
+- **Response `200 OK` hoặc `201 CREATED` (`ApiResponse<UserStorageResponse>`):** Trả về metadata của storage vừa tạo (hoặc storage đã tồn tại).
+
+#### 4.1.4. Khởi tạo nhanh không gian lưu trữ qua ID
+
+- **Endpoint:** `POST /storage-service/storage/users/{userId}/init`
+- **Path Parameter:** `userId` (UUID, Bắt buộc)
+- **Response `200 OK` (`ApiResponse<UserStorageResponse>`)**
+
+---
+
+### 4.2. Nhóm Quản lý Thư mục (`FsNodeFolderController`)
+
+Base route: `/storage-service/nodes/folders`
+
+#### 4.2.1. Tạo thư mục mới
+
+- **Endpoint:** `POST /storage-service/nodes/folders`
+- **Header:** `X-User-Id`
+- **Request Body (`CreateFolderRequest`):**
 
 ```json
 {
-  "permissionCode": "READ"
+  "name": "Bao-cao-tai-chinh",
+  "parent_id": "1"
 }
 ```
 
-Chỉ nhận `permissionCode` đã được seed trong `FsNodePermission`. Quyền user và
-link công khai không làm mất quyền sở hữu của owner. Việc kế thừa quyền từ folder
-cha cần được xác định rõ khi triển khai; đề xuất kiểm tra quyền hiệu lực trên
-đường dẫn ancestor và cho phép quyền cụ thể tại node ghi đè theo policy.
+| Trường | Kiểu | Bắt buộc | Mô tả |
+|---|---|:---:|---|
+| `name` | string | Có | Tên thư mục cần tạo |
+| `parent_id` | string | Không | ID thư mục cha. Để `null` hoặc không truyền để tạo tại Root |
 
-## DTO đề xuất
+- **Response `200 OK` (`ApiResponse<NodeResponse>`):**
 
-DTO không expose entity JPA hoặc quan hệ lazy:
+```json
+{
+  "success": true,
+  "message": "Tạo thư mục thành công",
+  "code": 200,
+  "data": {
+    "id": 12,
+    "parent_id": 1,
+    "path": "root.1.12",
+    "name": "Bao-cao-tai-chinh",
+    "is_folder": true,
+    "node_status": "ACTIVE",
+    "mime_type": null,
+    "size_bytes": 0,
+    "etag": null,
+    "file_hash": null,
+    "is_starred": false,
+    "created_at": "2026-10-30T10:15:00",
+    "updated_at": "2026-10-30T10:15:00",
+    "deleted_at": null
+  },
+  "timestamp": "2026-10-30T10:15:00Z"
+}
+```
 
-- `NodeResponse`: `id`, `parentId`, `name`, `isFolder`, `nodeStatus`, `mimeType`,
-  `sizeBytes`, `etag`, `isStarred`, `createdAt`, `updatedAt`; chỉ thêm `children`
-  khi endpoint/option yêu cầu.
-- `CreateFolderRequest`: `name`, `parentId`.
-- `UpdateNodeRequest`: `name`, `parentId`, `isStarred` (các trường tùy chọn).
-- `InitiateUploadRequest`: `name`, `parentId`, `mimeType`, `sizeBytes`.
-- `UploadSessionResponse`: `node`, `uploadUrl`, `method`, `expiresAt`,
-  `requiredHeaders`.
-- `CompleteUploadRequest`: `etag` tùy chọn; thông tin thực tế phải được xác minh
-  từ storage.
-- `DownloadUrlResponse`: `downloadUrl`, `expiresAt`.
-- `ShareResponse`: thông tin share cần thiết như id, URL/token, trạng thái và hạn
-  dùng; không trả `createdBy` nếu không cần cho client.
-- `GrantPermissionRequest` và `NodePermissionResponse`: permission code đã được
-  server công bố.
+---
 
-Response dùng tên thuộc tính camelCase theo Jackson. `ApiResponse` được dùng cho
-response JSON của service; request/response truyền trực tiếp giữa client và S3
-không bọc trong envelope này.
+### 4.3. Nhóm Duyệt & Thao tác Node (`FsNodeController`)
 
-## Quy tắc lỗi
+Base route: `/storage-service/nodes`  
+Header bắt buộc: `X-User-Id: <UUID>`
 
-|                 HTTP status | Trường hợp                                                                                           |
-| --------------------------: | ---------------------------------------------------------------------------------------------------- |
-|           `400 Bad Request` | Body/query không hợp lệ, trạng thái node không cho phép thao tác, di chuyển tạo vòng lặp.            |
-|          `401 Unauthorized` | Thiếu hoặc JWT không hợp lệ; thường được API Gateway trả trước khi vào service.                      |
-|             `403 Forbidden` | User đã xác thực nhưng không sở hữu node hoặc không có permission cần thiết.                         |
-|             `404 Not Found` | Node/parent không tồn tại hoặc không thuộc phạm vi user; có thể dùng cùng response để tránh dò UUID. |
-|              `409 Conflict` | Tên đã tồn tại trong parent, upload đã ở trạng thái không tương thích, hoặc thao tác cạnh tranh.     |
-|                  `410 Gone` | Link share đã hết hạn, bị thu hồi hoặc hết lượt truy cập.                                            |
-|     `413 Payload Too Large` | File vượt hạn mức dung lượng được cấu hình.                                                          |
-|           `502 Bad Gateway` | S3/MinIO không khả dụng hoặc trả lỗi khi xác minh/cấp URL.                                           |
-| `500 Internal Server Error` | Lỗi ngoài các trường hợp đã xác định; không trả thông tin nội bộ hay credential.                     |
+#### 4.3.1. Lấy danh sách file/folder con (Duyệt thư mục)
 
-## Ghi chú triển khai và các điểm cần chốt
+- **Endpoint:** `GET /storage-service/nodes`
+- **Query Parameters:**
 
-- Database hiện có unique constraint `(parent_id, name)` cho `FsNode`; constraint
-  không bao gồm `user_id`. Cần kiểm tra lại scope uniqueness và hành vi `NULL`
-  của database cho root trước khi hỗ trợ nhiều user có cùng tên ở cùng parent.
-- Metadata database và object storage không cùng một transaction. Upload theo
-  hai bước initiate/complete giúp tránh đánh dấu file sẵn sàng trước khi object
-  tồn tại; cần có cleanup cho upload dở dang.
-- Gateway hiện chỉ xác thực JWT và chuyển `X-User-Id`; phân quyền owner/share và
-  kiểm soát object key phải được thực hiện tại storage-service. Hạn chế truy cập
-  trực tiếp tới port service từ mạng không tin cậy để tránh giả mạo header.
-- Gateway đang route tới port `8082`; cấu hình service cần đồng bộ với port này.
-  MinIO được khai báo ở `backend/services/storage-service/docker-compose.yml`
-  với API port `9000` và console port `9001`. Chỉ API port dùng cho thao tác
-  object; console không phải endpoint của storage-service.
-- Build hiện khai báo Spring Web, JPA, Security, Validation, Actuator,
-  Springdoc, MySQL/H2 và Flyway; chưa thấy dependency S3/MinIO SDK, controller,
-  DTO, migration hay test API trong `storage-service`. Cần bổ sung những phần đó
-  khi triển khai thiết kế này.
+| Tham số | Kiểu | Mặc định | Mô tả |
+|---|---|:---:|---|
+| `parent_id` | string | `null` | ID thư mục cha (bỏ trống để lấy thư mục gốc) |
+| `node_type` | string | `null` | Lọc theo loại node: `FILE` hoặc `FOLDER` |
+| `name` | string | `null` | Lọc theo tên file/thư mục |
+| `mime_type` | string | `null` | Lọc theo MIME type (ví dụ `application/pdf`) |
+| `page` | integer | `0` | Chỉ số trang |
+| `size` | integer | `20` | Kích thước trang |
+| `sort` | string/list | `name,asc` | Tiêu chí sắp xếp |
+
+- **Response `200 OK` (`ApiResponse<PagedResponse<NodeResponse>>`):**
+
+```json
+{
+  "success": true,
+  "message": "Lấy danh sách thành công",
+  "code": 200,
+  "data": {
+    "content": [
+      {
+        "id": 12,
+        "parent_id": 1,
+        "path": "root.1.12",
+        "name": "Bao-cao-tai-chinh",
+        "is_folder": true,
+        "node_status": "ACTIVE",
+        "mime_type": null,
+        "size_bytes": 0,
+        "etag": null,
+        "file_hash": null,
+        "is_starred": false,
+        "created_at": "2026-10-30T10:15:00",
+        "updated_at": "2026-10-30T10:15:00",
+        "deleted_at": null
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "total_elements": 1,
+    "total_pages": 1,
+    "last": true
+  },
+  "timestamp": "2026-10-30T10:15:00Z"
+}
+```
+
+#### 4.3.2. Lấy metadata của một node
+
+- **Endpoint:** `GET /storage-service/nodes/{id}`
+- **Path Parameter:** `id` (string, Bắt buộc) - ID của node
+- **Response `200 OK` (`ApiResponse<NodeResponse>`)**
+
+#### 4.3.3. Cập nhật thông tin node
+
+- **Endpoint:** `PATCH /storage-service/nodes/{id}`
+- **Path Parameter:** `id` (string, Bắt buộc)
+- **Request Body (`UpdateNodeRequest`):**
+
+```json
+{
+  "name": "Bao-cao-tai-chinh-2026",
+  "starred": true
+}
+```
+
+| Trường | Kiểu | Bắt buộc | Mô tả |
+|---|---|:---:|---|
+| `name` | string | Không | Tên mới cần đổi |
+| `starred` | boolean | Không | Đánh dấu hoặc bỏ đánh dấu quan trọng |
+
+- **Response `200 OK` (`ApiResponse<NodeResponse>`)**
+
+#### 4.3.4. Xóa mềm danh sách node (Đưa vào thùng rác)
+
+- **Endpoint:** `DELETE /storage-service/nodes`
+- **Request Body (`BatchNodesRequest`):**
+
+```json
+{
+  "node_ids": ["12", "15"]
+}
+```
+
+| Trường | Kiểu | Bắt buộc | Ghi chú |
+|---|---|:---:|---|
+| `node_ids` | array of string | Có | Hỗ trợ alias: `nodes`, `node_id`, `nodeIds` |
+
+- **Response `200 OK` (`ApiResponse<BatchOperationResponse<DeleteResult, NodeFailureResult>>`):**
+
+```json
+{
+  "success": true,
+  "message": "Xóa node hoàn tất",
+  "code": 200,
+  "data": {
+    "total": 2,
+    "success_count": 2,
+    "failed_count": 0,
+    "succeeded": [
+      {
+        "node_id": "12",
+        "operation_id": "op-del-12"
+      },
+      {
+        "node_id": "15",
+        "operation_id": "op-del-15"
+      }
+    ],
+    "failed": []
+  },
+  "timestamp": "2026-10-30T10:20:00Z"
+}
+```
+
+#### 4.3.5. Di chuyển danh sách node sang thư mục đích
+
+- **Endpoint:** `POST /storage-service/nodes/move`
+- **Request Body (`MoveNodeRequest`):**
+
+```json
+{
+  "src_node_ids": ["12", "15"],
+  "dst_node_id": "5"
+}
+```
+
+| Trường | Kiểu | Bắt buộc | Ghi chú |
+|---|---|:---:|---|
+| `src_node_ids` | array of string | Có | Danh sách ID các node cần di chuyển. Alias: `src_node_id`, `srcNodeIds`, `srcNodeId` |
+| `dst_node_id` | string | Không | ID thư mục đích (để `null` để chuyển về Root). Alias: `dstNodeId` |
+
+- **Response `200 OK` (`ApiResponse<BatchOperationResponse<MoveResult, NodeFailureResult>>`):**
+
+```json
+{
+  "success": true,
+  "message": "Di chuyển node hoàn tất",
+  "code": 200,
+  "data": {
+    "total": 2,
+    "success_count": 2,
+    "failed_count": 0,
+    "succeeded": [
+      {
+        "node_id": "12",
+        "parent_id": "5"
+      },
+      {
+        "node_id": "15",
+        "parent_id": "5"
+      }
+    ],
+    "failed": []
+  },
+  "timestamp": "2026-10-30T10:25:00Z"
+}
+```
+
+---
+
+### 4.4. Nhóm Quản lý Thùng rác (`FsNodeTrashController`)
+
+Base route: `/storage-service/nodes/trash`  
+Header bắt buộc: `X-User-Id: <UUID>`
+
+#### 4.4.1. Xem danh sách các node trong thùng rác
+
+- **Endpoint:** `GET /storage-service/nodes/trash`
+- **Query Parameters:** `parent_id`, `node_type`, `name`, `mime_type`, `page` (default 0), `size` (default 20), `sort` (default `deleted_at,desc`)
+- **Response `200 OK` (`ApiResponse<PagedResponse<NodeResponse>>`):** Trả về danh sách các node đã bị xóa mềm (`deleted_at != null`).
+
+#### 4.4.2. Khôi phục danh sách node từ thùng rác
+
+- **Endpoint:** `POST /storage-service/nodes/trash/restore`
+- **Request Body (`BatchNodesRequest`):**
+
+```json
+{
+  "node_ids": ["12", "15"]
+}
+```
+
+- **Response `200 OK` (`ApiResponse<BatchOperationResponse<RestoreResult, NodeFailureResult>>`):**
+
+```json
+{
+  "success": true,
+  "message": "Thao tác thành công",
+  "code": 200,
+  "data": {
+    "total": 2,
+    "success_count": 2,
+    "failed_count": 0,
+    "succeeded": [
+      {
+        "id": "12",
+        "parent_id": "1",
+        "name": "Bao-cao-tai-chinh",
+        "is_folder": true,
+        "node_status": "ACTIVE",
+        "restored_count": 3
+      }
+    ],
+    "failed": []
+  },
+  "timestamp": "2026-10-30T10:30:00Z"
+}
+```
+
+#### 4.4.3. Xóa vĩnh viễn node trong thùng rác hoặc dọn sạch thùng rác
+
+- **Endpoint:** `DELETE /storage-service/nodes/trash/permanent`
+- **Request Body (`BatchNodesRequest`, tùy chọn):**
+  - Gửi `node_ids`: Xóa vĩnh viễn các node cụ thể được chỉ định.
+  - Không gửi body hoặc gửi danh sách rỗng: Kích hoạt xóa toàn bộ thùng rác của user bất đồng bộ qua Transactional Outbox + Kafka.
+- **Response `200 OK` (`ApiResponse<BatchOperationResponse<Void, NodeFailureResult>>`)**
+
+---
+
+### 4.5. Nhóm Tải lên Tệp - File Upload (`FileUploadController`)
+
+Base route: `/storage-service/files` (hoặc `/files`)  
+Header bắt buộc: `X-User-Id: <UUID>`
+
+#### 4.5.1. Yêu cầu cấp Presigned URL để Upload
+
+Hệ thống kiểm tra Quota và kiểm tra deduplication thông qua file hash:
+- Nếu file đã tồn tại trên MinIO (cùng hash): hệ thống trả về ngay `instant_uploaded = true`, không cần upload lại.
+- Nếu là file mới: hệ thống tạo node ở trạng thái `PENDING_UPLOAD` và cấp Presigned PUT URL có thời hạn.
+
+- **Endpoint:** `POST /storage-service/files/upload-urls`
+- **Request Body (`UploadUrlRequest`):**
+
+```json
+{
+  "files": [
+    {
+      "parent_id": "1",
+      "name": "design-spec.pdf",
+      "size": 1048576,
+      "mime_type": "application/pdf",
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
+```
+
+| Thuộc tính (mỗi phần tử) | Kiểu | Bắt buộc | Ràng buộc / Mô tả |
+|---|---|:---:|---|
+| `parent_id` | string | Không | ID thư mục cha chứa file. Alias: `parentId` |
+| `name` | string | Có | Tên tệp tin (không được để trống) |
+| `size` | integer (Long) | Có | Kích thước tệp (bytes, `>= 0`) |
+| `mime_type` | string | Không | Định dạng MIME của file. Alias: `mimeType` |
+| `hash` | string | Có | Mã băm SHA-256 của file. Alias: `file_hash`, `fileHash` |
+
+- **Response `200 OK` (`ApiResponse<UploadUrlsResponse>`):**
+
+```json
+{
+  "success": true,
+  "message": "Thành công",
+  "code": 200,
+  "data": {
+    "presigned_urls": [
+      {
+        "node_id": "18",
+        "url": "http://localhost:9000/agentic-cloud/users/alice/uuid-object-key?X-Amz-Algorithm=...",
+        "instant_uploaded": false,
+        "expires_at": "2026-10-30T10:45:00Z"
+      }
+    ]
+  },
+  "timestamp": "2026-10-30T10:30:00Z"
+}
+```
+
+---
+
+### 4.6. Nhóm Tải xuống Tệp - File Download (`FileDownloadController`)
+
+Base route: `/storage-service/files` (hoặc `/files`)  
+Header bắt buộc: `X-User-Id: <UUID>`
+
+#### 4.6.1. Yêu cầu cấp Presigned URL để Download
+
+- **Endpoint:** `POST /storage-service/files/download-urls`
+- **Request Body (`DownloadUrlRequest`):**
+
+```json
+{
+  "files": [
+    {
+      "node_id": "18"
+    }
+  ]
+}
+```
+
+| Thuộc tính | Kiểu | Bắt buộc | Mô tả |
+|---|---|:---:|---|
+| `files` | array of object | Có | Danh sách các file cần download |
+| `node_id` | string | Có | ID của node file cần tải xuống |
+
+- **Response `200 OK` (`ApiResponse<DownloadUrlsResponse>`):**
+
+```json
+{
+  "success": true,
+  "message": "Thành công",
+  "code": 200,
+  "data": {
+    "download_urls": [
+      {
+        "node_id": "18",
+        "file_name": "design-spec.pdf",
+        "url": "http://localhost:9000/agentic-cloud/users/alice/uuid-object-key?X-Amz-Algorithm=...",
+        "expires_at": "2026-10-30T10:45:00Z",
+        "mime_type": "application/pdf",
+        "size_bytes": 1048576
+      }
+    ]
+  },
+  "timestamp": "2026-10-30T10:30:00Z"
+}
+```
+
+---
+
+## 5. Bảng đặc tả chi tiết các Model DTO
+
+### 5.1. `NodeResponse`
+| Tên thuộc tính | Kiểu dữ liệu | Mô tả |
+|---|---|---|
+| `id` | Long | ID duy nhất của node |
+| `parent_id` | Long | ID của thư mục cha (`null` nếu ở Root) |
+| `path` | String | Materialized path (ví dụ `root.1.18`) |
+| `name` | String | Tên file hoặc folder |
+| `is_folder` | Boolean | `true` nếu là thư mục, `false` nếu là file |
+| `node_status` | String | Trạng thái (`ACTIVE`, `PENDING_UPLOAD`, `FAILED`,...) |
+| `mime_type` | String | MIME type |
+| `size_bytes` | Long | Kích thước file theo bytes |
+| `etag` | String | ETag của object trên MinIO/S3 |
+| `file_hash` | String | SHA-256 hash của nội dung file |
+| `is_starred` | Boolean | Trạng thái đánh dấu quan trọng |
+| `created_at` | LocalDateTime | Thời gian tạo |
+| `updated_at` | LocalDateTime | Thời gian cập nhật gần nhất |
+| `deleted_at` | LocalDateTime | Thời gian chuyển vào thùng rác (`null` nếu chưa xóa) |
+
+### 5.2. `UserQuotaResponse`
+| Tên thuộc tính | Kiểu dữ liệu | Mô tả |
+|---|---|---|
+| `user_id` | UUID | ID của người dùng |
+| `storage_id` | UUID | ID của không gian lưu trữ |
+| `current_quota` | Long | Dung lượng hiện tại đã sử dụng (bytes) |
+| `max_quota` | Long | Hạn mức dung lượng tối đa được cấp (bytes) |
+| `unit` | String | Đơn vị tính (`MB`, `GB`,...) |
+| `usage_percentage` | Double | Tỷ lệ % dung lượng đã dùng |
+| `status` | String | Trạng thái quota (`NORMAL`, `WARNING`, `EXCEEDED`) |

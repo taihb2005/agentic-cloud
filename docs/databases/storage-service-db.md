@@ -31,7 +31,7 @@ erDiagram
 
     FS_NODE_PERMISSIONS {
         bigint id PK
-        varchar(20) code UK "VIEW, DOWNLOAD, EDIT, MANAGE"
+        varchar(20) code UK "VIEW, EDIT"
         varchar(255) description
     }
 
@@ -39,14 +39,16 @@ erDiagram
         uuid id PK
         uuid node_id FK
         uuid created_by FK
+        varchar(20) share_mode "NONE, GROUP" "PUBLIC"
         bigint permission_id FK
         varchar(64) share_token UK "Token for public/shared URL"
+        boolean is_password_protected
         varchar(255) password_hash "Optional password protection"
         boolean is_public
         timestamp expires_at
         integer max_access_count
         integer access_count
-        varchar(20) status "ACTIVE, EXPIRED, REVOKED"
+        varchar(20) status "ACTIVE, EXPIRED, REVOKED", "NONE"
         timestamp created_at
         timestamp updated_at
     }

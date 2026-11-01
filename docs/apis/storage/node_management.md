@@ -1,45 +1,39 @@
-# Chi tiết Đầu vào / Đầu ra Nhóm API Duyệt thư mục (Định dạng JSON)
+# Nhóm API Quản lý Node & Thư mục (Storage Service)
 
-Tất cả các API trong nhóm này đều yêu cầu header xác thực:
-`Authorization: Bearer <access-token>`
-
-Dưới đây là mô tả chi tiết các trường đầu vào (Path/Query/Body) và Payload đầu ra (Response) ở định dạng JSON.
+Tài liệu này mô tả chi tiết các RESTful API dùng để duyệt cây thư mục, tạo thư mục, lấy metadata, cập nhật, di chuyển, xóa mềm và quản lý thùng rác trong `storage-service`. Dữ liệu được đồng bộ trực tiếp từ source code các controller (`FsNodeController`, `FsNodeFolderController`, `FsNodeTrashController`) và các DTO tương ứng.
 
 ---
 
-(Global prefix: /storage-service)
+## Thông tin Chung & Xác thực
 
-## 1. Lấy danh sách file/folder con (Duyệt thư mục)
+- **Global Prefix:** `/storage-service` (hoặc gọi qua API Gateway `/api/v1/storage-service/**`)
+- **Headers bắt buộc:**
+  - `Authorization: Bearer <access-token>` (Client gửi tới Gateway)
+  - `X-User-Id`: UUID của người dùng (Gateway inject vào request trước khi forward tới storage-service)
+  - `X-User-Roles`: Danh sách quyền của người dùng
+- **Định dạng dữ liệu:** `application/json`
 
-**Method & Endpoint:** `GET /nodes`
+---
 
-**Required header**
-X-User-Id: Id của người dùng đã được inject
-X-User-Roles: Vai trò của người dùng được inject
+## 1. Duyệt danh sách File & Folder con
 
-**Đầu vào (Query Parameters):**
+Lấy danh sách các file/folder con trực tiếp của một thư mục (hoặc thư mục gốc), có hỗ trợ tìm kiếm theo tên, loại node, MIME type và phân trang.
 
-```json
-{
-  "parent_id": 4,
-  "node_type": "FOLDER",
-  "page": 0,
-  "size": 20,
-  "sort": "name" //Truyền dạng list
-}
-```
+- **Method & Endpoint:** `GET /storage-service/nodes`
+- **Controller:** `FsNodeController.getChildNodes`
+- **Đầu vào (Query Parameters):**
 
-_Giải thích Query Params:_
+| Tham số | Kiểu dữ liệu | Mặc định | Mô tả |
+|---|---|:---:|---|
+| `parent_id` | String | `null` | ID của thư mục cha. Để `null` hoặc bỏ trống để lấy thư mục gốc (Root) |
+| `node_type` | String | `null` | Bộ lọc loại node: `FILE` hoặc `FOLDER`. Bỏ trống để lấy cả hai |
+| `name` | String | `null` | Lọc theo tên file/folder (tìm kiếm chứa từ khóa) |
+| `mime_type` | String | `null` | Lọc theo kiểu MIME (ví dụ: `application/pdf`) |
+| `page` | Integer | `0` | Chỉ số trang hiện tại (bắt đầu từ 0) |
+| `size` | Integer | `20` | Số lượng bản ghi trên mỗi trang |
+| `sort` | String / List | `name,asc` | Tiêu chí sắp xếp (ví dụ: `name,asc` hoặc `created_at,desc`) |
 
-- `parentId` (Long, null): ID của thư mục cha. Nếu truyền `null` hoặc "root" hoặc bỏ trống, hệ thống trả về thư mục gốc (Root).
-- `nodeType` (String, null): Bộ lọc loại node. Chấp nhận `FILE` hoặc `FOLDER`. Bỏ trống để lấy cả hai.
-- `name` (String, null): Bộ lọc tên thư mục hoặc file trong thư mục hiện tại
-- `mimeType` (String, null): Bộ lọc loại file, có thể phát triển sau
-- `page` (Integer): Trang hiện tại (mặc định: `0`).
-- `size` (Integer): Số lượng bản ghi/trang (mặc định: `20`).
-- `sort` (String): Tiêu chí sắp xếp (mặc định: `name,asc,desc`).
-
-**Đầu ra (200 OK):**
+- **Đầu ra `200 OK` (`ApiResponse<PagedResponse<NodeResponse>>`):**
 
 ```json
 {
@@ -50,17 +44,297 @@ _Giải thích Query Params:_
     "content": [
       {
         "id": 5,
-        "parent_id": 4,
-        "path": "root.1.4.5",
+        "parent_id": 1,
+        "path": "root.1.5",
         "name": "Tai-lieu-du-an-2026",
         "is_folder": true,
         "node_status": "ACTIVE",
-        "mime_type": "null",
+        "mime_type": null,
         "size_bytes": 0,
-        "etag": "random-etag-shenanigan",
+        "etag": null,
+        "file_hash": null,
         "is_starred": false,
-        "created_at": "2026-10-18T10:00:00Z",
-        "updated_at": "2026-10-18T10:00:00Z"
+        "created_at": "2026-10-30T10:00:00",
+        "updated_at": "2026-10-30T10:00:00",
+        "deleted_at": null
+      },
+      {
+        "id": 8,
+        "parent_id": 1,
+        "path": "root.1.8",
+        "name": "hop-dong-lao-dong.pdf",
+        "is_folder": false,
+        "node_status": "ACTIVE",
+        "mime_type": "application/pdf",
+        "size_bytes": 1048576,
+        "etag": "d41d8cd98f00b204e9800998ecf8427e",
+        "file_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "is_starred": true,
+        "created_at": "2026-10-30T10:05:00",
+        "updated_at": "2026-10-30T10:05:00",
+        "deleted_at": null
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "total_elements": 2,
+    "total_pages": 1,
+    "last": true
+  },
+  "timestamp": "2026-10-30T10:10:00Z"
+}
+```
+
+---
+
+## 2. Tạo Thư mục mới
+
+Tạo một folder mới bên trong thư mục chỉ định hoặc tại thư mục gốc.
+
+- **Method & Endpoint:** `POST /storage-service/nodes/folders`
+- **Controller:** `FsNodeFolderController.createFolder`
+- **Đầu vào (Request Body - `CreateFolderRequest`):**
+
+```json
+{
+  "name": "Bao-cao-tai-chinh",
+  "parent_id": "1"
+}
+```
+
+| Thuộc tính | Kiểu dữ liệu | Bắt buộc | Mô tả |
+|---|---|:---:|---|
+| `name` | String | Có | Tên thư mục mới cần tạo |
+| `parent_id` | String | Không | ID thư mục cha. Truyền `null` hoặc bỏ trống để tạo tại Root |
+
+- **Đầu ra `200 OK` (`ApiResponse<NodeResponse>`):**
+
+```json
+{
+  "success": true,
+  "message": "Tạo thư mục thành công",
+  "code": 200,
+  "data": {
+    "id": 12,
+    "parent_id": 1,
+    "path": "root.1.12",
+    "name": "Bao-cao-tai-chinh",
+    "is_folder": true,
+    "node_status": "ACTIVE",
+    "mime_type": null,
+    "size_bytes": 0,
+    "etag": null,
+    "file_hash": null,
+    "is_starred": false,
+    "created_at": "2026-10-30T10:15:00",
+    "updated_at": "2026-10-30T10:15:00",
+    "deleted_at": null
+  },
+  "timestamp": "2026-10-30T10:15:00Z"
+}
+```
+
+---
+
+## 3. Lấy Chi tiết Metadata của một Node
+
+Lấy thông tin metadata của một node (cả file hoặc folder) dựa trên ID.
+
+- **Method & Endpoint:** `GET /storage-service/nodes/{id}`
+- **Controller:** `FsNodeController.getFolder`
+- **Đầu vào (Path Variable):**
+  - `id` (String, Bắt buộc): ID của node cần tra cứu
+- **Đầu ra `200 OK` (`ApiResponse<NodeResponse>`):**
+
+```json
+{
+  "success": true,
+  "message": "Lấy metadata thành công",
+  "code": 200,
+  "data": {
+    "id": 8,
+    "parent_id": 1,
+    "path": "root.1.8",
+    "name": "hop-dong-lao-dong.pdf",
+    "is_folder": false,
+    "node_status": "ACTIVE",
+    "mime_type": "application/pdf",
+    "size_bytes": 1048576,
+    "etag": "d41d8cd98f00b204e9800998ecf8427e",
+    "file_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "is_starred": true,
+    "created_at": "2026-10-30T10:05:00",
+    "updated_at": "2026-10-30T10:05:00",
+    "deleted_at": null
+  },
+  "timestamp": "2026-10-30T10:16:00Z"
+}
+```
+
+---
+
+## 4. Cập nhật Thông tin Node (Đổi tên, Đánh dấu Starred)
+
+- **Method & Endpoint:** `PATCH /storage-service/nodes/{id}`
+- **Controller:** `FsNodeController.updateNode`
+- **Đầu vào (Path Variable):**
+  - `id` (String, Bắt buộc): ID của node cần cập nhật
+- **Đầu vào (Request Body - `UpdateNodeRequest`):**
+
+```json
+{
+  "name": "hop-dong-lao-dong-2026.pdf",
+  "starred": true
+}
+```
+
+| Thuộc tính | Kiểu dữ liệu | Bắt buộc | Mô tả |
+|---|---|:---:|---|
+| `name` | String | Không | Tên mới của node (đổi tên) |
+| `starred` | boolean | Không | Đánh dấu sao quan trọng (`true`) hoặc bỏ đánh dấu (`false`) |
+
+- **Đầu ra `200 OK` (`ApiResponse<NodeResponse>`):** Trả về metadata node sau khi cập nhật.
+
+---
+
+## 5. Di chuyển Node sang Thư mục đích
+
+Di chuyển một hoặc nhiều file/folder sang thư mục đích.
+
+- **Method & Endpoint:** `POST /storage-service/nodes/move`
+- **Controller:** `FsNodeController.moveNodes`
+- **Đầu vào (Request Body - `MoveNodeRequest`):**
+
+```json
+{
+  "src_node_ids": ["8", "12"],
+  "dst_node_id": "5"
+}
+```
+
+| Thuộc tính | Kiểu dữ liệu | Bắt buộc | Ghi chú & Alias hỗ trợ |
+|---|---|:---:|---|
+| `src_node_ids` | List<String> | Có | Danh sách ID các node cần di chuyển. Alias: `src_node_id`, `srcNodeIds`, `srcNodeId` |
+| `dst_node_id` | String | Không | ID thư mục đích. Truyền `null` để di chuyển về thư mục gốc (Root). Alias: `dstNodeId` |
+
+- **Đầu ra `200 OK` (`ApiResponse<BatchOperationResponse<MoveResult, NodeFailureResult>>`):**
+
+```json
+{
+  "success": true,
+  "message": "Di chuyển node hoàn tất",
+  "code": 200,
+  "data": {
+    "total": 2,
+    "success_count": 2,
+    "failed_count": 0,
+    "succeeded": [
+      {
+        "node_id": "8",
+        "parent_id": "5"
+      },
+      {
+        "node_id": "12",
+        "parent_id": "5"
+      }
+    ],
+    "failed": []
+  },
+  "timestamp": "2026-10-30T10:20:00Z"
+}
+```
+
+---
+
+## 6. Xóa mềm Node (Đưa vào Thùng rác)
+
+Chuyển một hoặc nhiều node vào thùng rác (`deleted_at != null`). Nếu node là thư mục, hệ thống tự động xử lý đệ quy các con cháu bên trong.
+
+- **Method & Endpoint:** `DELETE /storage-service/nodes`
+- **Controller:** `FsNodeController.softDeleteNodes`
+- **Đầu vào (Request Body - `BatchNodesRequest`):**
+
+```json
+{
+  "node_ids": ["8", "12"]
+}
+```
+
+| Thuộc tính | Kiểu dữ liệu | Bắt buộc | Ghi chú & Alias hỗ trợ |
+|---|---|:---:|---|
+| `node_ids` | List<String> | Có | Danh sách ID các node cần xóa mềm. Alias: `nodes`, `node_id`, `nodeIds` |
+
+- **Đầu ra `200 OK` (`ApiResponse<BatchOperationResponse<DeleteResult, NodeFailureResult>>`):**
+
+```json
+{
+  "success": true,
+  "message": "Xóa node hoàn tất",
+  "code": 200,
+  "data": {
+    "total": 2,
+    "success_count": 2,
+    "failed_count": 0,
+    "succeeded": [
+      {
+        "node_id": "8",
+        "operation_id": "op-del-8"
+      },
+      {
+        "node_id": "12",
+        "operation_id": "op-del-12"
+      }
+    ],
+    "failed": []
+  },
+  "timestamp": "2026-10-30T10:25:00Z"
+}
+```
+
+---
+
+## 7. Xem Danh sách Node trong Thùng rác
+
+Liệt kê các node đang nằm trong thùng rác của người dùng.
+
+- **Method & Endpoint:** `GET /storage-service/nodes/trash`
+- **Controller:** `FsNodeTrashController.getTrash`
+- **Đầu vào (Query Parameters):**
+
+| Tham số | Kiểu dữ liệu | Mặc định | Mô tả |
+|---|---|:---:|---|
+| `parent_id` | String | `null` | ID thư mục cha |
+| `node_type` | String | `null` | Bộ lọc loại node: `FILE` hoặc `FOLDER` |
+| `name` | String | `null` | Lọc theo tên |
+| `mime_type` | String | `null` | Lọc theo MIME type |
+| `page` | Integer | `0` | Trang hiện tại |
+| `size` | Integer | `20` | Số bản ghi trên mỗi trang |
+| `sort` | String / List | `deleted_at,desc` | Tiêu chí sắp xếp |
+
+- **Đầu ra `200 OK` (`ApiResponse<PagedResponse<NodeResponse>>`):**
+
+```json
+{
+  "success": true,
+  "message": "Lấy danh sách thành công",
+  "code": 200,
+  "data": {
+    "content": [
+      {
+        "id": 8,
+        "parent_id": 1,
+        "path": "root.1.8",
+        "name": "hop-dong-lao-dong.pdf",
+        "is_folder": false,
+        "node_status": "ACTIVE",
+        "mime_type": "application/pdf",
+        "size_bytes": 1048576,
+        "etag": "d41d8cd98f00b204e9800998ecf8427e",
+        "file_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "is_starred": true,
+        "created_at": "2026-10-30T10:05:00",
+        "updated_at": "2026-10-30T10:05:00",
+        "deleted_at": "2026-10-30T10:25:00"
       }
     ],
     "page": 0,
@@ -69,195 +343,85 @@ _Giải thích Query Params:_
     "total_pages": 1,
     "last": true
   },
-  "timestamp": "2026-10-20T16:48:00Z"
+  "timestamp": "2026-10-30T10:26:00Z"
 }
 ```
 
 ---
 
-## 2. Tạo thư mục mới
+## 8. Khôi phục Node từ Thùng rác
 
-**Method & Endpoint:** `POST /nodes/folders`
+Khôi phục các node đã xóa mềm về vị trí ban đầu (hoặc về Root nếu thư mục cha cũ đã bị xóa).
 
-**Required header**
-X-User-Id: Id của người dùng đã được inject
-X-User-Roles: Vai trò của người dùng được inject
-
-**Đầu vào (Request Body):**
+- **Method & Endpoint:** `POST /storage-service/nodes/trash/restore`
+- **Controller:** `FsNodeTrashController.restoreNodes`
+- **Đầu vào (Request Body - `BatchNodesRequest`):**
 
 ```json
 {
-  "name": "Tài liệu Cloud",
-  "parent_id": "24f47bb8-b1b7-4e41-a704-dc67cd4e23e0"
+  "node_ids": ["8"]
 }
 ```
 
-_Giải thích Body:_
-
-- `name` (String, Bắt buộc): Tên thư mục mới.
-- `parent_id` (UUID, null): UUID thư mục cha. Truyền `null` để tạo ở Root.
-
-**Đầu ra (201 Created):**
+- **Đầu ra `200 OK` (`ApiResponse<BatchOperationResponse<RestoreResult, NodeFailureResult>>`):**
 
 ```json
 {
   "success": true,
-  "message": "Tạo thư mục thành công",
-  "code": 201,
-  "data": {
-    "id": "e119bfe6-d566-41cb-992f-123456789abc",
-    "parent_id": "24f47bb8-b1b7-4e41-a704-dc67cd4e23e0",
-    "name": "Tài liệu Cloud",
-    "is_folder": true,
-    "node_status": "ACTIVE",
-    "mime_type": null,
-    "size_bytes": 0,
-    "etag": null,
-    "is_starred": false,
-    "created_at": "2026-10-20T16:48:00Z",
-    "updated_at": "2026-10-20T16:48:00Z"
-  },
-  "timestamp": "2026-10-20T16:48:00Z"
-}
-```
-
----
-
-## 3. Lấy chi tiết metadata của một Node
-
-**Method & Endpoint:** `GET /nodes/{node_id}`
-
-**Đầu vào (Path Variable):**
-
-- `node_id` (UUID): ID của file/folder.
-
-**Đầu ra (200 OK):**
-
-```json
-{
-  "success": true,
-  "message": "Thành công",
+  "message": "Thao tác thành công",
   "code": 200,
   "data": {
-    "id": "e119bfe6-d566-41cb-992f-123456789abc",
-    "parent_id": "24f47bb8-b1b7-4e41-a704-dc67cd4e23e0",
-    "name": "hop-dong.pdf",
-    "is_folder": false,
-    "node_status": "ACTIVE",
-    "mime_type": "application/pdf",
-    "size_bytes": 1048576,
-    "etag": "d41d8cd98f00b204e9800998ecf8427e",
-    "is_starred": true,
-    "created_at": "2026-10-18T10:00:00Z",
-    "updated_at": "2026-10-18T10:05:00Z"
+    "total": 1,
+    "success_count": 1,
+    "failed_count": 0,
+    "succeeded": [
+      {
+        "id": "8",
+        "parent_id": "1",
+        "name": "hop-dong-lao-dong.pdf",
+        "is_folder": false,
+        "node_status": "ACTIVE",
+        "restored_count": 1
+      }
+    ],
+    "failed": []
   },
-  "timestamp": "2026-10-20T16:48:00Z"
+  "timestamp": "2026-10-30T10:30:00Z"
 }
 ```
 
 ---
 
-## 4. Cập nhật thông tin / Di chuyển Node
+## 9. Xóa Vĩnh viễn Node khỏi Thùng rác
 
-**Method & Endpoint:** `PATCH /nodes/{node_id}`
+Hỗ trợ 2 chế độ:
+1. **Xóa danh sách node cụ thể:** Truyền danh sách `node_ids`.
+2. **Dọn sạch toàn bộ thùng rác (Empty Trash):** Không truyền body hoặc danh sách `node_ids` rỗng. Hành động này sẽ được ghi nhận vào Outbox và kích hoạt xử lý bất đồng bộ qua Kafka để xóa object trên MinIO và dọn DB.
 
-**Đầu vào (Path Variable):**
-
-- `node_id` (UUID): ID của node cần sửa.
-
-**Đầu vào (Request Body):**
-_Chỉ gửi các trường cần cập nhật, các trường không gửi sẽ giữ nguyên giá trị cũ._
+- **Method & Endpoint:** `DELETE /storage-service/nodes/trash/permanent`
+- **Controller:** `FsNodeTrashController.permanentDeleteTrash`
+- **Đầu vào (Request Body - `BatchNodesRequest`, không bắt buộc):**
 
 ```json
 {
-  "name": "hop-dong-da-ky.pdf",
-  "parent_id": null,
-  "is_starred": true
+  "node_ids": ["8"]
 }
 ```
 
-_Giải thích Body:_
-
-- `name`: Tên mới (đổi tên).
-- `parent_id`: Chuyển node sang thư mục khác (gửi `null` để đưa ra Root).
-- `is_starred`: Đánh dấu/Bỏ đánh dấu quan trọng.
-
-**Đầu ra (200 OK):**
+- **Đầu ra `200 OK` (`ApiResponse<BatchOperationResponse<Void, NodeFailureResult>>`):**
 
 ```json
 {
   "success": true,
-  "message": "Cập nhật thành công",
+  "message": "Thao tác thành công",
   "code": 200,
   "data": {
-    "id": "e119bfe6-d566-41cb-992f-123456789abc",
-    "parent_id": null,
-    "name": "hop-dong-da-ky.pdf",
-    "is_folder": false,
-    "node_status": "ACTIVE",
-    "mime_type": "application/pdf",
-    "size_bytes": 1048576,
-    "etag": "d41d8cd98f00b204e9800998ecf8427e",
-    "is_starred": true,
-    "created_at": "2026-10-18T10:00:00Z",
-    "updated_at": "2026-10-20T16:48:00Z"
+    "total": 1,
+    "success_count": 1,
+    "failed_count": 0,
+    "succeeded": [],
+    "failed": []
   },
-  "timestamp": "2026-10-20T16:48:00Z"
-}
-```
-
----
-
-## 5. Xóa mềm Node (Đưa vào thùng rác)
-
-**Method & Endpoint:** `DELETE /nodes/{node_id}`
-
-**Đầu vào (Path Variable):**
-
-- `node_id` (UUID): ID của node cần xóa. (Nếu là thư mục, sẽ xóa đệ quy).
-
-**Đầu ra (200 OK):**
-
-```json
-{
-  "success": true,
-  "message": "Đã chuyển vào thùng rác thành công",
-  "code": 200,
-  "data": null,
-  "timestamp": "2026-10-20T16:48:00Z"
-}
-```
-
----
-
-## 6. Khôi phục Node đã xóa
-
-**Method & Endpoint:** `POST /nodes/{node_id}/restore`
-
-**Đầu vào (Path Variable):**
-
-- `node_id` (UUID): ID của node nằm trong thùng rác cần khôi phục.
-
-**Đầu ra (200 OK):**
-
-```json
-{
-  "success": true,
-  "message": "Khôi phục thành công",
-  "code": 200,
-  "data": {
-    "id": "e119bfe6-d566-41cb-992f-123456789abc",
-    "parent_id": "24f47bb8-b1b7-4e41-a704-dc67cd4e23e0",
-    "name": "hop-dong-da-ky.pdf",
-    "is_folder": false,
-    "node_status": "ACTIVE",
-    "mime_type": "application/pdf",
-    "size_bytes": 1048576,
-    "etag": "d41d8cd98f00b204e9800998ecf8427e",
-    "is_starred": true,
-    "created_at": "2026-10-18T10:00:00Z",
-    "updated_at": "2026-10-20T16:48:00Z"
-  },
-  "timestamp": "2026-10-20T16:48:00Z"
+  "timestamp": "2026-10-30T10:35:00Z"
 }
 ```
