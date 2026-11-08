@@ -43,15 +43,20 @@ public class FsNodeFolderService {
         String bucketName = user.getStorageBucketName();
         String storagePrefix = user.getStoragePrefix();
 
-        // 1. Kiểm tra tính hợp lệ của thư mục cha
+        // Kiểm tra tính hợp lệ của thư mục cha
         FsNode parent = fsNodeService.resolveAndValidateNode(userId, parentId, true);
 
-        // 2. Kiểm tra trùng tên trong thư mục cha (ở tầng logic Database)
+        // Kiểm tra xem thư mục cha có phải là một thư mục không
+        if (!parent.getIsFolder()) {
+            throw new BadRequestException("Thư mục phải được tạo trong thư mục khác");
+        }
+
+        // Kiểm tra trùng tên trong thư mục cha (ở tầng logic Database)
         if (fsNodeRepository.existsByParentAndName(parent, trimmedName)) {
             throw new BadRequestException("Thư mục có tên '" + trimmedName + "' đã tồn tại.");
         }
 
-        // 3. Khởi tạo node và lưu trước để lấy ID phục vụ tính ltree
+        // Khởi tạo node và lưu trước để lấy ID phục vụ tính ltree
         FsNode newFolder = FsNode.builder()
                 .name(trimmedName)
                 .parent(parent)
@@ -63,7 +68,7 @@ public class FsNodeFolderService {
 
         newFolder = fsNodeRepository.save(newFolder);
 
-        // 4. Tính toán materialized path (ltree) - CHỈ DÙNG CHO DATABASE
+        // Tính toán materialized path (ltree) - CHỈ DÙNG CHO DATABASE
         String newNodeId = String.valueOf(newFolder.getId());
         String parentNodePath = parent.getMaterializedPath();
         String newNodePath = NodePathUtilities.join(parentNodePath, newNodeId);
@@ -71,7 +76,7 @@ public class FsNodeFolderService {
 
         String createdObjectKey = null;
         try {
-            // 5. Yêu cầu MinIO tạo thư mục vật lý .
+            // Yêu cầu MinIO tạo thư mục vật lý .
             // MinIO Storage Service tự sinh Key phẳng (VD: "user_prefix/uuid/") và trả về trong response.
             MinioObjectResponse objectResponse = minioStorageService.createDirectory(bucketName, storagePrefix);
             createdObjectKey = objectResponse.getObjectKey();

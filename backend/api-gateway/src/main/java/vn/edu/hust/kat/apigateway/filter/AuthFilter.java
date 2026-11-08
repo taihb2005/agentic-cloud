@@ -2,21 +2,15 @@ package vn.edu.hust.kat.apigateway.filter;
 
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
-import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.server.WebFilter;
-import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import vn.edu.hust.kat.apigateway.util.JwtUtil;
 
@@ -36,7 +30,12 @@ public class AuthFilter implements GatewayFilter {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        log.info("Request: {} {}", exchange.getRequest().getMethod(), path);
+        log.info("Request: {} {}", request.getMethod(), path);
+
+        // Preflight OPTIONS requests should pass through without checking authorization
+        if (HttpMethod.OPTIONS.equals(request.getMethod())) {
+            return chain.filter(exchange);
+        }
 
         // Check authorization header
         if (!request.getHeaders().containsHeader(HttpHeaders.AUTHORIZATION)) {
@@ -84,5 +83,4 @@ public class AuthFilter implements GatewayFilter {
             );
         }
     }
-
 }

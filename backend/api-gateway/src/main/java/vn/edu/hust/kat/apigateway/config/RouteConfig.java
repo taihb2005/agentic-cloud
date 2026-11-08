@@ -24,6 +24,13 @@ public class RouteConfig {
             "/api/v1/user-service/**"
     };
 
+    private static final String[] STORAGE_PUBLIC_ENDPOINTS = {
+            "/api/v1/storage-service/shares/public/**",
+            "/api/v1/storage-service/swagger-ui.html",
+            "/api/v1/storage-service/swagger-ui/**",
+            "/api/v1/storage-service/v3/api-docs/**"
+    };
+
     private static final String[] STORAGE_AUTHENTICATED_ENDPOINTS = {
             "/api/v1/storage-service/**"
     };
@@ -50,6 +57,15 @@ public class RouteConfig {
                                 .filter(authFilter())
                                 .stripPrefix(2))
                         .uri("http://user-service:8081"))
+
+                // =========================
+                // Storage Service - Public
+                // =========================
+                .route("storage-public", r -> r
+                        .path(STORAGE_PUBLIC_ENDPOINTS)
+                        .filters(f -> f
+                                .stripPrefix(2))
+                        .uri("http://storage-service:8082"))
 
                 // =========================
                 // Storage Service - Authenticated

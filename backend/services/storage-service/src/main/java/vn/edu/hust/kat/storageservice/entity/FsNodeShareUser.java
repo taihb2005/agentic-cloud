@@ -17,6 +17,9 @@ import java.util.UUID;
         indexes = {
                 @Index(name = "idx_share_users_node_id", columnList = "node_id"),
                 @Index(name = "idx_share_users_user_id", columnList = "user_id")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_node_share_user", columnNames = {"node_id", "user_id"})
         }
 )
 public class FsNodeShareUser {

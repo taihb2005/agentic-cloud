@@ -6,6 +6,7 @@
         <set>
           <option value="X-User-Id" />
           <option value="X-User-Roles" />
+          <option value="X-Share-Access-Token" />
         </set>
       </option>
     </inspection_tool>

@@ -531,7 +531,7 @@ public class FsNodeService {
         }
     }
 
-    private Boolean parseNodeType(String nodeType) {
+    public Boolean parseNodeType(String nodeType) {
         if (nodeType == null || nodeType.isBlank()) {
             return null;
         }
@@ -547,7 +547,7 @@ public class FsNodeService {
                 node.getDeleteBatchId() != null;
     }
 
-    private Sort parseSort(List<String> sorts) {
+    public Sort parseSort(List<String> sorts) {
         // Mặc định: FOLDER (is_folder = true) xếp trước FILE (is_folder = false) -> dùng DESC,
         // sau đó trong mỗi nhóm xếp theo tên tăng dần (name ASC).
         Sort defaultSort = Sort.by(

@@ -45,7 +45,7 @@ public class FileUploadService {
         FsUser user = fsUserRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng chưa được khởi tạo không gian lưu trữ"));
 
-        // 1. Kiểm tra Quota của User
+        // Kiểm tra Quota của User
         long totalRequestedBytes = request.getFiles().stream()
                 .mapToLong(f -> f.getSize() != null ? f.getSize() : 0L)
                 .sum();
@@ -86,7 +86,7 @@ public class FileUploadService {
                 throw new BadRequestException("Tệp tin có tên '" + fileName + "' đã tồn tại trong thư mục đích.");
             }
 
-            // 2. Kiểm tra fileHash để xem file đã tồn tại trên hệ thống MinIO chưa (Deduplication)
+            // Kiểm tra fileHash để xem file đã tồn tại trên hệ thống MinIO chưa (Deduplication)
             Optional<FsNode> existingActiveFile = fsNodeRepository.findFirstByFileHashAndNodeStatusAndDeletedAtIsNull(
                     fileHash, FsNode.Status.ACTIVE
             );
@@ -139,7 +139,7 @@ public class FileUploadService {
                         fileName, fileHash, instantNode.getId(), userId);
 
             } else {
-                // 3. Tạo một bản ghi File Node trong Database với trạng thái PENDING
+                // Tạo một bản ghi File Node trong Database với trạng thái PENDING
                 String bucketName = user.getStorageBucketName() != null ? user.getStorageBucketName() : minioProperties.getDefaultBucket();
                 String storagePrefix = (user.getStoragePrefix() != null && !user.getStoragePrefix().isBlank())
                         ? user.getStoragePrefix()
@@ -167,7 +167,7 @@ public class FileUploadService {
                 pendingNode.setMaterializedPath(newNodePath);
                 pendingNode = fsNodeRepository.save(pendingNode);
 
-                // 4. Trả về Presigned URL với quyền PUT
+                // Trả về Presigned URL với quyền PUT
                 int expirySeconds = minioProperties.getPresignedUrlExpirySeconds();
                 String presignedUrl = minioStorageService.generatePresignedUploadUrl(bucketName, s3ObjectKey, expirySeconds);
                 Instant expiresAt = Instant.now().plusSeconds(expirySeconds);

@@ -96,6 +96,10 @@ public class FsNode {
     @OneToOne(mappedBy = "node", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private FsShare share;
 
+    @OneToMany(mappedBy = "node", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<FsNodeShareUser> shareUsers = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();

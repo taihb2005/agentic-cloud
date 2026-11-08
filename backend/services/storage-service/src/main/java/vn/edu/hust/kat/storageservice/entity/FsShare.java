@@ -12,7 +12,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "fs_shares")
+@Table(
+        name = "fs_shares",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uc_fs_shares_node", columnNames = {"node_id"}),
+                @UniqueConstraint(name = "uc_fs_shares_token", columnNames = {"share_token"})
+        }
+)
 public class FsShare {
 
     @Id
@@ -27,6 +33,23 @@ public class FsShare {
 
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "share_mode", length = 20)
+    private ShareMode shareMode; // NONE, GROUP, PUBLIC
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "permission_id")
+    private FsNodePermission permission;
+
+    @Column(name = "share_token", length = 64, unique = true)
+    private String shareToken;
+
+    @Column(name = "is_password_protected", nullable = false)
+    private Boolean isPasswordProtected;
+
+    @Column(name = "password_hash")
+    private String passwordHash;
 
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic;
@@ -43,8 +66,9 @@ public class FsShare {
     @Column(name = "access_count")
     private Integer accessCount;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)
-    private String status;
+    private ShareStatus status; // NONE, ACTIVE, EXPIRED, REVOKED
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -57,11 +81,22 @@ public class FsShare {
         if (createdAt == null) createdAt = LocalDateTime.now();
         if (updatedAt == null) updatedAt = LocalDateTime.now();
         if (isPublic == null) isPublic = false;
+        if (isPasswordProtected == null) isPasswordProtected = false;
         if (accessCount == null) accessCount = 0;
+        if (status == null) status = ShareStatus.NONE;
+        if (shareMode == null) shareMode = ShareMode.NONE;
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public enum ShareStatus {
+        NONE, ACTIVE, EXPIRED, REVOKED
+    }
+
+    public enum ShareMode {
+        NONE, GROUP, USER_GROUP, PUBLIC, PUBLIC_LINK
     }
 }

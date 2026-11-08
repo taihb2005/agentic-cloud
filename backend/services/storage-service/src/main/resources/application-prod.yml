@@ -56,6 +56,9 @@ spring:
     password: ${STORAGE_DB_PASSWORD}
 
 app:
+  frontend_host: ${FRONTEND_HOST:localhost}
+  frontend_port: ${FRONTEND_PORT:5000}
+
   minio:
     enabled: ${STORAGE_MINIO_ENABLED:true}
     endpoint: ${STORAGE_MINIO_ENDPOINT:http://minio:9000}
@@ -67,6 +70,7 @@ app:
     public-endpoint: ${STORAGE_PUBLIC_MINIO_ENDPOINT:http://localhost:9000}
     presigned-url-expiry-seconds: ${PRESIGNED_EXPIRY}
   node_async_threshold: 50
+
   kafka:
     topics:
       user-service:
@@ -74,6 +78,9 @@ app:
       storage-service:
         node-permanent-delete: "storage.node.node-permanent-delete"
         minio-events: ${STORAGE_NOTIFY_KAFKA_TOPIC}
+
+  jwt:
+    share-secret: ${STORAGE_SHARE_SECRET}
 
 
 logging:

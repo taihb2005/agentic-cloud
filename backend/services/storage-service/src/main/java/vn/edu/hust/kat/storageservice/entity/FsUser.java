@@ -22,10 +22,10 @@ public class FsUser implements Persistable<UUID> {
     @Column(name = "id", nullable = false)
     private UUID id;
 
-    @Column(name = "storage_prefix", nullable = false)
+    @Column(name = "storage_prefix", length = 100, nullable = false, unique = true)
     private String storagePrefix;
 
-    @Column(name = "storage_bucket_name")
+    @Column(name = "storage_bucket_name", length = 100)
     private String storageBucketName;
 
     @Column(name = "storage_max_quota_bytes")
@@ -38,9 +38,14 @@ public class FsUser implements Persistable<UUID> {
     @Builder.Default
     private List<FsNode> nodes = new ArrayList<>();
 
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @Transient
     @Builder.Default

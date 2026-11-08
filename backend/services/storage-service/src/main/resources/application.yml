@@ -42,6 +42,13 @@ app:
         node-permanent-delete: "${NODE_PERMANENT_DELETE_TOPIC:storage.node.node-permanent-delete}"
         minio-events: "${STORAGE_MINIO_EVENTS_TOPIC:minio.events.object-created}"
 
+  cors:
+    allowed-origins: ${STORAGE_CORS_ALLOWED_ORIGINS:${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}}
+    allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+    max-age: 3600
+
 # Actuator
 management:
   endpoints:
