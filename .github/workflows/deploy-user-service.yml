@@ -1,6 +1,4 @@
-name: Deploy User Service
-on:
-  push:
+   push:
     branches: ["develop"]
     paths:
       - "backend/services/user-service/**"
@@ -21,9 +19,8 @@ jobs:
 
       - name: Build and push
         run: |
-          # Lệnh này tự động tìm đích đến dựa trên key 'image:' khai báo trong docker-compose.yml con
-          docker compose build user-service
-          docker compose push user-service
+          docker compose -f backend/docker-compose.yml build user-service
+          docker compose -f backend/docker-compose.yml push user-service
 
   deploy-to-server:
     needs: build-and-push
