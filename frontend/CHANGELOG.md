@@ -1,0 +1,62 @@
+## [1.5.1](https://github.com/harryy2510/react-file-browser/compare/v1.5.0...v1.5.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **path:** update exports in index.ts ([1763c6e](https://github.com/harryy2510/react-file-browser/commit/1763c6e516ae09d350a1d2f4d9e9112e4fff50d2))
+
+# [1.5.0](https://github.com/harryy2510/react-file-browser/compare/v1.4.0...v1.5.0) (2026-09-30)
+
+
+### Features
+
+* **file-browser:** implement new file viewing plugins ([fa39492](https://github.com/harryy2510/react-file-browser/commit/fa39492bab6e2ecaa04605a79845495ae647180a))
+
+# [1.4.0](https://github.com/harryy2510/react-file-browser/compare/v1.3.0...v1.4.0) (2026-09-29)
+
+
+### Features
+
+* **file-browser:** add initial view configuration ([de6f74f](https://github.com/harryy2510/react-file-browser/commit/de6f74fc94e7ab3531ce3f7196cc76c698045fec))
+
+# [1.3.0](https://github.com/harryy2510/react-file-browser/compare/v1.2.0...v1.3.0) (2026-09-29)
+
+
+### Features
+
+* **file-tree:** add FileTree component ([cb2acb1](https://github.com/harryy2510/react-file-browser/commit/cb2acb170474799f1ea5ffb373257ece95536c72))
+
+# [1.2.0](https://github.com/harryy2510/react-file-browser/compare/v1.1.1...v1.2.0) (2026-09-10)
+
+
+### Features
+
+* **core:** add responsive design ([83fadbd](https://github.com/harryy2510/react-file-browser/commit/83fadbd3dfaecdde981d12a46e32cb469f8f3500))
+
+## [1.1.1](https://github.com/harryy2510/react-file-browser/compare/v1.1.0...v1.1.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* **file-browser:** close delete dialog before deletion ([e0805fb](https://github.com/harryy2510/react-file-browser/commit/e0805fb729c7cf31ce762667d560519979c65bc5))
+
+# [1.1.0](https://github.com/harryy2510/react-file-browser/compare/v1.0.0...v1.1.0) (2026-07-15)
+
+
+### Features
+
+* add host integration controls ([a89a954](https://github.com/harryy2510/react-file-browser/commit/a89a954ed7b0ac7e2a3149d26333fc4a439c924e))
+
+# 1.0.0 (2026-07-04)
+
+
+### Bug Fixes
+
+* make compact density actually shrink the layout ([98bb7b3](https://github.com/harryy2510/react-file-browser/commit/98bb7b3640ccc93259fe13a1dbf0ee46a5d574a0))
+
+
+### Features
+
+* add file browser implementation ([aa74c56](https://github.com/harryy2510/react-file-browser/commit/aa74c5602c65cc5980de33001c911ba80bf28975))
+* copy path action, multi-select details, notice auto-dismiss ([e788a00](https://github.com/harryy2510/react-file-browser/commit/e788a00eb9b4618965340a9351a69924ce35e492))
+* **transfers:** add subtle motion affordances ([7bedc7b](https://github.com/harryy2510/react-file-browser/commit/7bedc7be812c984eff3b76872d82522d31c2268c))

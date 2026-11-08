@@ -1,53 +1,14 @@
-# Node / JavaScript
 node_modules/
-
-# Vite / build outputs
 dist/
-build/
-out/
-.vite/
-
-# Environment files
-.env
-.env.local
-.env.*.local
-
-# Logs
-logs/
+demo/dist/
+.output/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Coverage
+.DS_Store
+.env
+.env.*
 coverage/
-
-# OS files
-*.DS_Store
-Thumbs.db
-
-# Editor/IDE
-.vscode/
 .idea/
-.history/
-*.sublime-workspace
-*.sublime-project
+.vscode/
 
-# Temp files
-tmp/
-temp/
-*.swp
-*~
-
-# Vercel
-.vercel/
-
-# Misc caches
-.cache/
-.parcel-cache/
-
-# Keep lockfiles in repo (package-lock.json / yarn.lock) unless you intentionally want to ignore them
-package-lock.json
-yarn.lock
-
+AGENTS.md
+docs

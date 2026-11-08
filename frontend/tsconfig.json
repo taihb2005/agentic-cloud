@@ -1,0 +1,43 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"useDefineForClassFields": true,
+		"lib": ["DOM", "DOM.Iterable", "ES2022"],
+		"allowJs": false,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"strict": true,
+		"forceConsistentCasingInFileNames": true,
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"paths": {
+			"@/*": ["./src/*"],
+			"@harryy/react-file-browser": ["./src/index.ts"],
+			"@harryy/react-file-browser/adapters/in-memory": ["./src/adapters/in-memory/index.ts"],
+			"@harryy/react-file-browser/adapters/s3": ["./src/adapters/s3/index.ts"],
+			"@harryy/react-file-browser/adapters/r2": ["./src/adapters/r2/index.ts"],
+			"@harryy/react-file-browser/adapters/supabase": ["./src/adapters/supabase/index.ts"],
+			"@harryy/react-file-browser/plugins/code": ["./src/plugins/code/index.tsx"],
+			"@harryy/react-file-browser/plugins/markdown": ["./src/plugins/markdown/index.tsx"],
+			"@harryy/react-file-browser/plugins/csv": ["./src/plugins/csv/index.tsx"],
+			"@harryy/react-file-browser/plugins/xlsx": ["./src/plugins/xlsx/index.tsx"],
+			"@harryy/react-file-browser/plugins/docx": ["./src/plugins/docx/index.tsx"],
+			"@harryy/react-file-browser/theme": ["./src/theme/index.ts"]
+		},
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"noEmit": true,
+		"jsx": "react-jsx",
+		"types": ["vitest/globals", "@testing-library/jest-dom"]
+	},
+	"include": [
+		"src",
+		"tests",
+		"demo/src",
+		"demo/vite-env.d.ts",
+		"vite.config.ts",
+		"demo/vite.config.ts",
+		"vitest.setup.ts"
+	]
+}
