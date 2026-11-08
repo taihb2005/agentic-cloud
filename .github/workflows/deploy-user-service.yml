@@ -1,8 +1,10 @@
-push:
-  branches: ["develop"]
-  paths:
-    - "backend/services/user-service/**"
-    - ".github/workflows/deploy-user-service.yml"
+name: Deploy User Service
+on:
+  push:
+    branches: ["develop"]
+    paths:
+      - "backend/services/user-service/**"
+      - ".github/workflows/deploy-user-service.yml"
 
 jobs:
   build-and-push:
