@@ -22,4 +22,4 @@ jobs:
       - name: Ping to the server
         run: |
           curl -X POST "http://${{ secrets.SERVER_TAILSCALE_IP }}:9000/hooks/deploy/${{ inputs.service_name }}" \
-            -H "X-Deploy-Token: ${{ secrets.WEBHOOK_TOKEN}}"
+            -H "${{ secrets.WEBHOOK_HEADER}}: ${{ secrets.WEBHOOK_TOKEN}}"
