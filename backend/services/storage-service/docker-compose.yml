@@ -71,11 +71,6 @@ services:
     volumes:
       - ${STORAGE_MINIO_HOST_VOLUME}:/data
     command: server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - microservice-net
 
