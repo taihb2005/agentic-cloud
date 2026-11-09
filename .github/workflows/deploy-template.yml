@@ -1,0 +1,25 @@
+name: Deploy services via Tailscale
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+        description: "Service name need to deploy"
+
+jobs:
+  ping-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authenticate tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Ping to the server
+        run: |
+          curl -X POST "http://${{ secrets.SERVER_TAILSCALE_IP }}:9000/hooks/deploy/${{ inputs.service_name }}" \
+            -H "X-Deploy-Token: ${{ secrets.WEBHOOK_TOKEN}}"
