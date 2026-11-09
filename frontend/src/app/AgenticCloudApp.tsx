@@ -81,9 +81,12 @@ const AgenticCloudInner: React.FC<{ onSwitchDemo?: () => void }> = ({ onSwitchDe
 	)
 }
 
-export const AgenticCloudApp: React.FC<{ onSwitchDemo?: () => void }> = ({ onSwitchDemo }) => {
+export const AgenticCloudApp: React.FC<{ onSwitchDemo?: () => void; gatewayUrl?: string }> = ({
+	onSwitchDemo,
+	gatewayUrl
+}) => {
 	return (
-		<AuthProvider gatewayUrl="http://localhost:8089">
+		<AuthProvider gatewayUrl={gatewayUrl}>
 			<AgenticCloudInner onSwitchDemo={onSwitchDemo} />
 		</AuthProvider>
 	)

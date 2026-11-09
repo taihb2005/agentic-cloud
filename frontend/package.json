@@ -87,6 +87,8 @@
 		"build:lib": "vite build && tsc -p tsconfig.build.json",
 		"build:demo": "vite build --config demo/vite.config.ts",
 		"dev": "vite --config demo/vite.config.ts",
+		"start": "bun run server.ts",
+		"serve": "bun run server.ts",
 		"oxfmt": "oxfmt",
 		"oxlint": "oxlint",
 		"format": "bun run oxfmt --write .",

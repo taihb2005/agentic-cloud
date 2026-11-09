@@ -83,6 +83,7 @@ export {
 	AgenticCloudStorageAdapter,
 	ApiClient,
 	apiClient,
+	getEnvGatewayUrl,
 	type AgenticCloudAdapterOptions,
 	type ApiResponse,
 	type AuthResponseData,

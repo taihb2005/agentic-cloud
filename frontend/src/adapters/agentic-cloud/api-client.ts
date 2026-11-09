@@ -1,12 +1,41 @@
 import type { ApiResponse, AuthResponseData, UserQuotaResponse, UserResponse } from './types'
 
+/**
+ * Lấy URL của API Gateway từ biến môi trường .env (Vite / Node) hoặc fallback về http://localhost:8089.
+ */
+export function getEnvGatewayUrl(): string {
+	// Vite client environment (import.meta.env)
+	if (typeof import.meta !== 'undefined' && import.meta.env) {
+		const envUrl =
+			import.meta.env.VITE_API_GATEWAY_URL ||
+			import.meta.env.VITE_API_URL ||
+			import.meta.env.VITE_BACKEND_URL
+		if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+			return envUrl.trim()
+		}
+	}
+
+	// Node.js / process environment fallback
+	if (typeof process !== 'undefined' && process.env) {
+		const envUrl =
+			process.env.VITE_API_GATEWAY_URL ||
+			process.env.VITE_API_URL ||
+			process.env.VITE_BACKEND_URL
+		if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+			return envUrl.trim()
+		}
+	}
+
+	return 'http://localhost:8089'
+}
+
 export class ApiClient {
 	private baseUrl: string
 	private isRefreshing = false
 	private refreshSubscribers: Array<(token: string) => void> = []
 
-	constructor(baseUrl = 'http://localhost:8089') {
-		this.baseUrl = baseUrl.replace(/\/$/, '')
+	constructor(baseUrl?: string) {
+		this.baseUrl = (baseUrl || getEnvGatewayUrl()).replace(/\/$/, '')
 	}
 
 	setBaseUrl(url: string) {

@@ -22,9 +22,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode; gatewayUrl?: string }> = ({
 	children,
-	gatewayUrl = 'http://localhost:8089'
+	gatewayUrl
 }) => {
-	const [client] = useState(() => new ApiClient(gatewayUrl))
+	const [client] = useState(() => (gatewayUrl ? new ApiClient(gatewayUrl) : apiClient))
 	const [user, setUser] = useState<UserResponse | null>(() => client.getCurrentUser())
 	const [quota, setQuota] = useState<UserQuotaResponse | null>(null)
 	const [isLoading, setIsLoading] = useState<boolean>(true)

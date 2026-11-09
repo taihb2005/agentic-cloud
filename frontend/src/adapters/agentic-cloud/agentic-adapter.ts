@@ -25,6 +25,7 @@ import type {
 export interface AgenticCloudAdapterOptions {
 	client?: ApiClient
 	rootNodeId?: string | number
+	baseUrl?: string
 }
 
 export class AgenticCloudStorageAdapter implements FileBrowserAdapter<Record<string, unknown>> {
@@ -34,7 +35,14 @@ export class AgenticCloudStorageAdapter implements FileBrowserAdapter<Record<str
 	private readonly idToPath = new Map<string, string>()
 
 	constructor(options: AgenticCloudAdapterOptions = {}) {
-		this.client = options.client || defaultApiClient
+		if (options.client) {
+			this.client = options.client
+		} else if (options.baseUrl) {
+			this.client = new ApiClient(options.baseUrl)
+		} else {
+			this.client = defaultApiClient
+		}
+
 		if (options.rootNodeId) {
 			this.setRootNodeId(String(options.rootNodeId))
 		}
