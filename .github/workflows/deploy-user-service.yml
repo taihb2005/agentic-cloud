@@ -5,6 +5,7 @@ on:
     paths:
       - "backend/services/user-service/**"
       - ".github/workflows/deploy-user-service.yml"
+      - ".github/workflows/deploy-template.yml"
 
 jobs:
   deploy:
