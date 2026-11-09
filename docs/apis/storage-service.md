@@ -4,6 +4,10 @@ Tài liệu này mô tả chi tiết toàn bộ các RESTful API của dịch v�
 
 ---
 
+```json
+
+```
+
 ## 1. Tổng quan Kiến trúc & Thông tin Mạng
 
 - **Cổng dịch vụ nội bộ (Internal Port):** `8082` (`http://localhost:8082`)

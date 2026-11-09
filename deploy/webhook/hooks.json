@@ -1,0 +1,56 @@
+[
+  {
+    "id": "deploy/user-service",
+    "execute-command": "/bin/bash",
+    "command-working-directory": "/opt/scripts",
+    "include-command-output-in-response": true,
+    "include-command-output-in-response-on-error": true,
+    "pass-arguments-to-command": [
+      {
+        "source": "string",
+        "name": "/opt/scripts/deploy.sh"
+      },
+      {
+        "source": "string",
+        "name": "user-service"
+      }
+    ],
+    "trigger-rule": {
+      "match": {
+        "type": "value",
+        "value": "dTykDD70XXjF8Dw0ZXEGoVfPDg7m4IIRJST45e6ZcZw=",
+        "parameter": {
+          "source": "header",
+          "name": "X-Webhook-Token"
+        }
+      }
+    }
+  },
+  {
+    "id": "deploy/frontend",
+    "execute-command": "/bin/bash",
+    "command-working-directory": "/opt/scripts",
+    "include-command-output-in-response": true,
+    "include-command-output-in-response-on-error": true,
+    "pass-arguments-to-command": [
+      {
+        "source": "string",
+        "name": "/opt/scripts/deploy.sh"
+      },
+      {
+        "source": "string",
+        "name": "frontend"
+      }
+    ],
+    "trigger-rule": {
+      "match": {
+        "type": "value",
+        "value": "dTykDD70XXjF8Dw0ZXEGoVfPDg7m4IIRJST45e6ZcZw=",
+        "parameter": {
+          "source": "header",
+          "name": "X-Webhook-Token"
+        }
+      }
+    }
+  }
+]

@@ -1,4 +1,4 @@
-name: Deploy Api gateway
+name: Deploy Api Gateway
 on:
   push:
     branches: ["develop"]
