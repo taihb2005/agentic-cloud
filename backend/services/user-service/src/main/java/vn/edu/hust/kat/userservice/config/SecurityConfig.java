@@ -1,5 +1,6 @@
 package vn.edu.hust.kat.userservice.config;
 
+import org.springframework.security.config.Customizer;
 import vn.edu.hust.kat.userservice.filter.GatewayAuthFilter;
 import vn.edu.hust.kat.userservice.filter.RateLimitFilter;
 import vn.edu.hust.kat.userservice.filter.RequestIdFilter;
@@ -73,8 +74,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
@@ -96,11 +97,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-        config.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
-        config.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
-        config.setAllowCredentials(allowCredentials);
-        config.setMaxAge(maxAge);
+        config.setAllowedOrigins(List.of("*"));
+        config.setAllowedMethods(List.of("*"));
+        config.setAllowedHeaders(List.of("*"));
+//        config.setAllowCredentials(allowCredentials);
+//        config.setMaxAge(maxAge);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
