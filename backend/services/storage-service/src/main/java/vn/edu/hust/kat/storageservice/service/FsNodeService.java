@@ -7,6 +7,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -111,10 +114,26 @@ public class FsNodeService {
 
         FsNode node = resolveAndValidateNode(userId, nodeIdStr, true);
 
-        node.setName(request.getName());
-        node.setIsStarred(request.isStarred());
+        if (request.getName() != null && !request.getName().isBlank()) {
+            node.setName(request.getName().trim());
+        }
+        if (request.getStarred() != null) {
+            node.setIsStarred(request.getStarred());
+        }
 
         return NodeResponse.from(node);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<NodeResponse> getStarredNodes(UUID userId, int page, int size, List<String> sorts) {
+        if (userId == null) {
+            throw new BadRequestException("User ID không hợp lệ");
+        }
+        int pageNumber = Math.max(0, page);
+        int pageSize = size > 0 ? size : 20;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(pageNumber, pageSize, parseSort(sorts));
+        Page<FsNode> pageResult = fsNodeRepository.findStarredNodes(userId, pageable);
+        return PagedResponse.from(pageResult.map(NodeResponse::from));
     }
     /**
      * Di chuyển danh sách node

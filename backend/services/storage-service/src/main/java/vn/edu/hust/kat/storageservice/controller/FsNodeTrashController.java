@@ -76,26 +76,38 @@ public class FsNodeTrashController {
     @Operation(summary = "Khôi phục danh sách node từ thùng rác")
     public ResponseEntity<ApiResponse<BatchOperationResponse<RestoreResult, NodeFailureResult>>> restoreNodes(
             @AuthenticationPrincipal FsUser user,
-            @Valid @RequestBody BatchNodesRequest request
+            @RequestParam(value = "node_ids", required = false) List<String> nodeIdsParam,
+            @RequestBody(required = false) BatchNodesRequest request
     ) {
         UUID userId = (user != null) ? user.getId() : null;
 
-        List<String> nodeIds = (request != null && request.getNodeIds() != null) ? request.getNodeIds() : Collections.emptyList();
+        List<String> nodeIds = new java.util.ArrayList<>();
+        if (request != null && request.getNodeIds() != null && !request.getNodeIds().isEmpty()) {
+            nodeIds.addAll(request.getNodeIds());
+        } else if (nodeIdsParam != null && !nodeIdsParam.isEmpty()) {
+            nodeIds.addAll(nodeIdsParam);
+        }
         log.info("Khôi phục nodes: userId={}, nodeIds={}", userId, nodeIds);
 
         BatchOperationResponse<RestoreResult, NodeFailureResult> response = fsNodeTrashService.restoreNodes(userId, nodeIds);
 
-        return ResponseEntity.ok(ApiResponse.success("Thap tác thành công", response));
+        return ResponseEntity.ok(ApiResponse.success("Thao tác thành công", response));
     }
 
     @DeleteMapping("/permanent")
     @Operation(summary = "Xóa vĩnh viễn node trong thùng rác hoặc toàn bộ thùng rác")
     public ResponseEntity<?> permanentDeleteTrash(
             @AuthenticationPrincipal FsUser user,
+            @RequestParam(value = "node_ids", required = false) List<String> nodeIdsParam,
             @RequestBody(required = false) BatchNodesRequest request
     ) {
         UUID userId = (user != null) ? user.getId() : null;
-        List<String> nodeIds = (request != null && request.getNodeIds() != null) ? request.getNodeIds() : Collections.emptyList();
+        List<String> nodeIds = new java.util.ArrayList<>();
+        if (request != null && request.getNodeIds() != null && !request.getNodeIds().isEmpty()) {
+            nodeIds.addAll(request.getNodeIds());
+        } else if (nodeIdsParam != null && !nodeIdsParam.isEmpty()) {
+            nodeIds.addAll(nodeIdsParam);
+        }
 
         log.info("Xóa vĩnh viễn trash: userId={}, count={}", userId, nodeIds.size());
 

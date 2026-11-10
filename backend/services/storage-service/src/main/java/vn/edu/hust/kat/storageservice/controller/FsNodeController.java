@@ -20,6 +20,7 @@ import vn.edu.hust.kat.storageservice.entity.FsUser;
 import vn.edu.hust.kat.storageservice.service.FsNodeFolderService;
 import vn.edu.hust.kat.storageservice.service.FsNodeService;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -78,6 +79,19 @@ public class FsNodeController {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách thành công", response));
     }
 
+    @GetMapping("/starred")
+    @Operation(summary = "Lấy danh sách file/folder đã gắn sao")
+    public ResponseEntity<ApiResponse<PagedResponse<NodeResponse>>> getStarredNodes(
+            @AuthenticationPrincipal FsUser user,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size,
+            @RequestParam(value = "sort", defaultValue = "updated_at,desc") List<String> sorts
+    ) {
+        UUID userId = (user != null) ? user.getId() : null;
+        PagedResponse<NodeResponse> response = fsNodeService.getStarredNodes(userId, page, size, sorts);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách gắn sao thành công", response));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<NodeResponse>> getFolder(
             @AuthenticationPrincipal FsUser user,
@@ -113,11 +127,17 @@ public class FsNodeController {
     @Operation(summary = "Đưa danh sách node vào thùng rác (Xóa mềm)")
     public ResponseEntity<ApiResponse<BatchOperationResponse<DeleteResult, NodeFailureResult>>> softDeleteNodes(
             @AuthenticationPrincipal FsUser user,
-            @Valid @RequestBody BatchNodesRequest request
+            @RequestParam(value = "node_ids", required = false) List<String> nodeIdsParam,
+            @RequestBody(required = false) BatchNodesRequest request
     ) {
         UUID userId = (user != null) ? user.getId() : null;
 
-        List<String> nodeIds = (request != null && request.getNodeIds() != null) ? request.getNodeIds() : List.of();
+        List<String> nodeIds = new ArrayList<>();
+        if (request != null && request.getNodeIds() != null && !request.getNodeIds().isEmpty()) {
+            nodeIds.addAll(request.getNodeIds());
+        } else if (nodeIdsParam != null && !nodeIdsParam.isEmpty()) {
+            nodeIds.addAll(nodeIdsParam);
+        }
         log.info("Xóa mềm nodes: userId={}, nodeIds={}", userId, nodeIds);
 
         BatchOperationResponse<DeleteResult, NodeFailureResult> response = fsNodeService.softDeleteNodes(userId, nodeIds);

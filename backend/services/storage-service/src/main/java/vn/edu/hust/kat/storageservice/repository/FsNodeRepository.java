@@ -31,6 +31,9 @@ public interface FsNodeRepository extends JpaRepository<FsNode, Long>, JpaSpecif
 
     Optional<FsNode> findByS3ObjectKeyAndNodeStatus(String s3ObjectKey, FsNode.Status nodeStatus);
 
+    @Query("SELECT n FROM FsNode n WHERE n.user.id = :userId AND n.isStarred = true AND n.deletedAt IS NULL AND (n.nodeStatus IS NULL OR n.nodeStatus != 'DELETED')")
+    Page<FsNode> findStarredNodes(@Param("userId") UUID userId, Pageable pageable);
+
     void deleteById(@NonNull Long id);
 
     @Query("SELECT n FROM FsNode n WHERE n.user.id = :userId AND n.parent IS NULL AND n.name = :name")
