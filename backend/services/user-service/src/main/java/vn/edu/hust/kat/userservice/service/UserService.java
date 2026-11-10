@@ -1,19 +1,22 @@
 package vn.edu.hust.kat.userservice.service;
 
-import vn.edu.hust.kat.common.api.exception.ResourceNotFoundException;
-import vn.edu.hust.kat.userservice.dto.response.UserResponse;
-import vn.edu.hust.kat.userservice.dto.response.UserStorageResponse;
-import vn.edu.hust.kat.userservice.entity.User;
-import vn.edu.hust.kat.userservice.grpc.StorageGrpcClient;
-import vn.edu.hust.kat.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.edu.hust.kat.common.api.exception.ResourceNotFoundException;
+import vn.edu.hust.kat.userservice.dto.response.UserResponse;
+import vn.edu.hust.kat.userservice.dto.response.UserSearchResponse;
+import vn.edu.hust.kat.userservice.dto.response.UserStorageResponse;
+import vn.edu.hust.kat.userservice.entity.User;
+import vn.edu.hust.kat.userservice.grpc.StorageGrpcClient;
+import vn.edu.hust.kat.userservice.repository.UserRepository;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -52,6 +55,27 @@ public class UserService {
             UserStorageResponse userStorageResponse = storageGrpcClient.getUserStorage(user.getId());
             return UserResponse.from(user, userStorageResponse);
         });
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSearchResponse> searchUsers(String query, int limit) {
+        UUID callerId = null;
+        try {
+            User caller = getAuthenticatedUser();
+            if (caller != null) {
+                callerId = caller.getId();
+            }
+        } catch (Exception ignored) {
+        }
+
+        int pageSize = Math.max(1, Math.min(limit, 50));
+        Pageable pageable = PageRequest.of(0, pageSize);
+        String searchPattern = (query != null) ? query.trim() : "";
+
+        return userRepository.searchUsers(searchPattern, callerId, pageable)
+                .stream()
+                .map(UserSearchResponse::from)
+                .toList();
     }
 
     @Transactional

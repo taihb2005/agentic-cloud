@@ -33,6 +33,9 @@ public class FileDownloadController {
     @Operation(summary = "Yêu cầu cấp Presigned URL để tải file từ MinIO")
     public ResponseEntity<ApiResponse<DownloadUrlsResponse>> getDownloadUrls(
             @AuthenticationPrincipal FsUser user,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Content-Disposition", required = false) String dispositionHeader,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-Download", required = false) String downloadHeader,
+            @org.springframework.web.bind.annotation.RequestParam(value = "disposition", required = false) String dispositionParam,
             @Valid @RequestBody DownloadUrlRequest request
     ) {
         UUID userId = (user != null) ? user.getId() : null;
@@ -40,10 +43,17 @@ public class FileDownloadController {
             throw new BadRequestException("User ID không hợp lệ");
         }
 
-        log.info("Nhận yêu cầu cấp presigned download URLs cho userId={}, số file={}",
-                userId, request.getFiles() != null ? request.getFiles().size() : 0);
+        // Mặc định là attachment (tải về máy), trừ khi được yêu cầu rõ là inline preview
+        boolean isAttachment = true;
+        if ("inline".equalsIgnoreCase(dispositionParam) ||
+                (dispositionHeader != null && dispositionHeader.toLowerCase().contains("inline"))) {
+            isAttachment = false;
+        }
 
-        DownloadUrlsResponse response = fileDownloadService.getDownloadUrls(userId, request);
+        log.info("Nhận yêu cầu cấp presigned download URLs cho userId={}, số file={}, isAttachment={}",
+                userId, request.getFiles() != null ? request.getFiles().size() : 0, isAttachment);
+
+        DownloadUrlsResponse response = fileDownloadService.getDownloadUrls(userId, request, isAttachment);
 
         return ResponseEntity.ok()
                 .body(ApiResponse.success("Thành công", response));

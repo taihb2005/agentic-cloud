@@ -165,15 +165,30 @@ public class MinioStorageService {
      * @return Presigned URL
      */
     public String generatePresignedDownloadUrl(String bucketName, String objectKey, int expirySeconds) {
+        return generatePresignedDownloadUrl(bucketName, objectKey, expirySeconds, null, false);
+    }
+
+    /**
+     * Sinh Presigned URL với quyền GET và tùy chọn ép buộc Content-Disposition (attachment để tải về, inline để preview).
+     */
+    public String generatePresignedDownloadUrl(String bucketName, String objectKey, int expirySeconds, String fileName, boolean isAttachment) {
         try {
-            return publicMinioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .method(Http.Method.GET)
-                            .bucket(bucketName)
-                            .object(objectKey)
-                            .expiry(expirySeconds, TimeUnit.SECONDS)
-                            .build()
-            );
+            GetPresignedObjectUrlArgs.Builder builder = GetPresignedObjectUrlArgs.builder()
+                    .method(Http.Method.GET)
+                    .bucket(bucketName)
+                    .object(objectKey)
+                    .expiry(expirySeconds, TimeUnit.SECONDS);
+
+            if (fileName != null && !fileName.isBlank()) {
+                java.util.Map<String, String> queryParams = new java.util.HashMap<>();
+                String disposition = isAttachment ? "attachment" : "inline";
+                // Đảm bảo escape dấu nháy kép trong fileName
+                String safeFileName = fileName.replace("\"", "\\\"");
+                queryParams.put("response-content-disposition", disposition + "; filename=\"" + safeFileName + "\"");
+                builder.extraQueryParams(queryParams);
+            }
+
+            return publicMinioClient.getPresignedObjectUrl(builder.build());
         } catch (Exception e) {
             log.error("Lỗi khi tạo presigned download URL cho bucket={}, key={}", bucketName, objectKey, e);
             throw new RuntimeException("Không thể tạo URL tải xuống cho file: " + e.getMessage(), e);

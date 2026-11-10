@@ -67,7 +67,7 @@ app:
     default-bucket: ${STORAGE_MINIO_DEFAULT_BUCKET:smart-cloud-storage}
     default-quota-bytes: ${STORAGE_DEFAULT_QUOTA_BYTES:16106127360} # 15 GB
     user-prefix-pattern: "users/%s/"
-    public-endpoint: ${STORAGE_PUBLIC_MINIO_ENDPOINT:http://localhost:9000}
+    public-endpoint: ${STORAGE_MINIO_PUBLIC_ENDPOINT:http://localhost:9000}
     presigned-url-expiry-seconds: ${PRESIGNED_EXPIRY}
   node_async_threshold: 50
 

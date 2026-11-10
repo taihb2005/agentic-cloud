@@ -1,8 +1,5 @@
 package vn.edu.hust.kat.userservice.controller;
 
-import vn.edu.hust.kat.common.api.response.ApiResponse;
-import vn.edu.hust.kat.userservice.dto.response.UserResponse;
-import vn.edu.hust.kat.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,7 +10,12 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.hust.kat.common.api.response.ApiResponse;
+import vn.edu.hust.kat.userservice.dto.response.UserResponse;
+import vn.edu.hust.kat.userservice.dto.response.UserSearchResponse;
+import vn.edu.hust.kat.userservice.service.UserService;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -29,6 +31,15 @@ public class UserController {
     @Operation(summary = "Get current authenticated user")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser() {
         return ResponseEntity.ok(ApiResponse.success(userService.getCurrentUser()));
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "Search users by username or email for node sharing")
+    public ResponseEntity<ApiResponse<List<UserSearchResponse>>> searchUsers(
+            @RequestParam(name = "q", defaultValue = "") String query,
+            @RequestParam(name = "limit", defaultValue = "10") int limit
+    ) {
+        return ResponseEntity.ok(ApiResponse.success("Tìm kiếm người dùng thành công", userService.searchUsers(query, limit)));
     }
 
     @GetMapping("/{id}")

@@ -37,6 +37,11 @@ public class FileDownloadService {
      */
     @Transactional(readOnly = true)
     public DownloadUrlsResponse getDownloadUrls(UUID userId, DownloadUrlRequest request) {
+        return getDownloadUrls(userId, request, true);
+    }
+
+    @Transactional(readOnly = true)
+    public DownloadUrlsResponse getDownloadUrls(UUID userId, DownloadUrlRequest request, boolean isAttachment) {
         if (userId == null) {
             throw new BadRequestException("User ID không hợp lệ");
         }
@@ -86,11 +91,13 @@ public class FileDownloadService {
                         "Không tìm thấy file vật lý trên hệ thống lưu trữ cho node_id=" + rawNodeId);
             }
 
-            // Tạo Presigned GET URL
+            // Tạo Presigned GET URL (kèm Content-Disposition header nếu tải về máy)
             String presignedUrl = minioStorageService.generatePresignedDownloadUrl(
                     node.getStorageBucketName(),
                     node.getS3ObjectKey(),
-                    expirySeconds
+                    expirySeconds,
+                    node.getName(),
+                    isAttachment
             );
 
             Instant expiresAt = Instant.now().plusSeconds(expirySeconds);
