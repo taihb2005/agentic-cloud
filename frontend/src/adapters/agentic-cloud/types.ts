@@ -97,3 +97,89 @@ export interface UserResponse {
 	enabled?: boolean
 	created_at?: string
 }
+
+export interface UserSearchResponse {
+	id: string
+	username: string
+	email: string
+	created_at?: string
+}
+
+export interface SharedUserItemResponse {
+	user_id: string
+	username: string
+	email?: string
+	permission?: string
+	shared_at?: string
+}
+
+export interface ConfigureShareRequest {
+	share_mode: 'PUBLIC_LINK' | 'USER_GROUP' | 'PRIVATE'
+	permission: 'VIEW' | 'EDIT'
+	user_ids?: string[]
+	password?: string
+	expires_at?: string
+	max_access_count?: number
+	override_existing?: boolean
+}
+
+export interface NodeShareDetailResponse {
+	node_id: number | string
+	node_name: string
+	is_folder: boolean
+	share_mode: 'PUBLIC_LINK' | 'USER_GROUP' | 'PRIVATE'
+	permission: 'VIEW' | 'EDIT'
+	is_password_protected?: boolean
+	shared_url?: string
+	share_token?: string
+	expires_at?: string
+	max_access_count?: number
+	access_count?: number
+	status?: string
+	users?: SharedUserItemResponse[]
+	created_at?: string
+	updated_at?: string
+}
+
+export interface SharedWithMeNodeResponse {
+	node_id: number | string
+	name: string
+	is_folder: boolean
+	mime_type?: string
+	size_bytes?: number
+	permission: 'VIEW' | 'EDIT'
+	is_password_protected?: boolean
+	is_unlocked?: boolean
+	owner?: {
+		id: string
+		username: string
+		email: string
+	}
+	shared_at?: string
+}
+
+export interface PublicShareInfoResponse {
+	node_id?: number | string
+	node_name: string
+	is_folder: boolean
+	size_bytes?: number
+	mime_type?: string
+	permission: 'VIEW' | 'EDIT'
+	is_password_protected?: boolean
+	owner_name?: string
+	expires_at?: string
+}
+
+export interface PublicAccessSessionResponse {
+	access_token: string
+	expires_at?: string
+}
+
+export interface PresignedDownloadResponse {
+	node_id: number | string
+	file_name: string
+	url: string
+	expires_at: string
+	mime_type?: string
+	size_bytes?: number
+}

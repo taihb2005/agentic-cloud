@@ -1,12 +1,14 @@
 import React, { useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 export const AuthModal: React.FC<{ onSkipDemo?: () => void }> = ({ onSkipDemo }) => {
 	const { login, register, error } = useAuth()
 	const [mode, setMode] = useState<'login' | 'register'>('login')
-	const [username, setUsername] = useState('alice')
-	const [email, setEmail] = useState('alice@example.com')
-	const [password, setPassword] = useState('password123')
+	const [username, setUsername] = useState('')
+	const [email, setEmail] = useState('')
+	const [password, setPassword] = useState('')
+	const [showPassword, setShowPassword] = useState(false)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [localError, setLocalError] = useState<string | null>(null)
 
@@ -89,7 +91,7 @@ export const AuthModal: React.FC<{ onSkipDemo?: () => void }> = ({ onSkipDemo })
 						onChange={(e) => setUsername(e.target.value)}
 						required
 						className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-						placeholder="Nhập tên đăng nhập..."
+						placeholder="Tên đăng nhập"
 					/>
 				</div>
 
@@ -104,7 +106,7 @@ export const AuthModal: React.FC<{ onSkipDemo?: () => void }> = ({ onSkipDemo })
 							onChange={(e) => setEmail(e.target.value)}
 							required
 							className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-							placeholder="name@example.com"
+							placeholder="Email"
 						/>
 					</div>
 				)}
@@ -113,15 +115,26 @@ export const AuthModal: React.FC<{ onSkipDemo?: () => void }> = ({ onSkipDemo })
 					<label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-neutral-300">
 						Mật khẩu
 					</label>
-					<input
-						type="password"
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-						required
-						minLength={6}
-						className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-						placeholder="••••••••"
-					/>
+					<div className="relative mt-1.5">
+						<input
+							type={showPassword ? 'text' : 'password'}
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							required
+							minLength={6}
+							className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+							placeholder="Mật khẩu"
+						/>
+						<button
+							type="button"
+							onClick={() => setShowPassword(!showPassword)}
+							className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-neutral-400 dark:hover:text-neutral-200 transition"
+							title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+							aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+						>
+							{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+						</button>
+					</div>
 				</div>
 
 				<button

@@ -1,4 +1,17 @@
-import type { ApiResponse, AuthResponseData, UserQuotaResponse, UserResponse } from './types'
+import type {
+	ApiResponse,
+	AuthResponseData,
+	ConfigureShareRequest,
+	NodeShareDetailResponse,
+	PagedResponse,
+	PresignedDownloadResponse,
+	PublicAccessSessionResponse,
+	PublicShareInfoResponse,
+	SharedWithMeNodeResponse,
+	UserQuotaResponse,
+	UserResponse,
+	UserSearchResponse
+} from './types'
 
 /**
  * Lấy URL của API Gateway từ biến môi trường .env (Vite / Node) hoặc fallback về http://localhost:8089.
@@ -177,7 +190,7 @@ export class ApiClient {
 		return (await response.json()) as ApiResponse<T>
 	}
 
-	async get<T>(endpoint: string, query?: Record<string, string | number | boolean | undefined>): Promise<ApiResponse<T>> {
+	async get<T>(endpoint: string, query?: Record<string, string | number | boolean | undefined>, extraHeaders?: Record<string, string>): Promise<ApiResponse<T>> {
 		let path = endpoint
 		if (query) {
 			const params = new URLSearchParams()
@@ -191,13 +204,25 @@ export class ApiClient {
 				path += (path.includes('?') ? '&' : '?') + qs
 			}
 		}
-		return this.request<T>(path, { method: 'GET' })
+		return this.request<T>(path, {
+			method: 'GET',
+			headers: extraHeaders ? new Headers(extraHeaders) : undefined
+		})
 	}
 
-	async post<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+	async post<T>(endpoint: string, body?: unknown, extraHeaders?: Record<string, string>): Promise<ApiResponse<T>> {
 		return this.request<T>(endpoint, {
 			method: 'POST',
-			body: body ? JSON.stringify(body) : undefined
+			body: body ? JSON.stringify(body) : undefined,
+			headers: extraHeaders ? new Headers(extraHeaders) : undefined
+		})
+	}
+
+	async put<T>(endpoint: string, body?: unknown, extraHeaders?: Record<string, string>): Promise<ApiResponse<T>> {
+		return this.request<T>(endpoint, {
+			method: 'PUT',
+			body: body ? JSON.stringify(body) : undefined,
+			headers: extraHeaders ? new Headers(extraHeaders) : undefined
 		})
 	}
 
@@ -255,10 +280,107 @@ export class ApiClient {
 		return res
 	}
 
+	async searchUsers(query: string, limit = 10): Promise<ApiResponse<UserSearchResponse[]>> {
+		return this.get<UserSearchResponse[]>('/api/v1/user-service/users/search', { q: query, limit })
+	}
+
 	// ==================== Storage Service APIs ====================
 
 	async getUserQuota(userId: string): Promise<ApiResponse<UserQuotaResponse>> {
 		return this.get<UserQuotaResponse>(`/api/v1/storage-service/storage/users/quota/${userId}`)
+	}
+
+	// ==================== Node Sharing & Permissions APIs ====================
+
+	async configureShare(nodeId: number | string, data: ConfigureShareRequest): Promise<ApiResponse<NodeShareDetailResponse>> {
+		return this.post<NodeShareDetailResponse>(`/api/v1/storage-service/nodes/${nodeId}/share`, data)
+	}
+
+	async getShareDetail(nodeId: number | string): Promise<ApiResponse<NodeShareDetailResponse>> {
+		return this.get<NodeShareDetailResponse>(`/api/v1/storage-service/nodes/${nodeId}/share`)
+	}
+
+	async revokeShare(nodeId: number | string): Promise<ApiResponse<void>> {
+		return this.delete<void>(`/api/v1/storage-service/nodes/${nodeId}/share`)
+	}
+
+	async updateUserGroupShare(
+		nodeId: number | string,
+		data: { user_ids: string[]; permission: 'VIEW' | 'EDIT' }
+	): Promise<ApiResponse<NodeShareDetailResponse>> {
+		return this.put<NodeShareDetailResponse>(`/api/v1/storage-service/nodes/${nodeId}/share/users`, data)
+	}
+
+	async revokeUserShare(nodeId: number | string, userId: string): Promise<ApiResponse<void>> {
+		return this.delete<void>(`/api/v1/storage-service/nodes/${nodeId}/share/users/${userId}`)
+	}
+
+	async getSharedWithMe(params?: {
+		nodeType?: 'FILE' | 'FOLDER'
+		permission?: 'VIEW' | 'EDIT'
+		name?: string
+		page?: number
+		size?: number
+	}): Promise<ApiResponse<PagedResponse<SharedWithMeNodeResponse>>> {
+		return this.get<PagedResponse<SharedWithMeNodeResponse>>('/api/v1/storage-service/nodes/shared-with-me', {
+			node_type: params?.nodeType,
+			permission: params?.permission,
+			name: params?.name,
+			page: params?.page ?? 0,
+			size: params?.size ?? 50
+		})
+	}
+
+	async unlockNode(nodeId: number | string, password: string): Promise<ApiResponse<{ token?: string }>> {
+		return this.post<{ token?: string }>(`/api/v1/storage-service/nodes/${nodeId}/unlock`, { password })
+	}
+
+	// ==================== Public Link APIs ====================
+
+	async getPublicShareInfo(shareToken: string): Promise<ApiResponse<PublicShareInfoResponse>> {
+		return this.get<PublicShareInfoResponse>(`/api/v1/storage-service/shares/public/${shareToken}`)
+	}
+
+	async accessPublicShare(shareToken: string, password?: string): Promise<ApiResponse<PublicAccessSessionResponse>> {
+		return this.post<PublicAccessSessionResponse>(
+			`/api/v1/storage-service/shares/public/${shareToken}/access`,
+			password ? { password } : {}
+		)
+	}
+
+	async getPublicShareNodes(
+		shareToken: string,
+		parentId?: string,
+		shareAccessToken?: string
+	): Promise<ApiResponse<PagedResponse<import('./types').NodeResponse>>> {
+		const headers: Record<string, string> = {}
+		if (shareAccessToken) {
+			headers['X-Share-Access-Token'] = shareAccessToken
+		}
+		return this.get<PagedResponse<import('./types').NodeResponse>>(
+			`/api/v1/storage-service/shares/public/${shareToken}/nodes`,
+			parentId ? { parent_id: parentId } : undefined,
+			headers
+		)
+	}
+
+	async getPublicDownloadUrl(
+		shareToken: string,
+		nodeId: number | string,
+		shareAccessToken?: string
+	): Promise<ApiResponse<PresignedDownloadResponse>> {
+		const headers: Record<string, string> = {
+			'Content-Disposition': 'attachment',
+			'X-Download': 'true'
+		}
+		if (shareAccessToken) {
+			headers['X-Share-Access-Token'] = shareAccessToken
+		}
+		return this.post<PresignedDownloadResponse>(
+			`/api/v1/storage-service/shares/public/${shareToken}/download-url`,
+			{ node_id: Number(nodeId) },
+			headers
+		)
 	}
 }
 

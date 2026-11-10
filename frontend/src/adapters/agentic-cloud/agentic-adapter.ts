@@ -292,9 +292,16 @@ export class AgenticCloudStorageAdapter implements FileBrowserAdapter<Record<str
 			throw new FileBrowserAdapterError('not_found', `Không tìm thấy ID của tệp: ${normalized}`)
 		}
 
-		const res = await this.client.post<DownloadUrlsResponse>('/api/v1/storage-service/files/download-urls', {
-			files: [{ node_id: nodeId }]
-		})
+		const res = await this.client.post<DownloadUrlsResponse>(
+			'/api/v1/storage-service/files/download-urls',
+			{
+				files: [{ node_id: nodeId }]
+			},
+			{
+				'Content-Disposition': 'attachment',
+				'X-Download': 'true'
+			}
+		)
 
 		if (!res.success || !res.data?.download_urls?.length) {
 			throw new FileBrowserAdapterError('access_denied', res.message || 'Không thể tạo URL tải xuống.')

@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, Download, Pause, Play, X } from 'lucide-react'
-import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { PropsWithChildren } from 'react'
 import { createPortal } from 'react-dom'
 import { TransferManager } from './transfer-manager'
@@ -133,6 +133,7 @@ function withDefaultStorage(options: TransferManagerOptions | undefined): Transf
 function FloatingTransferWidget({ manager, snapshot }: { manager: TransferManager; snapshot: TransferSnapshot }) {
 	const narrow = useNarrowViewport()
 	const [expanded, setExpanded] = useState<boolean | null>(null)
+	const [dismissed, setDismissed] = useState(false)
 	const isExpanded = expanded ?? !narrow
 	const activeUploads = snapshot.uploads.filter(isVisibleUpload)
 	const uploadGroups = getActiveUploadGroups(snapshot.uploads)
@@ -142,7 +143,17 @@ function FloatingTransferWidget({ manager, snapshot }: { manager: TransferManage
 		['preparing', 'warning', 'ready', 'failed'].includes(download.status)
 	)
 
-	if (activeUploads.length === 0 && downloads.length === 0) {
+	// Tự động hiển thị lại khi có tiến trình tải lên/xuống mới
+	const totalTransfers = activeUploads.length + downloads.length
+	const prevCountRef = useRef(totalTransfers)
+	useEffect(() => {
+		if (totalTransfers > prevCountRef.current) {
+			setDismissed(false)
+		}
+		prevCountRef.current = totalTransfers
+	}, [totalTransfers])
+
+	if (dismissed || (activeUploads.length === 0 && downloads.length === 0)) {
 		return null
 	}
 
@@ -168,6 +179,15 @@ function FloatingTransferWidget({ manager, snapshot }: { manager: TransferManage
 					) : (
 						<ChevronUp aria-hidden="true" className="size-4" />
 					)}
+				</button>
+				<button
+					aria-label="Đóng bảng truyền tệp"
+					title="Đóng bảng truyền tệp"
+					className={widgetIconButton()}
+					onClick={() => setDismissed(true)}
+					type="button"
+				>
+					<X aria-hidden="true" className="size-4" />
 				</button>
 			</div>
 			{isExpanded ? (

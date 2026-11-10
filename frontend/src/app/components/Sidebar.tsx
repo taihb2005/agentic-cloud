@@ -8,9 +8,11 @@ function formatBytes(bytes?: number | null): string {
 	return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`
 }
 
+export type SidebarTab = 'files' | 'shared' | 'starred' | 'trash'
+
 export const Sidebar: React.FC<{
-	currentTab: 'files' | 'starred' | 'trash'
-	onSelectTab: (tab: 'files' | 'starred' | 'trash') => void
+	currentTab: SidebarTab
+	onSelectTab: (tab: SidebarTab) => void
 }> = ({ currentTab, onSelectTab }) => {
 	const { user, quota, refreshQuota } = useAuth()
 
@@ -37,6 +39,19 @@ export const Sidebar: React.FC<{
 				>
 					<span className="text-base">📁</span>
 					<span>Tệp của tôi</span>
+				</button>
+
+				<button
+					type="button"
+					onClick={() => onSelectTab('shared')}
+					className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ${
+						currentTab === 'shared'
+							? 'bg-indigo-50 text-indigo-700 shadow-sm dark:bg-indigo-950/50 dark:text-indigo-300'
+							: 'text-gray-600 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+					}`}
+				>
+					<span className="text-base">👥</span>
+					<span>Được chia sẻ</span>
 				</button>
 
 				<button
