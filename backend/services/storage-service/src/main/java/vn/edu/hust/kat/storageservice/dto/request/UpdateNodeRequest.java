@@ -15,6 +15,5 @@ public class UpdateNodeRequest {
     private String name;
 
     @JsonProperty("starred")
-    @JsonAlias({"is_starred", "isStarred"})
     private Boolean starred;
 }

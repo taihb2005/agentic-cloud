@@ -111,7 +111,7 @@ public class FsNodeController {
     public ResponseEntity<ApiResponse<NodeResponse>> updateNode(
             @AuthenticationPrincipal FsUser user,
             @Valid @PathVariable String id,
-            @Valid@RequestBody UpdateNodeRequest request
+            @Valid @RequestBody UpdateNodeRequest request
     ) {
         UUID userId = (user != null) ? user.getId() : null;
 

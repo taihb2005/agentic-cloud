@@ -2,19 +2,16 @@ package vn.edu.hust.kat.storageservice.kafka.event;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.core.util.Json;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
+import lombok.*;
 
 import java.util.List;
 import java.util.UUID;
 
 
 @Data
-@Getter
 @Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class NodePermanentDeleteEvent {
     @JsonProperty("event_id")
     private UUID eventId;
@@ -29,9 +26,9 @@ public class NodePermanentDeleteEvent {
     private List<DeleteObject> objects;
 
     @Data
-    @Getter
     @Builder
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class DeleteObject
     {
         @JsonProperty("node_id")
