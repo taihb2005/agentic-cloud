@@ -11,6 +11,7 @@
         <module name="agentic-cloud-platform.api-gateway.main" />
         <module name="agentic-cloud-platform.services.storage-service.main" />
         <module name="agentic-cloud-platform.services.user-service.main" />
+        <module name="agentic-cloud-platform.services.agent-service.main" />
         <module name="agentic-cloud-platform.common.main" />
       </profile>
     </annotationProcessing>

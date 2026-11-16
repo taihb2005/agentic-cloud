@@ -1,0 +1,79 @@
+spring:
+  application:
+    name: agent-service
+  profiles:
+    active: ${AGENT_SPRING_PROFILES_ACTIVE:${SPRING_PROFILES_ACTIVE:dev}}
+
+  datasource:
+    url: ${AGENT_DB_URL:${DB_URL:jdbc:postgresql://localhost:5432/agentic_cloud}}
+    username: ${AGENT_DB_USERNAME:${DB_USERNAME:taihb2005}}
+    password: ${AGENT_DB_PASSWORD:${DB_PASSWORD:admin@123}}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: agent-ingestion-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8083
+
+app:
+  llm:
+    openai:
+      api-key: ${OPENAI_API_KEY:demo}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+      model-name: ${OPENAI_MODEL_NAME:gpt-4o-mini}
+      embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+
+  agent:
+    memory:
+      max-messages: 20
+    pgvector:
+      enabled: ${PGVECTOR_ENABLED:false}
+
+  minio:
+    endpoint: ${STORAGE_MINIO_ENDPOINT:${MINIO_ENDPOINT:http://localhost:9000}}
+    access-key: ${STORAGE_MINIO_ROOT_USER:${MINIO_ROOT_USER:taihb2005}}
+    secret-key: ${STORAGE_MINIO_ROOT_PASSWORD:${MINIO_ROOT_PASSWORD:admin@123}}
+    default-bucket: ${STORAGE_MINIO_DEFAULT_BUCKET:${MINIO_DEFAULT_BUCKET:smart-cloud-storage}}
+
+  kafka:
+    topics:
+      minio-events: "${STORAGE_MINIO_EVENTS_TOPIC:minio.events.object-created}"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized

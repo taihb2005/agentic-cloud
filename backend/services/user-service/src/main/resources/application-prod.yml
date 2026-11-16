@@ -19,6 +19,16 @@ spring:
       channel:
         storage:
           target: "storage-service:9092"
+    server:
+      enabled: true
+      port: 9091
+      keep-alive:
+        time: 1h
+        timeout: 20s
+      reflection:
+        enabled: true
+      address: 0.0.0.0
+
   kafka:
     bootstrap-servers: ${USER_KAFKA_BOOTSTRAP_SERVER:localhost:9092}
     producer:

@@ -52,5 +52,13 @@ dependencies {
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
 
+    // ============================================================
+    // gRPC
+    // ============================================================
+    implementation(libs.protobuf.java)
+    implementation(libs.spring.boot.starter.grpc.server)
+    implementation(libs.spring.boot.starter.grpc.client)
+
     implementation(project(":common"))
+    implementation(project(":common-proto"))
 }

@@ -1,6 +1,7 @@
 package vn.edu.hust.kat.apigateway.filter;
 
 import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -12,7 +13,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import vn.edu.hust.kat.apigateway.grpc.ApiGatewayClient;
 import vn.edu.hust.kat.apigateway.util.JwtUtil;
+import vn.edu.hust.kat.proto.gateway.v1.FindUserResponse;
 
 import java.util.List;
 
@@ -20,9 +23,14 @@ import java.util.List;
 public class AuthFilter implements GatewayFilter {
 
     private final JwtUtil jwtUtil;
+    private final ApiGatewayClient apiGatewayClient;
 
-    public AuthFilter(JwtUtil jwtUtil) {
+    public AuthFilter(
+            JwtUtil jwtUtil,
+            ApiGatewayClient apiGatewayClient
+    ) {
         this.jwtUtil = jwtUtil;
+        this.apiGatewayClient = apiGatewayClient;
     }
 
     @Override
@@ -63,13 +71,21 @@ public class AuthFilter implements GatewayFilter {
             Claims claims = jwtUtil.extractAllClaims(token);
             String userId = claims.getSubject(); // User id from subject
 
+            // Check if user actually exists
+            FindUserResponse fResponse = apiGatewayClient.checkIfUserExists(userId);
+            if (fResponse == null || !fResponse.getExists()) {
+                return Mono.error(
+                        new ResponseStatusException(HttpStatus.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.getReasonPhrase())
+                );
+            }
+
             // Extract roles from JWT claims and forward as header
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get("roles", List.class);
             String rolesHeader = (roles != null) ? String.join(",", roles) : "";
 
             ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
-                    .header("X-User-Id", userId)
+                    .header("X-User-Id", fResponse.getUserId())
                     .header("X-User-Roles", rolesHeader)
                     .headers(headers -> headers.remove(HttpHeaders.AUTHORIZATION))
                     .build();

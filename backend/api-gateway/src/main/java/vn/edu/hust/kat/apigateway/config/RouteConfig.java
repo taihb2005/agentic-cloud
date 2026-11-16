@@ -6,12 +6,14 @@ import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import vn.edu.hust.kat.apigateway.filter.AuthFilter;
+import vn.edu.hust.kat.apigateway.grpc.ApiGatewayClient;
 import vn.edu.hust.kat.apigateway.util.JwtUtil;
 
 @Configuration
 @RequiredArgsConstructor
 public class RouteConfig {
     private final JwtUtil jwtUtil;
+    private final ApiGatewayClient apiGatewayClient;
 
     private static final String[] USER_PUBLIC_ENDPOINTS = {
             "/api/v1/user-service/auth/**",
@@ -82,6 +84,6 @@ public class RouteConfig {
 
     @Bean
     public AuthFilter authFilter() {
-        return new AuthFilter(jwtUtil);
+        return new AuthFilter(jwtUtil, apiGatewayClient);
     }
 }
