@@ -6,3 +6,4 @@ include:
   - api-gateway/docker-compose.yml
   - services/user-service/docker-compose.yml
   - services/storage-service/docker-compose.yml
+  - services/agent-service/docker-compose.yml

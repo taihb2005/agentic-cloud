@@ -3,6 +3,7 @@ package vn.edu.hust.kat.storageservice.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -33,6 +34,15 @@ public interface FsNodeShareUserRepository extends JpaRepository<FsNodeShareUser
     List<FsNodeShareUser> findByUserId(UUID userId);
 
     List<FsNodeShareUser> findByUserIdAndNodeIdIn(UUID userId, Collection<Long> nodeIds);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        DELETE FROM fs_node_share_user
+        WHERE user_id = :userId
+           OR granted_by = :userId
+           OR node_id IN (SELECT id FROM fs_nodes WHERE user_id = :userId)
+    """, nativeQuery = true)
+    int deleteAllByUserIdOrNodeOwnerId(@Param("userId") UUID userId);
 
     @Query(value = """
         SELECT su FROM FsNodeShareUser su

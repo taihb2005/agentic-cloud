@@ -1,0 +1,105 @@
+tools:
+  # ============================================================
+  # Storage Read Tools
+  # ============================================================
+  searchFilesByName:
+    description: "Duyệt hoặc tìm kiếm danh sách tệp tin/thư mục con trong một thư mục theo tên, loại node (FILE/FOLDER) hoặc MIME type"
+    parameters:
+      parentId: "ID của thư mục cha (null hoặc bỏ trống để lấy thư mục gốc)"
+      nodeType: "Bộ lọc loại node (FILE hoặc FOLDER, bỏ trống để lấy cả hai)"
+      name: "Bộ lọc tên thư mục hoặc file trong thư mục hiện tại (bỏ trống để lấy tất cả)"
+      mimeType: "Bộ lọc loại file theo MIME type (bỏ trống nếu không lọc)"
+      page: "Trang hiện tại (bắt đầu từ 0, mặc định 0)"
+      size: "Số lượng bản ghi mỗi trang (mặc định 20)"
+      sort: "Bộ tiêu chí sắp xếp theo tên, tăng dần, hoặc giảm dần. Nếu muốn sắp xếp theo cả tên thì truyền bộ lọc cách nhau bởi dấu phẩy. Ví dụ 'name,asc'. Các bộ lọc sắp xếp hỗ trợ bao gồm "
+
+  readFileContent:
+    description: "Đọc nội dung văn bản trích xuất của một tệp tin dựa theo nodeId"
+    parameters:
+      nodeId: "ID của tệp tin cần đọc nội dung"
+
+  getUserStorageQuota:
+    description: "Xem dung lượng lưu trữ hiện tại và quota tối đa của người dùng"
+
+  # ============================================================
+  # Storage Safe Tools
+  # ============================================================
+  renameNode:
+    description: "Đổi tên của tệp tin hoặc thư mục sang tên mới"
+    parameters:
+      nodeId: "ID của tệp tin hoặc thư mục cần đổi tên"
+      newName: "Tên mới cho tệp tin hoặc thư mục"
+
+  createFolder:
+    description: "Tạo thư mục mới trong một thư mục cha (hoặc thư mục gốc nếu parentId để trống)"
+    parameters:
+      folderName: "Tên thư mục mới cần tạo"
+      parentId: "ID của thư mục cha (để trống hoặc truyền 'root' nếu tạo ở thư mục gốc)"
+
+  moveNode:
+    description: "Di chuyển một tệp tin hoặc thư mục vào một thư mục đích"
+    parameters:
+      nodeId: "ID của tệp tin hoặc thư mục cần di chuyển"
+      targetFolderId: "ID của thư mục đích (hoặc 'root' để di chuyển về thư mục gốc)"
+
+  moveToTrash:
+    description: "Đưa tệp tin hoặc thư mục vào thùng rác (xóa mềm - có thể khôi phục được)"
+    parameters:
+      nodeId: "ID của tệp tin hoặc thư mục cần chuyển vào thùng rác"
+
+  toggleStar:
+    description: "Đánh dấu sao (yêu thích) hoặc bỏ đánh dấu sao cho một tệp tin/thư mục"
+    parameters:
+      nodeId: "ID của tệp tin hoặc thư mục cần gắn/bỏ sao"
+      starred: "true để gắn sao, false để bỏ sao"
+
+  # ============================================================
+  # Storage Sensitive Tools
+  # ============================================================
+  createActionProposal:
+    description: "Tạo đề xuất xác nhận (Action Proposal) khi người dùng yêu cầu XÓA VĨNH VIỄN, DỌN THÙNG RÁC, hoặc CHIA SẺ CÔNG KHAI. Đề xuất tạo ra ở trạng thái PENDING_CONFIRMATION và chỉ sinh confirmationToken sau khi người dùng đồng ý."
+    parameters:
+      actionType: "Loại hành động nhạy cảm: HARD_DELETE hoặc PUBLIC_SHARE"
+      targetNodeId: "ID của tệp tin hoặc thư mục mục tiêu"
+      explanation: "Giải thích chi tiết hành động và rủi ro để người dùng xác nhận"
+
+  permanentDelete:
+    description: "Xóa vĩnh viễn một tệp tin hoặc thư mục (Thao tác nhạy cảm: không thể phục hồi, bắt buộc phải truyền kèm confirmationToken hợp lệ sau khi người dùng đã xác nhận)"
+    parameters:
+      nodeId: "ID của tệp tin hoặc thư mục cần xóa vĩnh viễn"
+      confirmationToken: "Mã confirmationToken được sinh sau khi người dùng đồng ý xác nhận"
+
+  createPublicShare:
+    description: "Tạo liên kết chia sẻ công khai ra ngoài Internet (Thao tác nhạy cảm: rò rỉ dữ liệu, bắt buộc phải truyền kèm confirmationToken hợp lệ sau khi người dùng đã xác nhận)"
+    parameters:
+      nodeId: "ID của tệp tin hoặc thư mục cần chia sẻ công khai"
+      confirmationToken: "Mã confirmationToken được sinh sau khi người dùng đồng ý xác nhận"
+
+  # ============================================================
+  # User Memory Tools
+  # ============================================================
+  updateUserPreference:
+    description: >-
+      Cập nhật hoặc lưu một sở thích/quy tắc cá nhân dài hạn của người dùng.
+      Gọi ngay khi người dùng yêu cầu trực tiếp lưu/cập nhật pref.
+      Ví dụ: default_folder, naming_rule, response_language, summary_style.
+      Nếu khóa đã tồn tại sẽ tự động thay thế bằng giá trị mới.
+    parameters:
+      preferenceKey: "Tên khóa sở thích chuẩn snake_case bằng tiếng Anh, ví dụ: default_invoice_folder, file_naming_rule, response_language"
+      preferenceValue: "Nội dung quy tắc hoặc sở thích mới của người dùng"
+
+  saveUserContext:
+    description: "Lưu một ngữ cảnh hoặc thông tin dài hạn quan trọng về người dùng để sử dụng cho các cuộc hội thoại sau"
+    parameters:
+      contextType: "Loại ngữ cảnh, ví dụ: USER_FACT, WORKFLOW_HABIT, PROJECT_CONTEXT, NAMING_RULE, FOLDER_PREF"
+      content: "Nội dung ngữ cảnh dài hạn cần ghi nhớ"
+
+  recallUserContext:
+    description: "Tìm kiếm lại các sở thích, quy tắc và ngữ cảnh dài hạn đã lưu của người dùng theo câu truy vấn"
+    parameters:
+      query: "Từ khóa hoặc chủ đề cần tra cứu trong trí nhớ dài hạn của người dùng"
+
+  deleteUserPreference:
+    description: "Xóa một sở thích hoặc quy tắc cá nhân đã lưu trước đó của người dùng khi người dùng yêu cầu hủy bỏ hoặc quên đi"
+    parameters:
+      preferenceKey: "Tên khóa sở thích cần xóa, ví dụ: default_invoice_folder, file_naming_rule"

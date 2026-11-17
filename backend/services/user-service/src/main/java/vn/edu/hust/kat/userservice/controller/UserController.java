@@ -57,9 +57,16 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(userService.getAllUsers(pageable)));
     }
 
+    @DeleteMapping("/me")
+    @Operation(summary = "Delete current authenticated user account")
+    public ResponseEntity<ApiResponse<Void>> deleteCurrentUser() {
+        userService.deleteCurrentUser();
+        return ResponseEntity.ok(ApiResponse.message("User deleted successfully"));
+    }
+
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete a user (Admin only)")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
+    @Operation(summary = "Delete a user (Admin or self only)")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable UUID id) {
         userService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.message("User deleted successfully"));

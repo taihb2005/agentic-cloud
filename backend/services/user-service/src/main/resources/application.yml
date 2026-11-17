@@ -47,6 +47,12 @@ app:
     allow-credentials: true
     max-age: 3600
 
+  kafka:
+    topics:
+      user-service:
+        user-created: "${USER_CREATED_TOPIC:user.events.user-created}"
+        user-deleted: "${USER_DELETED_TOPIC:user.events.user-deleted}"
+
 # Actuator
 management:
   endpoints:

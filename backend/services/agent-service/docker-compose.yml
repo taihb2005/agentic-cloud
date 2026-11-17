@@ -1,0 +1,93 @@
+services:
+  agent-service:
+    build:
+      context: ../..
+      dockerfile: services/agent-service/Dockerfile
+    container_name: agent-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${AGENT_SPRING_PROFILES_ACTIVE:-${SPRING_PROFILES_ACTIVE:-prod}}
+      AGENT_SPRING_PROFILES_ACTIVE: ${AGENT_SPRING_PROFILES_ACTIVE:-${SPRING_PROFILES_ACTIVE:-prod}}
+      AGENT_DB_HOST: ${AGENT_DB_HOST:-postgres}
+      AGENT_DB_PORT: ${AGENT_DB_PORT:-5432}
+      AGENT_DB_NAME: ${AGENT_DB_NAME:-agent-service}
+      AGENT_DB_USERNAME: ${AGENT_DB_USERNAME:-agent_agent}
+      AGENT_DB_PASSWORD: ${AGENT_DB_PASSWORD:-agent@123}
+      REDIS_HOST: ${AGENT_REDIS_HOST:-${REDIS_HOST:-redis}}
+      REDIS_PORT: ${AGENT_REDIS_PORT:-${REDIS_PORT:-6379}}
+      AGENT_CORS_ALLOWED_ORIGINS: ${AGENT_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVER}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_MODEL_NAME: ${OPENAI_MODEL_NAME}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL}
+      PGVECTOR_ENABLED: ${PGVECTOR_ENABLED:-true}
+      PGVECTOR_TABLE: ${PGVECTOR_TABLE:-agent_long_term_memory}
+      PGVECTOR_DIMENSION: ${PGVECTOR_DIMENSION:-1536}
+      PGVECTOR_USE_INDEX: ${PGVECTOR_USE_INDEX:-false}
+      PGVECTOR_INDEX_LIST_SIZE: ${PGVECTOR_INDEX_LIST_SIZE:-100}
+      PGVECTOR_CREATE_TABLE: ${PGVECTOR_CREATE_TABLE:-true}
+      PGVECTOR_DROP_TABLE_FIRST: ${PGVECTOR_DROP_TABLE_FIRST:-false}
+      AGENT_MEMORY_MAX_MESSAGES: ${AGENT_MEMORY_MAX_MESSAGES:-20}
+      AGENT_MEMORY_SESSION_TTL_MINUTES: ${AGENT_MEMORY_SESSION_TTL_MINUTES:-45}
+      AGENT_MEMORY_MIN_SCORE: ${AGENT_MEMORY_MIN_SCORE:-0.68}
+      AGENT_MEMORY_RAG_MAX_RESULTS: ${AGENT_MEMORY_RAG_MAX_RESULTS:-5}
+      STORAGE_MINIO_ENDPOINT: ${STORAGE_MINIO_ENDPOINT}
+      STORAGE_MINIO_ROOT_USER: ${STORAGE_MINIO_ROOT_USER}
+      STORAGE_MINIO_ROOT_PASSWORD: ${STORAGE_MINIO_ROOT_PASSWORD}
+      STORAGE_MINIO_DEFAULT_BUCKET: ${STORAGE_MINIO_DEFAULT_BUCKET}
+      STORAGE_MINIO_EVENTS_TOPIC: ${STORAGE_MINIO_EVENTS_TOPIC}
+    depends_on:
+      postgres-agent-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - microservice-net
+      - agent-db-net
+
+  postgres-agent-service:
+    image: pgvector/pgvector:pg17
+    container_name: agent-service-db
+    hostname: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${AGENT_DB_NAME}
+      POSTGRES_USER: ${AGENT_DB_USERNAME}
+      POSTGRES_PASSWORD: ${AGENT_DB_PASSWORD}
+    volumes:
+      - agent_service_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agent-db-net
+
+  redis:
+    image: redis:8.2-alpine
+    container_name: agent-service-redis
+    hostname: redis
+    restart: unless-stopped
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./docker/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - agent_service_redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agent-db-net
+
+volumes:
+  agent_service_postgres_data:
+  agent_service_redis_data:

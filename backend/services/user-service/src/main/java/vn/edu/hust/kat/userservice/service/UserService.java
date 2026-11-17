@@ -1,6 +1,7 @@
 package vn.edu.hust.kat.userservice.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -9,22 +10,30 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.hust.kat.common.api.exception.ResourceNotFoundException;
+import vn.edu.hust.kat.common.kafka.event.BaseEvent;
+import vn.edu.hust.kat.common.kafka.payload.UserDeletedPayload;
 import vn.edu.hust.kat.userservice.dto.response.UserResponse;
 import vn.edu.hust.kat.userservice.dto.response.UserSearchResponse;
 import vn.edu.hust.kat.userservice.dto.response.UserStorageResponse;
 import vn.edu.hust.kat.userservice.entity.User;
 import vn.edu.hust.kat.userservice.grpc.StorageGrpcClient;
+import vn.edu.hust.kat.userservice.kafka.UserEventProducer;
+import vn.edu.hust.kat.userservice.repository.RefreshTokenRepository;
 import vn.edu.hust.kat.userservice.repository.UserRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final StorageGrpcClient storageGrpcClient;
+    private final UserEventProducer userEventProducer;
 
     /**
      * Get the current authenticated user.
@@ -79,11 +88,39 @@ public class UserService {
     }
 
     @Transactional
+    public void deleteCurrentUser() {
+        User user = getAuthenticatedUser();
+        deleteUser(user.getId());
+    }
+
+    @Transactional
     public void deleteUser(UUID id) {
-        if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("User", "id", id);
-        }
-        userRepository.deleteById(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+
+        String userIdStr = user.getId().toString();
+        String username = user.getUsername();
+        String email = user.getEmail();
+
+        refreshTokenRepository.deleteAllByUser(user);
+        userRepository.delete(user);
+        userRepository.flush();
+
+        log.info("Hard deleted user: id={}, username={}, email={}", userIdStr, username, email);
+
+        BaseEvent<UserDeletedPayload> event = BaseEvent.<UserDeletedPayload>builder()
+                .eventId(UUID.randomUUID().toString())
+                .eventType("USER_DELETED")
+                .timestamp(LocalDateTime.now())
+                .payload(UserDeletedPayload.builder()
+                        .id(userIdStr)
+                        .username(username)
+                        .email(email)
+                        .build()
+                )
+                .build();
+
+        userEventProducer.publishUserDeletedEvent(event);
     }
 
     /**

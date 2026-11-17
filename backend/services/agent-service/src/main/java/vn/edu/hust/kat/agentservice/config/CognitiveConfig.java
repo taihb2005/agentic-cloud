@@ -10,17 +10,21 @@ import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
+import dev.langchain4j.store.embedding.pgvector.DefaultMetadataStorageConfig;
+import dev.langchain4j.store.embedding.pgvector.MetadataStorageConfig;
+import dev.langchain4j.store.embedding.pgvector.MetadataStorageMode;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import vn.edu.hust.kat.agentservice.core.CloudAgent;
 import vn.edu.hust.kat.agentservice.memory.DualLayerMemoryManager;
 import vn.edu.hust.kat.agentservice.tools.ToolRegistry;
 
+import javax.sql.DataSource;
 import java.time.Duration;
+import java.util.List;
 
 @Configuration
 @Slf4j
@@ -37,18 +41,6 @@ public class CognitiveConfig {
 
     @Value("${app.llm.openai.embedding-model:text-embedding-3-small}")
     private String embeddingModelName;
-
-    @Value("${spring.datasource.url:jdbc:postgresql://localhost:5432/agentic_cloud}")
-    private String dbUrl;
-
-    @Value("${spring.datasource.username:postgres}")
-    private String dbUsername;
-
-    @Value("${spring.datasource.password:postgres}")
-    private String dbPassword;
-
-    @Value("${app.agent.pgvector.enabled:false}")
-    private boolean pgvectorEnabled;
 
     @Bean
     public ChatLanguageModel chatLanguageModel() {
@@ -88,21 +80,37 @@ public class CognitiveConfig {
     }
 
     @Bean
-    public EmbeddingStore<TextSegment> embeddingStore() {
-        if (pgvectorEnabled) {
-            log.info("Initializing PgVectorEmbeddingStore connecting to PostgreSQL...");
+    public EmbeddingStore<TextSegment> embeddingStore(
+            DataSource dataSource,
+            PgVectorProperties pgVectorProperties
+    ) {
+        if (pgVectorProperties.isEnabled()) {
+            log.info("Initializing PgVectorEmbeddingStore (table={}, dimension={})...",
+                    pgVectorProperties.getTable(), pgVectorProperties.getDimension());
             try {
-                // Parse host, port, database from dbUrl or use PgVector default builder
+                MetadataStorageConfig metadataConfig = DefaultMetadataStorageConfig.builder()
+                        .storageMode(MetadataStorageMode.COMBINED_JSONB)
+                        .columnDefinitions(List.of("metadata JSONB NULL"))
+                        .indexes(List.of("metadata"))
+                        .indexType("GIN")
+                        .build();
+
                 return PgVectorEmbeddingStore.datasourceBuilder()
-                        .table("document_vector_store")
-                        .dimension(1536)
+                        .datasource(dataSource)
+                        .table(pgVectorProperties.getTable())
+                        .dimension(pgVectorProperties.getDimension())
+                        .useIndex(pgVectorProperties.isUseIndex())
+                        .indexListSize(pgVectorProperties.getIndexListSize())
+                        .createTable(pgVectorProperties.isCreateTable())
+                        .dropTableFirst(pgVectorProperties.isDropTableFirst())
+                        .metadataStorageConfig(metadataConfig)
                         .build();
             } catch (Exception e) {
-                log.warn("Failed to initialize PgVectorEmbeddingStore, falling back to InMemory: {}", e.getMessage());
+                log.warn("Failed to initialize PgVectorEmbeddingStore, falling back to InMemory: {}", e.getMessage(), e);
                 return new InMemoryEmbeddingStore<>();
             }
         }
-        log.info("Using InMemoryEmbeddingStore for development/testing");
+        log.info("Using InMemoryEmbeddingStore (app.agent.pgvector.enabled=false)");
         return new InMemoryEmbeddingStore<>();
     }
 
@@ -113,12 +121,15 @@ public class CognitiveConfig {
             DualLayerMemoryManager memoryManager,
             ToolRegistry toolRegistry
     ) {
-        log.info("Building LangChain4j CloudAgent with Tools and Dual-Layer Memory...");
+        var toolExecutors = toolRegistry.getToolExecutors();
+        log.info("Building LangChain4j CloudAgent with {} Tools, Dual-Layer Memory, and User-Scoped RAG...",
+                toolExecutors.size());
         return AiServices.builder(CloudAgent.class)
                 .chatLanguageModel(chatLanguageModel)
                 .streamingChatLanguageModel(streamingChatLanguageModel)
                 .chatMemoryProvider(memoryManager.getChatMemoryProvider())
-                .tools(toolRegistry.getAllTools())
+                .retrievalAugmentor(memoryManager.getUserScopedRetrievalAugmentor())
+                .tools(toolExecutors)
                 .build();
     }
 }

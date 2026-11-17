@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${AGENT_DB_HOST:localhost}:${AGENT_DB_PORT:5435}/${AGENT_DB_NAME:agent-service}
+    username: ${AGENT_DB_USERNAME:agent_agent}
+    password: ${AGENT_DB_PASSWORD:agent@123}
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: agent-ingestion-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+app:
+  agent:
+    pgvector:
+      enabled: ${PGVECTOR_ENABLED:true}

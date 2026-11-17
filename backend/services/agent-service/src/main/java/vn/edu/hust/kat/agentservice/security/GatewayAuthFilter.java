@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -17,10 +18,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Filter that trusts the X-User-Id header set by the API Gateway after JWT validation.
@@ -57,21 +58,20 @@ public class GatewayAuthFilter extends OncePerRequestFilter {
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 UUID uid = UUID.fromString(userId);
-                FsUser user = fsUserRepository.findById(uid).orElse(null);
 
-                if (user != null) {
-                    List<SimpleGrantedAuthority> authorities = roles.stream()
-                            .map(SimpleGrantedAuthority::new)
-                            .toList();
+                List<GrantedAuthority> authorities = roles.stream()
+                        .filter(role -> role != null && !role.isBlank())
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList());
 
-                    UsernamePasswordAuthenticationToken authenticatedUser = new UsernamePasswordAuthenticationToken(user, null, authorities);
-                    authenticatedUser.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authenticatedUser);
+                UserPrincipal userPrincipal = UserPrincipal.builder()
+                        .userId(uid)
+                        .authorities(authorities)
+                        .build();
 
-                    log.debug("Authenticated user via Gateway header: userId={}, role={}", userId, roles);
-                } else {
-                    log.warn("User not found for X-User-Id: {}", userId);
-                }
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userPrincipal, null, authorities);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                log.debug("Authenticated user via Gateway header: userId={}, role={}", userId, roles);
             } catch (IllegalArgumentException e) {
                 log.warn("Invalid UUID format in X-User-Id header: {}", userId);
             }

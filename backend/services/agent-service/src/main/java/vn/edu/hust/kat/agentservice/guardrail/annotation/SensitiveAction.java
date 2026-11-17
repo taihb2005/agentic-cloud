@@ -6,11 +6,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marks a tool action as sensitive/dangerous (hard delete, public share, permissions grant).
- * Requires explicit Human-in-the-Loop (HITL) approval before execution.
+ * Marks a tool action as sensitive/dangerous (hard delete, public share).
+ * Requires an explicit Human-in-the-Loop (HITL) confirmationToken approved by the user;
+ * otherwise GuardrailAspect blocks execution and returns 403 Forbidden.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SensitiveAction {
     String actionType();
+    boolean requireConfirmationToken() default true;
 }

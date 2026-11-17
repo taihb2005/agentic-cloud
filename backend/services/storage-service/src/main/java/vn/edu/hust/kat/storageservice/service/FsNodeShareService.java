@@ -49,9 +49,9 @@ public class FsNodeShareService {
     private final PasswordEncoder passwordEncoder;
     private final ShareTokenGenerator shareTokenGenerator;
 
-    @Value("${app.frontend_host}")
+    @Value("${app.frontend_host:localhost}")
     private String frontendHost;
-    @Value("${app.frontend_port}")
+    @Value("${app.frontend_port:5000}")
     private int frontendPort;
 
     /**

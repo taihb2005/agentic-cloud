@@ -75,6 +75,7 @@ app:
     topics:
       user-service:
         user-created: "user.events.user-created"
+        user-deleted: "user.events.user-deleted"
       storage-service:
         node-permanent-delete: "storage.node.node-permanent-delete"
         minio-events: ${STORAGE_NOTIFY_KAFKA_TOPIC}

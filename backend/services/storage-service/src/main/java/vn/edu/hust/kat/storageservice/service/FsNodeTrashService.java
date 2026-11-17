@@ -280,7 +280,7 @@ public class FsNodeTrashService {
                 List<FsNode> nodesToDelete = fsNodeRepository.findDescendantsIncludingSelfInTrash(userId, node.getMaterializedPath());
 
                 for (FsNode n : nodesToDelete) {
-                    if (!node.getIsFolder() && n.getStorageBucketName() != null && n.getS3ObjectKey() != null) {
+                    if (n.getStorageBucketName() != null && n.getS3ObjectKey() != null) {
                         try {
                             minioStorageService.deleteObject(n.getStorageBucketName(), n.getS3ObjectKey());
                         } catch (Exception ex) {

@@ -10,47 +10,74 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import vn.edu.hust.kat.agentservice.context.UserContextManager;
 import vn.edu.hust.kat.agentservice.core.CloudAgent;
+import vn.edu.hust.kat.agentservice.dto.ActionProposalDto;
 import vn.edu.hust.kat.agentservice.dto.ChatRequest;
 import vn.edu.hust.kat.agentservice.dto.ChatResponse;
 import vn.edu.hust.kat.agentservice.dto.ConfirmActionRequest;
-import vn.edu.hust.kat.agentservice.service.AuditService;
+import vn.edu.hust.kat.agentservice.dto.ConfirmActionResponse;
+import vn.edu.hust.kat.agentservice.service.ActionConfirmationService;
 import vn.edu.hust.kat.common.api.response.ApiResponse;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/agent")
+@RequestMapping("/agent-service/agent")
 @RequiredArgsConstructor
 @Slf4j
 public class AgentChatController {
 
     private final CloudAgent cloudAgent;
     private final UserContextManager userContextManager;
-    private final AuditService auditService;
+    private final ActionConfirmationService actionConfirmationService;
 
     @PostMapping("/chat")
-    public ResponseEntity<ApiResponse<ChatResponse>> chat(@Valid @RequestBody ChatRequest request) {
-        String userId = userContextManager.getCurrentUserIdAsString();
-        log.info("Incoming chat request from user: {}", userId);
+    public ResponseEntity<ApiResponse<ChatResponse>> chat(
+            @Valid @RequestBody ChatRequest request
+    ) {
+        UUID userUuid = userContextManager.getCurrentUserId();
+        String userId = userUuid.toString();
+        String conversationId = (request.getConversationId() != null && !request.getConversationId().isBlank())
+                ? request.getConversationId().trim()
+                : UUID.randomUUID().toString();
+        String memoryId = userId + ":" + conversationId;
+        log.info("Incoming chat request from user: {}, conversationId: {}, memoryId: {}", userId, conversationId, memoryId);
 
-        String reply = cloudAgent.chat(userId, request.getMessage());
+        String effectiveMessage = buildEffectiveMessage(request.getMessage(), request.getConfirmationToken());
+        userContextManager.setCurrentConfirmationToken(request.getConfirmationToken());
+        try {
+            String reply = cloudAgent.chat(memoryId, effectiveMessage);
+            List<ActionProposalDto> pendingProposals = actionConfirmationService.drainPendingProposals(userUuid);
 
-        ChatResponse response = ChatResponse.builder()
-                .conversationId(request.getConversationId() != null ? request.getConversationId() : UUID.randomUUID().toString())
-                .reply(reply)
-                .build();
+            ChatResponse response = ChatResponse.builder()
+                    .conversationId(conversationId)
+                    .reply(reply)
+                    .pendingProposals(pendingProposals.isEmpty() ? null : pendingProposals)
+                    .build();
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } finally {
+            userContextManager.clearCurrentConfirmationToken();
+        }
     }
 
     @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamChat(@RequestParam("message") String message) {
+    public SseEmitter streamChat(
+            @RequestParam("message") String message,
+            @RequestParam(value = "conversation_id", required = false) String conversationId,
+            @RequestParam(value = "confirmation_token", required = false) String confirmationToken
+    ) {
         String userId = userContextManager.getCurrentUserIdAsString();
-        log.info("Incoming streaming chat request from user: {}", userId);
+        String sessionId = (conversationId != null && !conversationId.isBlank())
+                ? conversationId.trim()
+                : "default";
+        String memoryId = userId + ":" + sessionId;
+        log.info("Incoming streaming chat request from user: {}, conversationId: {}", userId, sessionId);
 
+        String effectiveMessage = buildEffectiveMessage(message, confirmationToken);
         SseEmitter emitter = new SseEmitter(180_000L); // 3 minutes timeout
-        TokenStream tokenStream = cloudAgent.chatStream(userId, message);
+        TokenStream tokenStream = cloudAgent.chatStream(memoryId, effectiveMessage);
 
         tokenStream
                 .onNext(token -> {
@@ -78,24 +105,26 @@ public class AgentChatController {
     }
 
     @PostMapping("/actions/confirm")
-    public ResponseEntity<ApiResponse<String>> confirmAction(@Valid @RequestBody ConfirmActionRequest request) {
+    public ResponseEntity<ApiResponse<ConfirmActionResponse>> confirmAction(
+            @Valid @RequestBody ConfirmActionRequest request
+    ) {
         UUID userId = userContextManager.getCurrentUserId();
-        log.info("User {} confirming action token {}: approved={}", userId, request.getConfirmationToken(), request.isApproved());
+        String proposalId = request.resolveProposalId();
+        log.info("User {} confirming proposal {}: approved={}", userId, proposalId, request.isApproved());
 
-        auditService.recordToolAction(
+        ConfirmActionResponse response = actionConfirmationService.confirmProposal(
                 userId,
-                "HITL_CONFIRMATION",
-                "confirmAction",
-                null,
-                "token=" + request.getConfirmationToken(),
-                null,
-                request.isApproved() ? "APPROVED" : "REJECTED"
+                proposalId,
+                request.isApproved()
         );
 
-        String message = request.isApproved()
-                ? "Thao tác nhạy cảm đã được phê duyệt và thực thi thành công."
-                : "Thao tác đã bị hủy bỏ theo yêu cầu của bạn.";
+        return ResponseEntity.ok(ApiResponse.success(response.getMessage(), response));
+    }
 
-        return ResponseEntity.ok(ApiResponse.success(message));
+    private String buildEffectiveMessage(String rawMessage, String confirmationToken) {
+        if (confirmationToken != null && !confirmationToken.isBlank()) {
+            return rawMessage + "\n[CONFIRMATION_TOKEN: " + confirmationToken.trim() + "]";
+        }
+        return rawMessage;
     }
 }

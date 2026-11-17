@@ -25,3 +25,12 @@ networks:
       config:
         - subnet: 172.30.30.0/24
           gateway: 172.30.30.1
+
+  agent-db-net:
+    name: agent-db-net
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.40.0/24
+          gateway: 172.30.40.1

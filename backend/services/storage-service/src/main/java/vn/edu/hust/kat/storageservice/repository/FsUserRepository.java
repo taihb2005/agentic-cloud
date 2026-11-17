@@ -76,4 +76,11 @@ public interface FsUserRepository extends JpaRepository<FsUser, UUID> {
             @NotNull UUID id,
             @Param("uploadSize") Long uploadSize
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        DELETE FROM fs_users
+        WHERE id = :id
+    """, nativeQuery = true)
+    int deleteHardById(@Param("id") UUID id);
 }

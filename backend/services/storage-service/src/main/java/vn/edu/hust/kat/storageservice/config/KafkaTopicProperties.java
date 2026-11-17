@@ -18,6 +18,7 @@ public class KafkaTopicProperties {
     @Setter
     public static class UserService {
         private String userCreated;
+        private String userDeleted;
     }
 
     @Getter
@@ -27,4 +28,3 @@ public class KafkaTopicProperties {
         private String minioEvents;
     }
 }
-

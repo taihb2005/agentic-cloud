@@ -26,7 +26,10 @@ public class AuditService {
             String undoPayload,
             String status
     ) {
-        log.info("Auditing action: user={}, type={}, tool={}, status={}", userId, actionType, toolName, status);
+        String safeStatus = (status != null && status.length() > 30)
+                ? status.substring(0, 30)
+                : status;
+        log.info("Auditing action: user={}, type={}, tool={}, status={}", userId, actionType, toolName, safeStatus);
         AgentAuditLogEntity logEntity = AgentAuditLogEntity.builder()
                 .userId(userId)
                 .actionType(actionType)
@@ -34,7 +37,7 @@ public class AuditService {
                 .targetNodeId(targetNodeId)
                 .inputPayload(inputPayload)
                 .undoPayload(undoPayload)
-                .status(status)
+                .status(safeStatus)
                 .build();
         return auditLogRepository.save(logEntity);
     }

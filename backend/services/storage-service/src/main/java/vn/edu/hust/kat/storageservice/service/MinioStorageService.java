@@ -2,6 +2,7 @@ package vn.edu.hust.kat.storageservice.service;
 
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
+import io.minio.messages.Item;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -9,8 +10,13 @@ import vn.edu.hust.kat.storageservice.config.MinioProperties;
 import vn.edu.hust.kat.storageservice.dto.response.MinioObjectResponse;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -94,6 +100,24 @@ public class MinioStorageService {
         }
     }
 
+    public String readObjectContent(String bucketName, String objectKey) {
+        if (bucketName == null || bucketName.isBlank() || objectKey == null || objectKey.isBlank()) {
+            throw new IllegalArgumentException("Bucket hoặc objectKey không hợp lệ");
+        }
+        try (InputStream stream = internalMinioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(objectKey)
+                        .build()
+        )) {
+            byte[] bytes = stream.readNBytes(1024 * 1024); // Giới hạn đọc tối đa 1MB nội dung văn bản
+            return new String(bytes, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.error("Lỗi khi đọc nội dung object trên MinIO cho bucket={}, objectKey={}", bucketName, objectKey, e);
+            throw new RuntimeException("Không thể đọc nội dung tệp tin trên MinIO: " + e.getMessage(), e);
+        }
+    }
+
     public void deleteObject(String bucketName, String objectKey) {
         if (bucketName == null || objectKey == null || objectKey.isBlank()) {
             return;
@@ -130,6 +154,35 @@ public class MinioStorageService {
         } catch (Exception ex) {
             log.warn("Không thể xóa object '{}' trên bucket '{}' khi rollback", objectKey, bucketName, ex);
         }
+    }
+
+    /**
+     * Liệt kê toàn bộ object keys nằm dưới một prefix trên MinIO (đệ quy).
+     */
+    public List<String> listObjectKeysByPrefix(String bucketName, String prefix) {
+        if (bucketName == null || bucketName.isBlank() || prefix == null || prefix.isBlank()) {
+            return Collections.emptyList();
+        }
+        String normalizedPrefix = normalizeFolderKey(prefix);
+        List<String> keys = new ArrayList<>();
+        try {
+            Iterable<Result<Item>> results = internalMinioClient.listObjects(
+                    ListObjectsArgs.builder()
+                            .bucket(bucketName)
+                            .prefix(normalizedPrefix)
+                            .recursive(true)
+                            .build()
+            );
+            for (Result<Item> result : results) {
+                Item item = result.get();
+                if (item != null && item.objectName() != null && !item.objectName().isBlank()) {
+                    keys.add(item.objectName());
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Không thể liệt kê các object trên MinIO với bucket={}, prefix={}", bucketName, normalizedPrefix, ex);
+        }
+        return keys;
     }
 
     /**

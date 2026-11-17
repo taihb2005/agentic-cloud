@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     ports:
       - "8082:8082"
+      - "9093:9092"
     environment:
       STORAGE_SPRING_PROFILES_ACTIVE: ${STORAGE_SPRING_PROFILES_ACTIVE}
       STORAGE_DB_HOST: ${STORAGE_DB_HOST}

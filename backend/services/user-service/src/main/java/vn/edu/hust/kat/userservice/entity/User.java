@@ -54,6 +54,7 @@ public class User implements CloudUserDetails {
     private Set<Role> roles = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @Builder.Default
     private List<RefreshToken> refreshTokens = new ArrayList<>();
 

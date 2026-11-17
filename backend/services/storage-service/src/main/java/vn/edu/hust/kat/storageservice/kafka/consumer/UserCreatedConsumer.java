@@ -33,7 +33,9 @@ public class UserCreatedConsumer {
         log.info("Nhận được message từ Kafka topic 'user.events.user-created': {}", message);
         try {
             JsonNode jsonNode = jsonMapper.readTree(message);
-            String eventType = jsonNode.path("eventType").asText();
+            String eventType = jsonNode.has("eventType")
+                    ? jsonNode.path("eventType").asText()
+                    : jsonNode.path("event_type").asText();
 
             switch (eventType) {
                 case "USER_CREATED" -> {

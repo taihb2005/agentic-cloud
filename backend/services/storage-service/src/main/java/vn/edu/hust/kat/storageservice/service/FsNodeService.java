@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Node;
 import vn.edu.hust.kat.common.api.exception.BadRequestException;
+import vn.edu.hust.kat.common.api.exception.DuplicateResourceException;
 import vn.edu.hust.kat.common.api.exception.ResourceNotFoundException;
 import vn.edu.hust.kat.common.api.response.BatchOperationResponse;
 import vn.edu.hust.kat.common.api.response.FailureCode;
@@ -115,13 +116,20 @@ public class FsNodeService {
         FsNode node = resolveAndValidateNode(userId, nodeIdStr, true);
 
         if (request.getName() != null && !request.getName().isBlank()) {
-            node.setName(request.getName().trim());
+            if (node.getParent() == null || Constants.STORAGE_ROOT_NAME.equalsIgnoreCase(node.getName())) {
+                throw new BadRequestException("Không thể đổi tên thư mục gốc");
+            }
+            String trimmedName = request.getName().trim();
+            if (fsNodeRepository.existsActiveNodeByParentAndName(userId, node.getParent().getId(), trimmedName, node.getId())) {
+                throw new DuplicateResourceException("Đã tồn tại tệp hoặc thư mục cùng tên '" + trimmedName + "' trong thư mục hiện tại");
+            }
+            node.setName(trimmedName);
         }
         if (request.getStarred() != null) {
             node.setIsStarred(request.getStarred());
         }
 
-        return NodeResponse.from(node);
+        return NodeResponse.from(fsNodeRepository.save(node));
     }
 
     @Transactional(readOnly = true)

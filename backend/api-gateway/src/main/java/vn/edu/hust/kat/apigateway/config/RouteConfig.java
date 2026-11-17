@@ -37,6 +37,16 @@ public class RouteConfig {
             "/api/v1/storage-service/**"
     };
 
+    private static final String[] AGENT_PUBLIC_ENDPOINTS = {
+            "/api/v1/agent-service/swagger-ui.html",
+            "/api/v1/agent-service/swagger-ui/**",
+            "/api/v1/agent-service/v3/api-docs/**"
+    };
+
+    private static final String[] AGENT_AUTHENTICATED_ENDPOINTS = {
+            "/api/v1/agent-service/**"
+    };
+
     @Bean
     public RouteLocator routes(RouteLocatorBuilder builder) {
         return builder.routes()
@@ -78,6 +88,24 @@ public class RouteConfig {
                                 .filter(authFilter())
                                 .stripPrefix(2))
                         .uri("http://storage-service:8082"))
+                // =========================
+                // Agent Service - Public
+                // =========================
+                .route("agent-public", r -> r
+                        .path(AGENT_PUBLIC_ENDPOINTS)
+                        .filters(f -> f
+                                .stripPrefix(2))
+                        .uri("http://agent-service:8083"))
+
+                // =========================
+                // Agent Service - Authenticated
+                // =========================
+                .route("agent-authenticated", r -> r
+                        .path(AGENT_AUTHENTICATED_ENDPOINTS)
+                        .filters(f -> f
+                                .filter(authFilter())
+                                .stripPrefix(2))
+                        .uri("http://agent-service:8083"))
 
                 .build();
     }

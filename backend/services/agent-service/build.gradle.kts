@@ -16,6 +16,7 @@ dependencies {
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.spring.boot.starter.flyway)
     implementation(libs.spring.aspects)
     implementation(libs.aspectjweaver)
 
@@ -36,6 +37,7 @@ dependencies {
     implementation(libs.langchain4j)
     implementation(libs.langchain4j.open.ai)
     implementation(libs.langchain4j.pgvector)
+    implementation(libs.gson)
 
     // ============================================================
     // MinIO (Object Storage)
@@ -48,17 +50,20 @@ dependencies {
     implementation(libs.springdoc.openapi.webmvc)
 
     // ============================================================
-    // Database (PostgreSQL / pgvector / Audit)
+    // Database (PostgreSQL / pgvector / Audit / Flyway)
     // ============================================================
     runtimeOnly(libs.postgresql)
     runtimeOnly(libs.h2)
     implementation(libs.hypersistence.utils)
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.postgresql)
 
     // ============================================================
-    // gRPC Client & Inter-service Communication
+    // gRPC Client & Server
     // ============================================================
     implementation(libs.protobuf.java)
     implementation(libs.spring.boot.starter.grpc.client)
+    implementation(libs.spring.boot.starter.grpc.server)
 
     // ============================================================
     // Project modules
@@ -77,10 +82,4 @@ dependencies {
     // ============================================================
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
-
-    implementation(libs.protobuf.java)
-    implementation(libs.spring.boot.starter.grpc.server)
-
-    implementation(project(":common"))
-    implementation(project(":common-proto"))
 }

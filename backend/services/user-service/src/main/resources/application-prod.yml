@@ -60,6 +60,7 @@ app:
     topics:
         user-service:
           user-created: "user.events.user-created"
+          user-deleted: "user.events.user-deleted"
 
 logging:
   level:

@@ -43,6 +43,7 @@ services:
       - microservice-net
       - user-db-net
       - storage-db-net
+      - agent-db-net
 
   mc:
     image: taihb2005/minio-mc:1.0.0

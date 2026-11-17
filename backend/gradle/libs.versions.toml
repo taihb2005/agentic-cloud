@@ -28,6 +28,7 @@ hypersistence-utils = "3.16.0"
 junit-bom = "5.10.0"
 jakarta-annotation = "3.0.0"
 langchain4j = "0.36.2"
+gson = "2.11.0"
 
 
 # =============================================================================
@@ -91,6 +92,7 @@ springdoc-openapi-webmvc = { module = "org.springdoc:springdoc-openapi-starter-w
 
 # ── Jackson ──────────────────────────────────────────────────────────────────
 jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations", version.ref = "jackson-annotations" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 
 # ── Database ─────────────────────────────────────────────────────────────────
 postgresql = { module = "org.postgresql:postgresql" }

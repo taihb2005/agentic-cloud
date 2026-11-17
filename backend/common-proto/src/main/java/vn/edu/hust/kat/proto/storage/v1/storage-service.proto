@@ -9,6 +9,28 @@ option java_multiple_files = true;
 service StorageService {
 
   rpc GetUserStorage(GetUserStorageRequest) returns (GetUserStorageResponse);
+
+  rpc GetUserQuota(GetUserQuotaRequest) returns (GetUserQuotaResponse);
+
+  rpc SearchNodes(SearchNodesRequest) returns (SearchNodesResponse);
+
+  rpc GetNodeMetadata(GetNodeMetadataRequest) returns (NodeItemResponse);
+
+  rpc ReadFileContent(ReadFileContentRequest) returns (ReadFileContentResponse);
+
+  rpc RenameNode(RenameNodeRequest) returns (NodeItemResponse);
+
+  rpc CreateFolder(CreateFolderGrpcRequest) returns (NodeItemResponse);
+
+  rpc MoveNode(MoveNodeGrpcRequest) returns (NodeItemResponse);
+
+  rpc SoftDeleteNode(SoftDeleteNodeGrpcRequest) returns (SoftDeleteNodeGrpcResponse);
+
+  rpc ToggleStarNode(ToggleStarNodeRequest) returns (NodeItemResponse);
+
+  rpc PermanentDeleteNode(PermanentDeleteNodeRequest) returns (PermanentDeleteNodeResponse);
+
+  rpc CreatePublicShare(CreatePublicShareRequest) returns (CreatePublicShareResponse);
 }
 
 message GetUserStorageRequest {
@@ -26,4 +48,128 @@ message GetUserStorageResponse {
   string root_node_path = 8;
   string created_at = 9;
   string updated_at = 10;
+}
+
+message GetUserQuotaRequest {
+  string user_id = 1;
+}
+
+message GetUserQuotaResponse {
+  string user_id = 1;
+  int64 current_quota_bytes = 2;
+  int64 max_quota_bytes = 3;
+  double usage_percentage = 4;
+  string status = 5;
+}
+
+message NodeItemResponse {
+  string id = 1;
+  string parent_id = 2;
+  string name = 3;
+  bool is_folder = 4;
+  string node_status = 5;
+  string mime_type = 6;
+  int64 size_bytes = 7;
+  bool is_starred = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}
+
+message SearchNodesRequest {
+  string user_id = 1;
+  string parent_id = 2;
+  string node_type = 3;
+  string name = 4;
+  string mime_type = 5;
+  int32 page = 6;
+  int32 size = 7;
+  repeated string sorts = 8;
+}
+
+message SearchNodesResponse {
+  repeated NodeItemResponse nodes = 1;
+  int64 total_elements = 2;
+}
+
+message GetNodeMetadataRequest {
+  string user_id = 1;
+  string node_id = 2;
+}
+
+message ReadFileContentRequest {
+  string user_id = 1;
+  string node_id = 2;
+}
+
+message ReadFileContentResponse {
+  string node_id = 1;
+  string name = 2;
+  string mime_type = 3;
+  int64 size_bytes = 4;
+  string content = 5;
+}
+
+message RenameNodeRequest {
+  string user_id = 1;
+  string node_id = 2;
+  string new_name = 3;
+}
+
+message CreateFolderGrpcRequest {
+  string user_id = 1;
+  string parent_id = 2;
+  string folder_name = 3;
+}
+
+message MoveNodeGrpcRequest {
+  string user_id = 1;
+  string node_id = 2;
+  string target_folder_id = 3;
+}
+
+message SoftDeleteNodeGrpcRequest {
+  string user_id = 1;
+  string node_id = 2;
+}
+
+message SoftDeleteNodeGrpcResponse {
+  string node_id = 1;
+  string name = 2;
+  string delete_batch_id = 3;
+  string message = 4;
+}
+
+message ToggleStarNodeRequest {
+  string user_id = 1;
+  string node_id = 2;
+  bool starred = 3;
+}
+
+message PermanentDeleteNodeRequest {
+  string user_id = 1;
+  string node_id = 2;
+}
+
+message PermanentDeleteNodeResponse {
+  string node_id = 1;
+  string name = 2;
+  int32 deleted_count = 3;
+  string message = 4;
+}
+
+message CreatePublicShareRequest {
+  string user_id = 1;
+  string node_id = 2;
+  string permission = 3;
+}
+
+message CreatePublicShareResponse {
+  string node_id = 1;
+  string node_name = 2;
+  bool is_folder = 3;
+  string share_mode = 4;
+  string permission = 5;
+  string shared_url = 6;
+  string share_token = 7;
+  string status = 8;
 }

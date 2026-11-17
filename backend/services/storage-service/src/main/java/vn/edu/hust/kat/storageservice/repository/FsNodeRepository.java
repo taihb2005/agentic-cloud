@@ -15,8 +15,10 @@ import vn.edu.hust.kat.storageservice.entity.FsUser;
 
 import java.time.LocalDateTime;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -320,4 +322,29 @@ public interface FsNodeRepository extends JpaRepository<FsNode, Long>, JpaSpecif
           AND (deleted_at IS NOT NULL OR node_status = 'DELETED')
     """, nativeQuery = true)
     int deleteAllTrashByUserId(@Param("userId") UUID userId);
+
+    @Query(value = """
+        SELECT * FROM fs_nodes
+        WHERE user_id = :userId
+    """, nativeQuery = true)
+    List<FsNode> findAllByUserId(@Param("userId") UUID userId);
+
+    @Query(value = """
+        SELECT DISTINCT s3_object_key
+        FROM fs_nodes
+        WHERE user_id <> :userId
+          AND s3_object_key IS NOT NULL
+          AND s3_object_key IN (:objectKeys)
+    """, nativeQuery = true)
+    Set<String> findObjectKeysReferencedByOtherUsers(
+            @Param("userId") UUID userId,
+            @Param("objectKeys") Collection<String> objectKeys
+    );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        DELETE FROM fs_nodes
+        WHERE user_id = :userId
+    """, nativeQuery = true)
+    int deleteAllByUserId(@Param("userId") UUID userId);
 }
