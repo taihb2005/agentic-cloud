@@ -8,6 +8,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.tool.ToolProvider;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import dev.langchain4j.store.embedding.pgvector.DefaultMetadataStorageConfig;
@@ -115,21 +116,25 @@ public class CognitiveConfig {
     }
 
     @Bean
+    public ToolProvider toolProvider(ToolRegistry toolRegistry) {
+        log.info("Initializing SecurityContext-aware ToolProvider from ToolRegistry beans");
+        return toolRegistry.getToolProvider();
+    }
+
+    @Bean
     public CloudAgent cloudAgent(
             ChatLanguageModel chatLanguageModel,
             StreamingChatLanguageModel streamingChatLanguageModel,
             DualLayerMemoryManager memoryManager,
-            ToolRegistry toolRegistry
+            ToolProvider toolProvider
     ) {
-        var toolExecutors = toolRegistry.getToolExecutors();
-        log.info("Building LangChain4j CloudAgent with {} Tools, Dual-Layer Memory, and User-Scoped RAG...",
-                toolExecutors.size());
+        log.info("Building LangChain4j CloudAgent with ToolProvider");
         return AiServices.builder(CloudAgent.class)
                 .chatLanguageModel(chatLanguageModel)
                 .streamingChatLanguageModel(streamingChatLanguageModel)
                 .chatMemoryProvider(memoryManager.getChatMemoryProvider())
                 .retrievalAugmentor(memoryManager.getUserScopedRetrievalAugmentor())
-                .tools(toolExecutors)
+                .toolProvider(toolProvider)
                 .build();
     }
 }

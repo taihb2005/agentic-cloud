@@ -1,17 +1,14 @@
 package vn.edu.hust.kat.agentservice.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import vn.edu.hust.kat.agentservice.dto.ActionProposalDto;
 import vn.edu.hust.kat.agentservice.dto.ConfirmActionResponse;
+import vn.edu.hust.kat.agentservice.entity.AgentAuditLog;
 import vn.edu.hust.kat.common.api.exception.BadRequestException;
 import vn.edu.hust.kat.common.api.exception.ResourceNotFoundException;
 
@@ -25,6 +22,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class ActionConfirmationService {
 
@@ -34,26 +32,11 @@ public class ActionConfirmationService {
 
     private final AuditService auditService;
     private final StringRedisTemplate redisTemplate;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
     private final Map<String, ProposalRecord> fallbackProposals = new ConcurrentHashMap<>();
     private final Map<String, ConfirmationTokenRecord> fallbackTokens = new ConcurrentHashMap<>();
     private final Map<UUID, List<ActionProposalDto>> pendingProposalsByUser = new ConcurrentHashMap<>();
-
-    @Autowired
-    public ActionConfirmationService(
-            AuditService auditService,
-            @Autowired(required = false) StringRedisTemplate redisTemplate,
-            @Autowired(required = false) ObjectMapper objectMapper
-    ) {
-        this.auditService = auditService;
-        this.redisTemplate = redisTemplate;
-        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper().findAndRegisterModules();
-    }
-
-    public ActionConfirmationService(AuditService auditService) {
-        this(auditService, null, null);
-    }
 
     public ActionProposalDto createProposal(UUID userId, String actionType, String targetNodeId, String explanation) {
         if (userId == null) {
@@ -71,7 +54,7 @@ public class ActionConfirmationService {
                 .actionType(normalizedAction)
                 .targetNodeId(cleanNodeId)
                 .explanation(cleanExplanation)
-                .status("PENDING_CONFIRMATION")
+                .status(ProposalRecord.Status.PENDING_CONFIRMATION)
                 .confirmationToken(null)
                 .createdAtEpochSecond(now.getEpochSecond())
                 .expiresAtEpochSecond(now.plus(DEFAULT_TTL).getEpochSecond())
@@ -99,7 +82,8 @@ public class ActionConfirmationService {
                 cleanNodeId,
                 "proposalId=" + proposalId + ", explanation=" + cleanExplanation,
                 null,
-                "PENDING_CONFIRMATION"
+                AgentAuditLog.Status.PENDING_CONFIRMATION,
+                AgentAuditLog.HitlStatus.PENDING
         );
 
         log.info("Created pending action proposal {} for user={}, action={}, targetNode={}",
@@ -126,14 +110,14 @@ public class ActionConfirmationService {
             throw new AccessDeniedException("Bạn không có quyền xác nhận đề xuất của người dùng khác");
         }
 
-        if (!"PENDING_CONFIRMATION".equalsIgnoreCase(proposal.getStatus())) {
+        if (proposal.getStatus() != ProposalRecord.Status.PENDING_CONFIRMATION) {
             throw new BadRequestException("Đề xuất xác nhận này đã được xử lý trước đó (status=" + proposal.getStatus() + ")");
         }
 
         removePendingProposalDto(userId, trimmedId);
 
         if (!approved) {
-            proposal.setStatus("REJECTED");
+            proposal.setStatus(ProposalRecord.Status.REJECTED);
             saveProposal(proposal);
 
             auditService.recordToolAction(
@@ -143,7 +127,9 @@ public class ActionConfirmationService {
                     proposal.getTargetNodeId(),
                     "proposalId=" + trimmedId + ", approved=false",
                     null,
-                    "REJECTED"
+                    AgentAuditLog.Status.BLOCKED,
+                    AgentAuditLog.HitlStatus.REJECTED,
+                    "Thao tác đã bị hủy bỏ theo yêu cầu của người dùng."
             );
 
             return ConfirmActionResponse.builder()
@@ -151,7 +137,7 @@ public class ActionConfirmationService {
                     .actionType(proposal.getActionType())
                     .targetNodeId(proposal.getTargetNodeId())
                     .approved(false)
-                    .status("REJECTED")
+                    .status(ProposalRecord.Status.REJECTED.name())
                     .confirmationToken(null)
                     .message("Thao tác đã bị hủy bỏ theo yêu cầu của bạn.")
                     .build();
@@ -160,7 +146,7 @@ public class ActionConfirmationService {
         String confirmationToken = UUID.randomUUID().toString();
         Instant now = Instant.now();
 
-        proposal.setStatus("APPROVED");
+        proposal.setStatus(ProposalRecord.Status.APPROVED);
         proposal.setConfirmationToken(confirmationToken);
         saveProposal(proposal);
 
@@ -185,7 +171,8 @@ public class ActionConfirmationService {
                 proposal.getTargetNodeId(),
                 "proposalId=" + trimmedId + ", confirmationToken=" + confirmationToken,
                 null,
-                "APPROVED"
+                AgentAuditLog.Status.SUCCESS,
+                AgentAuditLog.HitlStatus.APPROVED
         );
 
         log.info("Approved proposal {} for user={}, generated confirmationToken={}", trimmedId, userId, confirmationToken);
@@ -195,7 +182,7 @@ public class ActionConfirmationService {
                 .actionType(proposal.getActionType())
                 .targetNodeId(proposal.getTargetNodeId())
                 .approved(true)
-                .status("APPROVED")
+                .status(ProposalRecord.Status.APPROVED.name())
                 .confirmationToken(confirmationToken)
                 .message("Đã xác nhận đồng ý. Hãy sử dụng confirmation_token này để Agent thực thi thao tác nhạy cảm.")
                 .build();
@@ -221,7 +208,7 @@ public class ActionConfirmationService {
 
         if (tokenRecord == null) {
             ProposalRecord maybeProposal = loadProposal(trimmedToken);
-            if (maybeProposal != null && "PENDING_CONFIRMATION".equalsIgnoreCase(maybeProposal.getStatus())) {
+            if (maybeProposal != null && maybeProposal.getStatus() == ProposalRecord.Status.PENDING_CONFIRMATION) {
                 return TokenValidationResult.invalid(
                         "Mã truyền vào là proposalId đang ở trạng thái PENDING_CONFIRMATION (người dùng chưa đồng ý), không phải confirmationToken."
                 );
@@ -301,7 +288,7 @@ public class ActionConfirmationService {
         fallbackProposals.put(record.getProposalId(), record);
         if (redisTemplate != null) {
             try {
-                String json = objectMapper.writeValueAsString(record);
+                String json = jsonMapper.writeValueAsString(record);
                 redisTemplate.opsForValue().set(PROPOSAL_KEY_PREFIX + record.getProposalId(), json, DEFAULT_TTL);
             } catch (Exception e) {
                 log.debug("Redis unavailable while saving proposal {}, using in-memory fallback: {}",
@@ -315,7 +302,7 @@ public class ActionConfirmationService {
             try {
                 String json = redisTemplate.opsForValue().get(PROPOSAL_KEY_PREFIX + proposalId);
                 if (json != null && !json.isBlank()) {
-                    ProposalRecord record = objectMapper.readValue(json, ProposalRecord.class);
+                    ProposalRecord record = jsonMapper.readValue(json, ProposalRecord.class);
                     fallbackProposals.put(proposalId, record);
                     return record;
                 }
@@ -331,7 +318,7 @@ public class ActionConfirmationService {
         fallbackTokens.put(record.getConfirmationToken(), record);
         if (redisTemplate != null) {
             try {
-                String json = objectMapper.writeValueAsString(record);
+                String json = jsonMapper.writeValueAsString(record);
                 redisTemplate.opsForValue().set(TOKEN_KEY_PREFIX + record.getConfirmationToken(), json, DEFAULT_TTL);
             } catch (Exception e) {
                 log.debug("Redis unavailable while saving confirmationToken {}, using in-memory fallback: {}",
@@ -345,7 +332,7 @@ public class ActionConfirmationService {
             try {
                 String json = redisTemplate.opsForValue().get(TOKEN_KEY_PREFIX + token);
                 if (json != null && !json.isBlank()) {
-                    ConfirmationTokenRecord record = objectMapper.readValue(json, ConfirmationTokenRecord.class);
+                    ConfirmationTokenRecord record = jsonMapper.readValue(json, ConfirmationTokenRecord.class);
                     fallbackTokens.put(token, record);
                     return record;
                 }
@@ -367,13 +354,19 @@ public class ActionConfirmationService {
         private String actionType;
         private String targetNodeId;
         private String explanation;
-        private String status;
+        private Status status;
         private String confirmationToken;
         private long createdAtEpochSecond;
         private long expiresAtEpochSecond;
 
         public boolean isExpired() {
             return Instant.now().getEpochSecond() > expiresAtEpochSecond;
+        }
+
+        public enum Status {
+            PENDING_CONFIRMATION,
+            APPROVED,
+            REJECTED
         }
     }
 

@@ -20,7 +20,7 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class StorageReadTools {
+public class StorageReadTools implements ITools {
 
     private static final Gson Gson = new Gson();
 

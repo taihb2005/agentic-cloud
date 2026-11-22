@@ -18,7 +18,7 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class UserMemoryTools {
+public class UserMemoryTools implements ITools {
 
     private final UserContextManager userContextManager;
     private final DualLayerMemoryManager memoryManager;

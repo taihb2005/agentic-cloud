@@ -16,11 +16,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import vn.edu.hust.kat.agentservice.context.UserContextManager;
 import vn.edu.hust.kat.agentservice.dto.ActionProposalDto;
 import vn.edu.hust.kat.agentservice.dto.ConfirmActionResponse;
+import vn.edu.hust.kat.agentservice.entity.AgentAuditLog;
 import vn.edu.hust.kat.agentservice.grpc.StorageGrpcClient;
 import vn.edu.hust.kat.agentservice.guardrail.GuardrailAspect;
 import vn.edu.hust.kat.agentservice.security.UserPrincipal;
 import vn.edu.hust.kat.agentservice.service.ActionConfirmationService;
 import vn.edu.hust.kat.agentservice.service.AuditService;
+import vn.edu.hust.kat.common.api.exception.BadRequestException;
 import vn.edu.hust.kat.proto.storage.v1.*;
 
 import java.util.Collections;
@@ -54,7 +56,7 @@ class StorageToolsAndGuardrailTest {
         bindUserToSecurityContext(currentUserId);
 
         userContextManager = new UserContextManager();
-        actionConfirmationService = new ActionConfirmationService(auditService);
+        actionConfirmationService = new ActionConfirmationService(auditService, null, null);
         GuardrailAspect guardrailAspect = new GuardrailAspect(
                 userContextManager,
                 auditService,
@@ -108,7 +110,8 @@ class StorageToolsAndGuardrailTest {
                 isNull(),
                 contains("Search or browse child nodes in folder"),
                 isNull(),
-                eq("SUCCESS")
+                eq(AgentAuditLog.Status.SUCCESS),
+                eq(AgentAuditLog.HitlStatus.NOT_REQUIRED)
         );
 
         when(storageGrpcClient.readFileContent(currentUserId, "101"))
@@ -130,7 +133,8 @@ class StorageToolsAndGuardrailTest {
                 eq("101"),
                 contains("Read text content of a file"),
                 isNull(),
-                eq("SUCCESS")
+                eq(AgentAuditLog.Status.SUCCESS),
+                eq(AgentAuditLog.HitlStatus.NOT_REQUIRED)
         );
 
         when(storageGrpcClient.getUserQuota(currentUserId))
@@ -181,7 +185,8 @@ class StorageToolsAndGuardrailTest {
                 eq("55"),
                 anyString(),
                 undoCaptor.capture(),
-                eq("SUCCESS")
+                eq(AgentAuditLog.Status.SUCCESS),
+                eq(AgentAuditLog.HitlStatus.NOT_REQUIRED)
         );
 
         String undoPayload = undoCaptor.getValue();
@@ -197,6 +202,17 @@ class StorageToolsAndGuardrailTest {
         assertTrue(blockedResult.contains("\"code\":403"));
         assertTrue(blockedResult.contains("\"status\":\"FORBIDDEN\""));
         verify(storageGrpcClient, never()).permanentDeleteNode(any(), anyString());
+        verify(auditService).recordToolAction(
+                eq(currentUserId),
+                eq("HARD_DELETE"),
+                eq("permanentDelete"),
+                eq("99"),
+                anyString(),
+                isNull(),
+                eq(AgentAuditLog.Status.BLOCKED),
+                eq(AgentAuditLog.HitlStatus.REQUIRED),
+                argThat(reason -> reason != null && !reason.isBlank())
+        );
 
         // 2. Agent creates proposal -> status PENDING_CONFIRMATION, returns proposalId (not confirmationToken)
         String proposalJson = sensitiveToolsProxy.createActionProposal(
@@ -210,6 +226,16 @@ class StorageToolsAndGuardrailTest {
         assertNull(proposalDto.getConfirmationToken());
         String proposalId = proposalDto.getProposalId();
         assertNotNull(proposalId);
+        verify(auditService).recordToolAction(
+                eq(currentUserId),
+                eq("HARD_DELETE"),
+                eq("createActionProposal"),
+                eq("99"),
+                anyString(),
+                isNull(),
+                eq(AgentAuditLog.Status.PENDING_CONFIRMATION),
+                eq(AgentAuditLog.HitlStatus.PENDING)
+        );
 
         // 3. Attempting to pass unapproved proposalId as confirmationToken -> still 403 FORBIDDEN!
         String unapprovedAttempt = sensitiveToolsProxy.permanentDelete("99", proposalId);
@@ -230,6 +256,16 @@ class StorageToolsAndGuardrailTest {
         String confirmationToken = confirmResponse.getConfirmationToken();
         assertNotNull(confirmationToken);
         assertNotEquals(proposalId, confirmationToken);
+        verify(auditService).recordToolAction(
+                eq(currentUserId),
+                eq("HARD_DELETE"),
+                eq("confirmAction"),
+                eq("99"),
+                anyString(),
+                isNull(),
+                eq(AgentAuditLog.Status.SUCCESS),
+                eq(AgentAuditLog.HitlStatus.APPROVED)
+        );
 
         // 6. Calling a DIFFERENT tool or DIFFERENT nodeId with this token -> 403 FORBIDDEN
         String wrongNodeAttempt = sensitiveToolsProxy.permanentDelete("100", confirmationToken);
@@ -252,11 +288,115 @@ class StorageToolsAndGuardrailTest {
         assertTrue(deleteResult.contains("Thành công"));
         assertTrue(deleteResult.contains("secret.txt"));
         verify(storageGrpcClient, times(1)).permanentDeleteNode(currentUserId, "99");
+        verify(auditService).recordToolAction(
+                eq(currentUserId),
+                eq("HARD_DELETE"),
+                eq("permanentDelete"),
+                eq("99"),
+                anyString(),
+                isNull(),
+                eq(AgentAuditLog.Status.SUCCESS),
+                eq(AgentAuditLog.HitlStatus.APPROVED)
+        );
 
         // 8. Re-using the same confirmationToken a second time -> 403 FORBIDDEN (one-time token)
         String replayAttempt = sensitiveToolsProxy.permanentDelete("99", confirmationToken);
         assertTrue(replayAttempt.contains("\"code\":403"));
         verify(storageGrpcClient, times(1)).permanentDeleteNode(currentUserId, "99");
+    }
+
+    @Test
+    void auditLogs_RecordRejectedProposalAndFailedToolReasonWithoutConcatenatingErrorToInputPayload() {
+        ActionProposalDto proposal = actionConfirmationService.createProposal(
+                currentUserId,
+                "HARD_DELETE",
+                "77",
+                "Xóa tệp 77"
+        );
+        ConfirmActionResponse rejected = actionConfirmationService.confirmProposal(
+                currentUserId,
+                proposal.getProposalId(),
+                false
+        );
+        assertFalse(rejected.isApproved());
+        assertEquals("REJECTED", rejected.getStatus());
+        assertThrows(BadRequestException.class, () ->
+                actionConfirmationService.confirmProposal(currentUserId, proposal.getProposalId(), true)
+        );
+
+        verify(auditService).recordToolAction(
+                eq(currentUserId),
+                eq("HARD_DELETE"),
+                eq("confirmAction"),
+                eq("77"),
+                anyString(),
+                isNull(),
+                eq(AgentAuditLog.Status.BLOCKED),
+                eq(AgentAuditLog.HitlStatus.REJECTED),
+                argThat(reason -> reason != null && !reason.isBlank())
+        );
+
+        when(storageGrpcClient.readFileContent(currentUserId, "88"))
+                .thenThrow(new RuntimeException("Storage error"));
+        assertThrows(RuntimeException.class, () -> readToolsProxy.readFileContent("88"));
+
+        ArgumentCaptor<String> readInputCaptor = ArgumentCaptor.forClass(String.class);
+        verify(auditService).recordToolAction(
+                eq(currentUserId),
+                eq("READ_FILE_CONTENT"),
+                eq("readFileContent"),
+                eq("88"),
+                readInputCaptor.capture(),
+                isNull(),
+                eq(AgentAuditLog.Status.FAILED),
+                eq(AgentAuditLog.HitlStatus.NOT_REQUIRED),
+                eq("Storage error")
+        );
+        assertFalse(readInputCaptor.getValue().contains("| error="));
+
+        when(storageGrpcClient.renameNode(currentUserId, "55", "broken.txt"))
+                .thenThrow(new RuntimeException("Storage error"));
+        assertThrows(RuntimeException.class, () -> safeToolsProxy.renameNode("55", "broken.txt"));
+
+        ArgumentCaptor<String> safeInputCaptor = ArgumentCaptor.forClass(String.class);
+        verify(auditService).recordToolAction(
+                eq(currentUserId),
+                eq("RENAME"),
+                eq("renameNode"),
+                eq("55"),
+                safeInputCaptor.capture(),
+                isNull(),
+                eq(AgentAuditLog.Status.FAILED),
+                eq(AgentAuditLog.HitlStatus.NOT_REQUIRED),
+                eq("Storage error")
+        );
+        assertFalse(safeInputCaptor.getValue().contains("| error="));
+
+        ActionProposalDto failProposal = actionConfirmationService.createProposal(
+                currentUserId,
+                "HARD_DELETE",
+                "90",
+                "Xóa tệp 90"
+        );
+        String token = actionConfirmationService.confirmProposal(currentUserId, failProposal.getProposalId(), true)
+                .getConfirmationToken();
+        when(storageGrpcClient.permanentDeleteNode(currentUserId, "90"))
+                .thenThrow(new RuntimeException("Storage error"));
+        assertThrows(RuntimeException.class, () -> sensitiveToolsProxy.permanentDelete("90", token));
+
+        ArgumentCaptor<String> sensitiveInputCaptor = ArgumentCaptor.forClass(String.class);
+        verify(auditService).recordToolAction(
+                eq(currentUserId),
+                eq("HARD_DELETE"),
+                eq("permanentDelete"),
+                eq("90"),
+                sensitiveInputCaptor.capture(),
+                isNull(),
+                eq(AgentAuditLog.Status.FAILED),
+                eq(AgentAuditLog.HitlStatus.APPROVED),
+                eq("Storage error")
+        );
+        assertFalse(sensitiveInputCaptor.getValue().contains("| error="));
     }
 
     private void bindUserToSecurityContext(UUID userId) {

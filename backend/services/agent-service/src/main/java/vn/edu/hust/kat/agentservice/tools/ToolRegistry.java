@@ -5,12 +5,16 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.service.tool.DefaultToolExecutor;
 import dev.langchain4j.service.tool.ToolExecutor;
+import dev.langchain4j.service.tool.ToolProvider;
+import dev.langchain4j.service.tool.ToolProviderRequest;
+import dev.langchain4j.service.tool.ToolProviderResult;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.support.AopUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -37,8 +41,33 @@ public class ToolRegistry {
     private final UserMemoryTools userMemoryTools;
     private final ToolPromptRegistry toolPromptRegistry;
 
-    public Object[] getAllTools() {
-        return new Object[]{readTools, safeTools, sensitiveTools, userMemoryTools};
+    public ITools[] getAllTools() {
+        return new ITools[]{readTools, safeTools, sensitiveTools, userMemoryTools};
+    }
+
+    /**
+     * Builds a LangChain4j {@link ToolProvider} that dynamically supplies all registered Spring bean tools
+     * and wraps every {@link ToolExecutor} with {@link SecurityContext} so tools and {@code GuardrailAspect}
+     * can always identify which user is invoking the current tool.
+     */
+    public ToolProvider getToolProvider() {
+        Map<ToolSpecification, ToolExecutor> baseToolExecutors = discoverBaseToolExecutors();
+        return request -> provideTools(request, baseToolExecutors);
+    }
+
+    private ToolProviderResult provideTools(
+            ToolProviderRequest request,
+            Map<ToolSpecification, ToolExecutor> baseToolExecutors
+    ) {
+        SecurityContext callerContext = SecurityContextHolder.getContext();
+        Authentication capturedAuth = callerContext.getAuthentication();
+
+        ToolProviderResult.Builder resultBuilder = ToolProviderResult.builder();
+        for (Map.Entry<ToolSpecification, ToolExecutor> entry : baseToolExecutors.entrySet()) {
+            ToolExecutor contextAwareExecutor = wrapWithSecurityContext(entry.getValue(), capturedAuth);
+            resultBuilder.add(entry.getKey(), contextAwareExecutor);
+        }
+        return resultBuilder.build();
     }
 
     /**
@@ -48,79 +77,62 @@ public class ToolRegistry {
      * so {@code GuardrailAspect} still intercepts every tool call.
      */
     public Map<ToolSpecification, ToolExecutor> getToolExecutors() {
-        // Map ToolSpecs to ToolExecutors
+        SecurityContext callerContext = SecurityContextHolder.getContext();
+        Authentication capturedAuth = callerContext.getAuthentication();
+
+        Map<ToolSpecification, ToolExecutor> baseToolExecutors = discoverBaseToolExecutors();
         Map<ToolSpecification, ToolExecutor> toolExecutors = new LinkedHashMap<>();
+        for (Map.Entry<ToolSpecification, ToolExecutor> entry : baseToolExecutors.entrySet()) {
+            toolExecutors.put(
+                    entry.getKey(),
+                    wrapWithSecurityContext(entry.getValue(), capturedAuth)
+            );
+        }
+        return toolExecutors;
+    }
+
+    private Map<ToolSpecification, ToolExecutor> discoverBaseToolExecutors() {
+        Map<ToolSpecification, ToolExecutor> baseExecutors = new LinkedHashMap<>();
         List<String> registeredNames = new ArrayList<>();
 
-        for (Object toolBean : getAllTools()) {
+        for (ITools toolBean : getAllTools()) {
             Class<?> targetClass = AopUtils.getTargetClass(toolBean);
             for (Method method : targetClass.getDeclaredMethods()) {
                 if (!method.isAnnotationPresent(Tool.class)) {
                     continue;
                 }
                 ToolSpecification baseSpec = ToolSpecifications.toolSpecificationFrom(method);
-                // Enrich params to the tools
                 ToolSpecification specification = toolPromptRegistry.enrich(baseSpec);
 
-                // Wrap the executor with a security aspect to ensure work only with this specific user id
                 ToolExecutor delegate = new DefaultToolExecutor(toolBean, method);
-                ToolExecutor contextAwareExecutor = wrapWithSecurityContext(delegate);
-                toolExecutors.put(specification, contextAwareExecutor);
+                baseExecutors.put(specification, delegate);
                 registeredNames.add(specification.name());
             }
         }
 
-        //Validate dynamic tool to Langchain
-        ToolSpecifications.validateSpecifications(new ArrayList<>(toolExecutors.keySet()));
+        ToolSpecifications.validateSpecifications(new ArrayList<>(baseExecutors.keySet()));
         log.info("Registered {} LangChain4j tools with external prompt definitions: {}", registeredNames.size(), registeredNames);
-        return toolExecutors;
+        return baseExecutors;
     }
 
-    private ToolExecutor wrapWithSecurityContext(ToolExecutor delegate) {
+    private ToolExecutor wrapWithSecurityContext(
+            ToolExecutor delegate,
+            Object providerMemoryId
+    ) {
         return (request, memoryId) -> {
-            SecurityContext previousContext = SecurityContextHolder.getContext();
-            boolean populatedTempContext = false;
+            Object effectiveMemoryId = memoryId != null ? memoryId : providerMemoryId;
 
-            if ((previousContext == null || previousContext.getAuthentication() == null) && memoryId != null) {
-                //memoryId=userId+ ':' + conversationId
-                UUID userId = parseUserIdFromMemoryId(memoryId);
-                if (userId != null) {
-                    UserPrincipal principal = UserPrincipal.builder()
-                            .userId(userId)
-                            .authorities(Collections.emptyList())
-                            .build();
-                    SecurityContext tempContext = SecurityContextHolder.createEmptyContext();
-                    tempContext.setAuthentication(
-                            new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList())
-                    );
-                    SecurityContextHolder.setContext(tempContext);
-                    populatedTempContext = true;
-                }
+            Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
+
+            if (currentAuth == null || !(currentAuth.getPrincipal() instanceof UserPrincipal)) {
+                log.warn("Missing or invalid UserPrincipal in SecurityContext when executing tool '{}'", request.name());
+                throw new AccessDeniedException("Người dùng không hơp lệ hoặc chưa đăng nhập");
             }
 
-            try {
-                log.info("Executing tool '{}' for memoryId={}", request.name(), memoryId);
-                return delegate.execute(request, memoryId);
-            } finally {
-                if (populatedTempContext) {
-                    SecurityContextHolder.clearContext();
-                    if (previousContext != null) {
-                        SecurityContextHolder.setContext(previousContext);
-                    }
-                }
-            }
+            UUID currentUserId = ((UserPrincipal) currentAuth.getPrincipal()).getUserId();
+            log.info("Executing tool '{}' for user={} (memoryId={})", request.name(), currentUserId, effectiveMemoryId);
+
+            return delegate.execute(request, effectiveMemoryId);
         };
-    }
-
-    private UUID parseUserIdFromMemoryId(Object memoryId) {
-        String raw = memoryId.toString();
-        int colonIdx = raw.indexOf(':');
-        String userIdPart = colonIdx > 0 ? raw.substring(0, colonIdx) : raw;
-        try {
-            return UUID.fromString(userIdPart);
-        } catch (IllegalArgumentException e) {
-            log.warn("Could not parse UUID from memoryId '{}' while binding SecurityContext for tool execution", raw);
-            return null;
-        }
     }
 }

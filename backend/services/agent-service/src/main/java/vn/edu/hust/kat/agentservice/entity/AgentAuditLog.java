@@ -17,7 +17,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AgentAuditLogEntity {
+public class AgentAuditLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -42,9 +42,34 @@ public class AgentAuditLogEntity {
     private String undoPayload;
 
     @Column(name = "status", nullable = false, length = 30)
-    private String status; // SUCCESS, BLOCKED, FAILED, PENDING_CONFIRMATION
+    @Enumerated(EnumType.STRING)
+    private Status status; // SUCCESS, BLOCKED, FAILED, PENDING_CONFIRMATION
+
+    @Column(name = "hitl_status", nullable = false, length = 30)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private HitlStatus hitlStatus = HitlStatus.NOT_REQUIRED;
+
+    @Column(name = "reason", columnDefinition = "TEXT")
+    private String reason;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    public enum Status {
+        SUCCESS, FAILED, BLOCKED, PENDING_CONFIRMATION
+    }
+
+    public enum HitlStatus {
+        NOT_REQUIRED,
+        REQUIRED,
+        PENDING,
+        APPROVED,
+        REJECTED;
+
+        public boolean isHitlRequired() {
+            return this != NOT_REQUIRED;
+        }
+    }
 }

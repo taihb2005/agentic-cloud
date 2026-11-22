@@ -16,7 +16,7 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class StorageSafeTools {
+public class StorageSafeTools implements ITools {
 
     private final UserContextManager userContextManager;
     private final StorageGrpcClient storageGrpcClient;

@@ -26,12 +26,10 @@ spring:
     baseline-on-migrate: true
 
   grpc:
-    server:
-      enabled: ${AGENT_GRPC_SERVER_ENABLED:false}
     client:
       channel:
         storage:
-          target: "${STORAGE_GRPC_TARGET:storage-service:9092}"
+          target: "storage-service:9092"
 
   data:
     redis:
@@ -40,7 +38,7 @@ spring:
       timeout: 2000ms
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:${AGENT_KAFKA_BOOTSTRAP_SERVER:kafka:9094}}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     consumer:
       group-id: agent-ingestion-group
       auto-offset-reset: earliest
@@ -57,26 +55,26 @@ app:
 
   agent:
     prompts:
-      tools-location: ${AGENT_TOOL_PROMPTS_LOCATION:classpath:prompts/tool-prompts.yml}
+      tools-location: ${AGENT_TOOL_PROMPTS_LOCATION}
     memory:
-      max-messages: ${AGENT_MEMORY_MAX_MESSAGES:20}
-      session-ttl-minutes: ${AGENT_MEMORY_SESSION_TTL_MINUTES:45}
-      min-score: ${AGENT_MEMORY_MIN_SCORE:0.68}
-      rag-max-results: ${AGENT_MEMORY_RAG_MAX_RESULTS:5}
+      max-messages: ${AGENT_MEMORY_MAX_MESSAGES}
+      session-ttl-minutes: ${AGENT_MEMORY_SESSION_TTL_MINUTES}
+      min-score: ${AGENT_MEMORY_MIN_SCORE}
+      rag-max-results: ${AGENT_MEMORY_RAG_MAX_RESULTS}
     pgvector:
-      enabled: ${PGVECTOR_ENABLED:true}
-      table: ${PGVECTOR_TABLE:agent_long_term_memory}
-      dimension: ${PGVECTOR_DIMENSION:1536}
-      use-index: ${PGVECTOR_USE_INDEX:false}
-      index-list-size: ${PGVECTOR_INDEX_LIST_SIZE:100}
-      create-table: ${PGVECTOR_CREATE_TABLE:true}
-      drop-table-first: ${PGVECTOR_DROP_TABLE_FIRST:false}
+      enabled: ${PGVECTOR_ENABLED}
+      table: ${PGVECTOR_TABLE}
+      dimension: ${PGVECTOR_DIMENSION}
+      use-index: ${PGVECTOR_USE_INDEX}
+      index-list-size: ${PGVECTOR_INDEX_LIST_SIZE}
+      create-table: ${PGVECTOR_CREATE_TABLE}
+      drop-table-first: ${PGVECTOR_DROP_TABLE_FIRST}
 
   minio:
-    endpoint: ${STORAGE_MINIO_ENDPOINT:${MINIO_ENDPOINT:http://localhost:9000}}
-    access-key: ${STORAGE_MINIO_ROOT_USER:${MINIO_ROOT_USER:taihb2005}}
-    secret-key: ${STORAGE_MINIO_ROOT_PASSWORD:${MINIO_ROOT_PASSWORD:admin@123}}
-    default-bucket: ${STORAGE_MINIO_DEFAULT_BUCKET:${MINIO_DEFAULT_BUCKET:smart-cloud-storage}}
+    endpoint: ${STORAGE_MINIO_ENDPOINT}
+    access-key: ${STORAGE_MINIO_ROOT_USER}
+    secret-key: ${STORAGE_MINIO_ROOT_PASSWORD}
+    default-bucket: ${STORAGE_MINIO_DEFAULT_BUCKET}
 
   kafka:
     topics:

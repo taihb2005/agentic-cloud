@@ -1,13 +1,14 @@
 package vn.edu.hust.kat.agentservice.guardrail;
 
 import com.google.gson.Gson;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import vn.edu.hust.kat.agentservice.context.UserContextManager;
+import vn.edu.hust.kat.agentservice.entity.AgentAuditLog;
 import vn.edu.hust.kat.agentservice.grpc.StorageGrpcClient;
 import vn.edu.hust.kat.agentservice.guardrail.annotation.ReadAction;
 import vn.edu.hust.kat.agentservice.guardrail.annotation.SafeAction;
@@ -28,6 +29,7 @@ import java.util.UUID;
  */
 @Aspect
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class GuardrailAspect {
 
@@ -38,31 +40,7 @@ public class GuardrailAspect {
     private final ActionConfirmationService actionConfirmationService;
     private final StorageGrpcClient storageGrpcClient;
 
-    @Autowired
-    public GuardrailAspect(
-            UserContextManager userContextManager,
-            AuditService auditService,
-            ActionConfirmationService actionConfirmationService,
-            @Autowired(required = false) StorageGrpcClient storageGrpcClient
-    ) {
-        this.userContextManager = userContextManager;
-        this.auditService = auditService;
-        this.actionConfirmationService = actionConfirmationService;
-        this.storageGrpcClient = storageGrpcClient;
-    }
-
-    public GuardrailAspect(
-            UserContextManager userContextManager,
-            AuditService auditService,
-            ActionConfirmationService actionConfirmationService
-    ) {
-        this(userContextManager, auditService, actionConfirmationService, null);
-    }
-
-    public GuardrailAspect(UserContextManager userContextManager, AuditService auditService) {
-        this(userContextManager, auditService, new ActionConfirmationService(auditService), null);
-    }
-
+    // Annotation cho những hành động an toàn tỏng spring AOP
     @Around("@annotation(readAction)")
     public Object interceptReadAction(ProceedingJoinPoint joinPoint, ReadAction readAction) throws Throwable {
         UUID userId = userContextManager.getCurrentUserId();
@@ -77,10 +55,10 @@ public class GuardrailAspect {
                 ? readAction.description() + " | args=" + argsStr
                 : argsStr;
 
-        log.debug("[GUARDRAIL - READ] User {} executing read action {} ({}): args={}",
-                userId, methodName, readAction.description(), argsStr);
+        log.debug("[GUARDRAIL] User {} executing read action {} ({}): args={}", userId, methodName, readAction.description(), argsStr);
 
         try {
+            // Cho phép method được thực thi
             Object result = joinPoint.proceed();
             auditService.recordToolAction(
                     userId,
@@ -89,7 +67,8 @@ public class GuardrailAspect {
                     targetNodeId,
                     inputPayload,
                     null,
-                    "SUCCESS"
+                    AgentAuditLog.Status.SUCCESS,
+                    AgentAuditLog.HitlStatus.NOT_REQUIRED
             );
             return result;
         } catch (Exception e) {
@@ -98,9 +77,11 @@ public class GuardrailAspect {
                     actionType,
                     methodName,
                     targetNodeId,
-                    inputPayload + " | error=" + e.getMessage(),
+                    inputPayload,
                     null,
-                    "FAILED"
+                    AgentAuditLog.Status.FAILED,
+                    AgentAuditLog.HitlStatus.NOT_REQUIRED,
+                    e.getMessage()
             );
             throw e;
         }
@@ -114,8 +95,7 @@ public class GuardrailAspect {
         String argsStr = Arrays.toString(rawArgs);
         String targetNodeId = extractSafeTargetNodeId(safeAction.actionType(), rawArgs);
 
-        log.info("[GUARDRAIL - SAFE] User {} executing safe action {} (supportUndo={}): args={}",
-                userId, safeAction.actionType(), safeAction.supportUndo(), argsStr);
+        log.info("[GUARDRAIL] User {} executing safe action {} (supportUndo={}): args={}", userId, safeAction.actionType(), safeAction.supportUndo(), argsStr);
 
         String preStateSnapshot = null;
         if (safeAction.supportUndo()) {
@@ -138,7 +118,8 @@ public class GuardrailAspect {
                     targetNodeId,
                     argsStr,
                     undoPayload,
-                    "SUCCESS"
+                    AgentAuditLog.Status.SUCCESS,
+                    AgentAuditLog.HitlStatus.NOT_REQUIRED
             );
             return result;
         } catch (Exception e) {
@@ -147,9 +128,11 @@ public class GuardrailAspect {
                     safeAction.actionType(),
                     methodName,
                     targetNodeId,
-                    argsStr + " | error=" + e.getMessage(),
+                    argsStr,
                     null,
-                    "FAILED"
+                    AgentAuditLog.Status.FAILED,
+                    AgentAuditLog.HitlStatus.NOT_REQUIRED,
+                    e.getMessage()
             );
             throw e;
         }
@@ -178,7 +161,7 @@ public class GuardrailAspect {
                     );
 
             if (!validation.isValid()) {
-                log.warn("[GUARDRAIL - SENSITIVE 403 FORBIDDEN] User {} blocked on tool {} (action={}, node={}): {}",
+                log.warn("[GUARDRAIL] User {} blocked on tool {} (action={}, node={}): {}",
                         userId, methodName, sensitiveAction.actionType(), targetNodeId, validation.getReason());
 
                 auditService.recordToolAction(
@@ -188,7 +171,9 @@ public class GuardrailAspect {
                         targetNodeId,
                         argsStr,
                         null,
-                        "BLOCKED_403_FORBIDDEN"
+                        AgentAuditLog.Status.BLOCKED,
+                        AgentAuditLog.HitlStatus.REQUIRED,
+                        validation.getReason()
                 );
 
                 return gson.toJson(Map.of(
@@ -200,6 +185,10 @@ public class GuardrailAspect {
                 ));
             }
         }
+
+        AgentAuditLog.HitlStatus hitlStatus = sensitiveAction.requireConfirmationToken()
+                ? AgentAuditLog.HitlStatus.APPROVED
+                : AgentAuditLog.HitlStatus.NOT_REQUIRED;
 
         log.info("[GUARDRAIL - SENSITIVE APPROVED] User {} executing sensitive action {} on node {}",
                 userId, sensitiveAction.actionType(), targetNodeId);
@@ -213,7 +202,8 @@ public class GuardrailAspect {
                     targetNodeId,
                     argsStr,
                     null,
-                    "SUCCESS"
+                    AgentAuditLog.Status.SUCCESS,
+                    hitlStatus
             );
             return result;
         } catch (Exception e) {
@@ -222,9 +212,11 @@ public class GuardrailAspect {
                     sensitiveAction.actionType(),
                     methodName,
                     targetNodeId,
-                    argsStr + " | error=" + e.getMessage(),
+                    argsStr,
                     null,
-                    "FAILED"
+                    AgentAuditLog.Status.FAILED,
+                    hitlStatus,
+                    e.getMessage()
             );
             throw e;
         }

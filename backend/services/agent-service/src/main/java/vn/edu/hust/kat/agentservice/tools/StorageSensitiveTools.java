@@ -22,7 +22,7 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class StorageSensitiveTools {
+public class StorageSensitiveTools implements ITools {
 
     private static final Gson GSON = new Gson();
 

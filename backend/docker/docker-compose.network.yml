@@ -34,3 +34,12 @@ networks:
       config:
         - subnet: 172.30.40.0/24
           gateway: 172.30.40.1
+
+  ip-auth-net:
+    name: identity-provider-auth-net
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.50.0/24
+          gateway: 172.30.50.1
