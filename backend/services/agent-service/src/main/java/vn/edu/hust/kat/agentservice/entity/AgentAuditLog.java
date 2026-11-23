@@ -10,7 +10,10 @@ import java.util.UUID;
 @Entity
 @Table(name = "agent_audit_logs", indexes = {
         @Index(name = "idx_audit_user_id", columnList = "user_id"),
-        @Index(name = "idx_audit_action_type", columnList = "action_type")
+        @Index(name = "idx_audit_action_type", columnList = "action_type"),
+        @Index(name = "idx_audit_conversation_id", columnList = "conversation_id"),
+        @Index(name = "idx_audit_turn_exec_order", columnList = "turn_id, execution_order"),
+        @Index(name = "idx_audit_message_id", columnList = "message_id")
 })
 @Getter
 @Setter
@@ -25,6 +28,24 @@ public class AgentAuditLog {
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conversation_id")
+    private ChatConversation conversation;
+
+    @Column(name = "turn_id")
+    private UUID turnId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "message_id")
+    private ChatMessage message;
+
+    @Column(name = "tool_call_id", length = 100)
+    private String toolCallId;
+
+    @Column(name = "execution_order", nullable = false)
+    @Builder.Default
+    private Integer executionOrder = 0;
 
     @Column(name = "action_type", nullable = false, length = 50)
     private String actionType;
@@ -50,6 +71,18 @@ public class AgentAuditLog {
     @Builder.Default
     private HitlStatus hitlStatus = HitlStatus.NOT_REQUIRED;
 
+    @Column(name = "undo_status", nullable = false, length = 30)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private UndoStatus undoStatus = UndoStatus.NOT_APPLICABLE;
+
+    @Column(name = "undone_at")
+    private Instant undoneAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "undone_by_log_id")
+    private AgentAuditLog undoneByLog;
+
     @Column(name = "reason", columnDefinition = "TEXT")
     private String reason;
 
@@ -71,5 +104,12 @@ public class AgentAuditLog {
         public boolean isHitlRequired() {
             return this != NOT_REQUIRED;
         }
+    }
+
+    public enum UndoStatus {
+        NOT_APPLICABLE,
+        UNDOABLE,
+        UNDONE,
+        UNDO_FAILED
     }
 }
