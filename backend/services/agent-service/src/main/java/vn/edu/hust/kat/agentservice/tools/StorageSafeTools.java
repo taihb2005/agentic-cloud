@@ -50,7 +50,7 @@ public class StorageSafeTools implements ITools, Undoable {
     }
 
     @Tool
-    @SafeAction(actionType = "CREATE_FOLDER")
+    @SafeAction(actionType = "CREATE_FOLDER", supportUndo = true)
     public String createFolder(
             String folderName,
             String parentId
@@ -61,7 +61,10 @@ public class StorageSafeTools implements ITools, Undoable {
         NodeItemResponse created = storageGrpcClient.createFolder(userId, parentId, folderName);
         ChatTurnContext turnContext = userContextManager.getCurrentTurnContext();
         if (turnContext != null) {
-            turnContext.setLastCreatedResourceId(created.getId());
+            String undoTargetId = !created.getFirstCreatedNodeId().isBlank()
+                    ? created.getFirstCreatedNodeId()
+                    : created.getId();
+            turnContext.setLastCreatedResourceId(undoTargetId);
         }
         return String.format("Thành công: Đã tạo thư mục '%s' với ID: %s", created.getName(), created.getId());
     }

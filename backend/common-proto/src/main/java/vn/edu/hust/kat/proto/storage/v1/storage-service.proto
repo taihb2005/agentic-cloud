@@ -81,6 +81,8 @@ message NodeItemResponse {
   bool is_starred = 8;
   string created_at = 9;
   string updated_at = 10;
+  string first_created_node_id = 11;
+  int32 created_count = 12;
 }
 
 message SearchNodesRequest {

@@ -213,14 +213,37 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
     ) {
         try {
             UUID userId = parseUserId(request.getUserId());
-            NodeResponse created = fsNodeFolderService.createFolder(
-                    userId,
-                    request.getParentId(),
-                    request.getFolderName()
-            );
+            request.getFolderName();
+            String folderNameOrPath = request.getFolderName().trim();
 
-            responseObserver.onNext(mapToNodeItem(created));
-            responseObserver.onCompleted();
+            if (folderNameOrPath.contains("/") || folderNameOrPath.contains("\\")) {
+                RecursiveFolderCreationResponse recursiveResult = fsNodeFolderService.createFolderRecursive(
+                        userId,
+                        request.getParentId(),
+                        folderNameOrPath
+                );
+                NodeResponse leaf = recursiveResult.getLeafNode();
+                NodeItemResponse response = mapToNodeItem(leaf).toBuilder()
+                        .setFirstCreatedNodeId(recursiveResult.getFirstCreatedNodeId() != null
+                                ? String.valueOf(recursiveResult.getFirstCreatedNodeId())
+                                : leaf.getId() != null ? String.valueOf(leaf.getId()) : "")
+                        .setCreatedCount(recursiveResult.getCreatedCount())
+                        .build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+                NodeResponse created = fsNodeFolderService.createFolder(
+                        userId,
+                        request.getParentId(),
+                        folderNameOrPath
+                );
+                NodeItemResponse response = mapToNodeItem(created).toBuilder()
+                        .setFirstCreatedNodeId(created.getId() != null ? String.valueOf(created.getId()) : "")
+                        .setCreatedCount(1)
+                        .build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            }
         } catch (Exception e) {
             handleError(e, responseObserver);
         }
@@ -233,7 +256,8 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
     ) {
         try {
             UUID userId = parseUserId(request.getUserId());
-            String dstNodeId = (request.getTargetFolderId() != null && !request.getTargetFolderId().isBlank())
+            request.getTargetFolderId();
+            String dstNodeId = !request.getTargetFolderId().isBlank()
                     ? request.getTargetFolderId().trim()
                     : null;
 
@@ -246,7 +270,7 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
                     fsNodeService.moveNodes(userId, moveRequest);
 
             if (batchResult.getFailedCount() > 0 && !batchResult.getFailed().isEmpty()) {
-                throwFromOperationFailure(batchResult.getFailed().get(0));
+                throwFromOperationFailure(batchResult.getFailed().getFirst());
             }
 
             NodeResponse updated = fsNodeService.getNodeMetadata(userId, request.getNodeId());
@@ -270,11 +294,11 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
                     fsNodeService.softDeleteNodes(userId, List.of(request.getNodeId()));
 
             if (batchResult.getFailedCount() > 0 && !batchResult.getFailed().isEmpty()) {
-                throwFromOperationFailure(batchResult.getFailed().get(0));
+                throwFromOperationFailure(batchResult.getFailed().getFirst());
             }
 
-            String deleteBatchId = (!batchResult.getSucceeded().isEmpty() && batchResult.getSucceeded().get(0).getOperationId() != null)
-                    ? batchResult.getSucceeded().get(0).getOperationId()
+            String deleteBatchId = (!batchResult.getSucceeded().isEmpty() && batchResult.getSucceeded().getFirst().getOperationId() != null)
+                    ? batchResult.getSucceeded().getFirst().getOperationId()
                     : "";
 
             SoftDeleteNodeGrpcResponse response = SoftDeleteNodeGrpcResponse.newBuilder()
@@ -341,7 +365,7 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
                     fsNodeTrashService.permanentDeleteTrashSync(userId, List.of(String.valueOf(nodeId)));
 
             if (batchResult.getFailedCount() > 0 && !batchResult.getFailed().isEmpty()) {
-                throwFromOperationFailure(batchResult.getFailed().get(0));
+                throwFromOperationFailure(batchResult.getFailed().getFirst());
             }
 
             PermanentDeleteNodeResponse response = PermanentDeleteNodeResponse.newBuilder()
@@ -366,7 +390,8 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
         try {
             UUID userId = parseUserId(request.getUserId());
             Long nodeId = fsNodeService.parseNodeId(request.getNodeId());
-            String permission = (request.getPermission() != null && !request.getPermission().isBlank())
+            request.getPermission();
+            String permission = !request.getPermission().isBlank()
                     ? request.getPermission().trim().toUpperCase()
                     : "VIEW";
 
@@ -407,11 +432,11 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
                     fsNodeTrashService.restoreNodes(userId, List.of(request.getNodeId()));
 
             if (batchResult.getFailedCount() > 0 && !batchResult.getFailed().isEmpty()) {
-                throwFromOperationFailure(batchResult.getFailed().get(0));
+                throwFromOperationFailure(batchResult.getFailed().getFirst());
             }
 
             RestoreResult restored = !batchResult.getSucceeded().isEmpty()
-                    ? batchResult.getSucceeded().get(0)
+                    ? batchResult.getSucceeded().getFirst()
                     : null;
 
             RestoreNodeGrpcResponse response = RestoreNodeGrpcResponse.newBuilder()
@@ -478,7 +503,8 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
         try {
             UUID userId = parseUserId(request.getUserId());
             Long nodeId = fsNodeService.parseNodeId(request.getNodeId());
-            String shareMode = request.getShareMode() != null ? request.getShareMode().trim().toUpperCase() : "";
+            request.getShareMode();
+            String shareMode = request.getShareMode().trim().toUpperCase();
 
             if (shareMode.isBlank()
                     || FsNodeShareService.MODE_PRIVATE.equalsIgnoreCase(shareMode)
@@ -496,13 +522,15 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
                     .toList();
 
             LocalDateTime expiresAt = null;
-            if (request.getExpiresAt() != null && !request.getExpiresAt().isBlank()) {
+            request.getExpiresAt();
+            if (!request.getExpiresAt().isBlank()) {
                 expiresAt = LocalDateTime.parse(request.getExpiresAt().trim());
             }
 
+            request.getPermission();
             ConfigureShareRequest shareRequest = ConfigureShareRequest.builder()
                     .shareMode(shareMode)
-                    .permission(request.getPermission() != null && !request.getPermission().isBlank()
+                    .permission(!request.getPermission().isBlank()
                             ? request.getPermission().trim().toUpperCase()
                             : "VIEW")
                     .userIds(sharedUserIds.isEmpty() ? null : sharedUserIds)
@@ -592,23 +620,25 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
 
     private void handleError(Exception e, StreamObserver<?> responseObserver) {
         log.warn("gRPC StorageService error: {}", e.getMessage());
-        if (e instanceof ResourceNotFoundException) {
-            responseObserver.onError(Status.NOT_FOUND.withDescription(e.getMessage()).asRuntimeException());
-        } else if (e instanceof DuplicateResourceException) {
-            responseObserver.onError(Status.ALREADY_EXISTS.withDescription(e.getMessage()).asRuntimeException());
-        } else if (e instanceof BadRequestException) {
-            responseObserver.onError(Status.FAILED_PRECONDITION.withDescription(e.getMessage()).asRuntimeException());
-        } else if (e instanceof AccessDeniedException) {
-            responseObserver.onError(Status.PERMISSION_DENIED.withDescription(e.getMessage()).asRuntimeException());
-        } else if (e instanceof IllegalArgumentException) {
-            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());
-        } else {
-            log.error("Unhandled gRPC error in UserStorageGrpcService", e);
-            responseObserver.onError(
-                    Status.INTERNAL
-                            .withDescription(e.getMessage() != null ? e.getMessage() : "Internal storage error")
-                            .asRuntimeException()
-            );
+        switch (e) {
+            case ResourceNotFoundException resourceNotFoundException ->
+                    responseObserver.onError(Status.NOT_FOUND.withDescription(e.getMessage()).asRuntimeException());
+            case DuplicateResourceException duplicateResourceException ->
+                    responseObserver.onError(Status.ALREADY_EXISTS.withDescription(e.getMessage()).asRuntimeException());
+            case BadRequestException badRequestException ->
+                    responseObserver.onError(Status.FAILED_PRECONDITION.withDescription(e.getMessage()).asRuntimeException());
+            case AccessDeniedException accessDeniedException ->
+                    responseObserver.onError(Status.PERMISSION_DENIED.withDescription(e.getMessage()).asRuntimeException());
+            case IllegalArgumentException illegalArgumentException ->
+                    responseObserver.onError(Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException());
+            default -> {
+                log.error("Unhandled gRPC error in UserStorageGrpcService", e);
+                responseObserver.onError(
+                        Status.INTERNAL
+                                .withDescription(e.getMessage() != null ? e.getMessage() : "Internal storage error")
+                                .asRuntimeException()
+                );
+            }
         }
     }
 

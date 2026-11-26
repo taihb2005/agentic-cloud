@@ -31,10 +31,10 @@ tools:
       newName: "Tên mới cho tệp tin hoặc thư mục"
 
   createFolder:
-    description: "Tạo MỘT thư mục đơn lẻ. BẮT BUỘC phải có ID thực tế của thư mục cha (lấy từ kết quả trả về của lần gọi tool trước đó). Không được gọi song song nhiều lệnh createFolder nếu các thư mục có quan hệ cha-con. Không hỗ trợ tạo đệ quy trực tiếp mà cần gọi tuần tự"
+    description: "Tạo một thư mục đơn lẻ hoặc tạo đệ quy một cấu trúc thư mục lồng nhau (ví dụ: 'A/B/C', tối đa 10 cấp) chỉ trong một lần gọi. Nếu các thư mục cha trung gian đã tồn tại, hệ thống sẽ tự động tái sử dụng và tạo các cấp con còn thiếu. Kết quả trả về ID của thư mục lá cuối cùng."
     parameters:
-      folderName: "Tên của 1 thư mục duy nhất (tuyệt đối không chứa dấu '/')"
-      parentId: "ID của thư mục cha trực tiếp. Chỉ truyền 'root' nếu muốn tạo ở thư mục gốc ngoài cùng."
+      folderName: "Tên thư mục đơn lẻ (ví dụ: 'Bao-cao') hoặc đường dẫn thư mục lồng nhau phân tách bằng dấu '/' (ví dụ: 'Du-an-2026/Tai-lieu/Q1', tối đa 10 cấp)"
+      parentId: "ID của thư mục cha gốc nơi bắt đầu tạo. Chỉ truyền 'root' nếu muốn tạo ở thư mục gốc ngoài cùng."
 
   moveNode:
     description: "Di chuyển một tệp tin hoặc thư mục vào một thư mục đích"
