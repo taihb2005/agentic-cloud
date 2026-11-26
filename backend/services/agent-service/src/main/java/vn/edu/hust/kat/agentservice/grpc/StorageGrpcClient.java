@@ -222,4 +222,78 @@ public class StorageGrpcClient {
             throw GrpcStatusRuntimeMapper.throwFrom(ex);
         }
     }
+
+    public RestoreNodeGrpcResponse restoreNode(UUID userId, String nodeId) {
+        RestoreNodeGrpcRequest request = RestoreNodeGrpcRequest.newBuilder()
+                .setUserId(userId.toString())
+                .setNodeId(nodeId != null ? nodeId.trim() : "")
+                .build();
+        try {
+            return storageStub
+                    .withDeadlineAfter(DEFAULT_DEADLINE_SECONDS, TimeUnit.SECONDS)
+                    .restoreNode(request);
+        } catch (StatusRuntimeException ex) {
+            log.error("gRPC restoreNode failed for user={}, node={}: {}", userId, nodeId, ex.getMessage());
+            throw GrpcStatusRuntimeMapper.throwFrom(ex);
+        }
+    }
+
+    public NodeShareDetailGrpcResponse getNodeShareDetail(UUID userId, String nodeId) {
+        GetNodeShareDetailRequest request = GetNodeShareDetailRequest.newBuilder()
+                .setUserId(userId.toString())
+                .setNodeId(nodeId != null ? nodeId.trim() : "")
+                .build();
+        try {
+            return storageStub
+                    .withDeadlineAfter(DEFAULT_DEADLINE_SECONDS, TimeUnit.SECONDS)
+                    .getNodeShareDetail(request);
+        } catch (StatusRuntimeException ex) {
+            log.error("gRPC getNodeShareDetail failed for user={}, node={}: {}", userId, nodeId, ex.getMessage());
+            throw GrpcStatusRuntimeMapper.throwFrom(ex);
+        }
+    }
+
+    public RevokeAllShareResponse revokeAllShare(UUID userId, String nodeId) {
+        RevokeAllShareRequest request = RevokeAllShareRequest.newBuilder()
+                .setUserId(userId.toString())
+                .setNodeId(nodeId != null ? nodeId.trim() : "")
+                .build();
+        try {
+            return storageStub
+                    .withDeadlineAfter(DEFAULT_DEADLINE_SECONDS, TimeUnit.SECONDS)
+                    .revokeAllShare(request);
+        } catch (StatusRuntimeException ex) {
+            log.error("gRPC revokeAllShare failed for user={}, node={}: {}", userId, nodeId, ex.getMessage());
+            throw GrpcStatusRuntimeMapper.throwFrom(ex);
+        }
+    }
+
+    public NodeShareDetailGrpcResponse restoreShareConfig(
+            UUID userId,
+            String nodeId,
+            String shareMode,
+            String permission,
+            String expiresAt,
+            Integer maxAccessCount,
+            List<String> sharedUserIds
+    ) {
+        RestoreShareConfigRequest.Builder builder = RestoreShareConfigRequest.newBuilder()
+                .setUserId(userId.toString())
+                .setNodeId(nodeId != null ? nodeId.trim() : "")
+                .setShareMode(shareMode != null ? shareMode.trim() : "")
+                .setPermission(permission != null ? permission.trim() : "")
+                .setExpiresAt(expiresAt != null ? expiresAt.trim() : "")
+                .setMaxAccessCount(maxAccessCount != null ? maxAccessCount : 0);
+        if (sharedUserIds != null && !sharedUserIds.isEmpty()) {
+            builder.addAllSharedUserIds(sharedUserIds);
+        }
+        try {
+            return storageStub
+                    .withDeadlineAfter(DEFAULT_DEADLINE_SECONDS, TimeUnit.SECONDS)
+                    .restoreShareConfig(builder.build());
+        } catch (StatusRuntimeException ex) {
+            log.error("gRPC restoreShareConfig failed for user={}, node={}: {}", userId, nodeId, ex.getMessage());
+            throw GrpcStatusRuntimeMapper.throwFrom(ex);
+        }
+    }
 }

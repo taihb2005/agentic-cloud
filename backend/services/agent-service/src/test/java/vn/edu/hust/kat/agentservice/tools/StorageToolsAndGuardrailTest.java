@@ -1,5 +1,8 @@
 package vn.edu.hust.kat.agentservice.tools;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +22,7 @@ import vn.edu.hust.kat.agentservice.dto.ConfirmActionResponse;
 import vn.edu.hust.kat.agentservice.entity.AgentAuditLog;
 import vn.edu.hust.kat.agentservice.grpc.StorageGrpcClient;
 import vn.edu.hust.kat.agentservice.guardrail.GuardrailAspect;
+import vn.edu.hust.kat.agentservice.guardrail.snapshot.UndoSnapshotCaptureService;
 import vn.edu.hust.kat.agentservice.security.UserPrincipal;
 import vn.edu.hust.kat.agentservice.service.ActionConfirmationService;
 import vn.edu.hust.kat.agentservice.service.AuditService;
@@ -57,11 +61,18 @@ class StorageToolsAndGuardrailTest {
 
         userContextManager = new UserContextManager();
         actionConfirmationService = new ActionConfirmationService(auditService, null, null);
+        UndoSnapshotCaptureService captureService = new UndoSnapshotCaptureService(
+                JsonMapper.builder()
+                        .findAndAddModules()
+                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                        .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                        .build()
+        );
         GuardrailAspect guardrailAspect = new GuardrailAspect(
                 userContextManager,
                 auditService,
                 actionConfirmationService,
-                storageGrpcClient
+                captureService
         );
 
         readToolsProxy = wrapWithAspect(
@@ -191,8 +202,10 @@ class StorageToolsAndGuardrailTest {
 
         String undoPayload = undoCaptor.getValue();
         assertNotNull(undoPayload);
-        assertTrue(undoPayload.contains("\"previousName\":\"old_report.docx\""));
-        assertTrue(undoPayload.contains("\"supportUndo\":true"));
+        assertTrue(undoPayload.contains("\"previous_name\":\"old_report.docx\""));
+        assertTrue(undoPayload.contains("\"support_undo\":true"));
+        assertTrue(undoPayload.contains("\"category\":\"NODE\""));
+        assertTrue(undoPayload.contains("\"inverse_action_type\":\"RENAME_NODE\""));
     }
 
     @Test

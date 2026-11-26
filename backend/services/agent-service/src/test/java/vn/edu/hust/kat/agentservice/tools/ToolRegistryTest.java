@@ -1,5 +1,8 @@
 package vn.edu.hust.kat.agentservice.tools;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
@@ -23,6 +26,7 @@ import vn.edu.hust.kat.agentservice.context.UserContextManager;
 import vn.edu.hust.kat.agentservice.entity.AgentAuditLog;
 import vn.edu.hust.kat.agentservice.grpc.StorageGrpcClient;
 import vn.edu.hust.kat.agentservice.guardrail.GuardrailAspect;
+import vn.edu.hust.kat.agentservice.guardrail.snapshot.UndoSnapshotCaptureService;
 import vn.edu.hust.kat.agentservice.memory.DualLayerMemoryManager;
 import vn.edu.hust.kat.agentservice.security.UserPrincipal;
 import vn.edu.hust.kat.agentservice.service.ActionConfirmationService;
@@ -61,7 +65,13 @@ class ToolRegistryTest {
                 userContextManager,
                 auditService,
                 actionConfirmationService,
-                storageGrpcClient
+                new UndoSnapshotCaptureService(
+                        JsonMapper.builder()
+                                .findAndAddModules()
+                                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                                .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                                .build()
+                )
         );
 
         StorageReadTools readToolsProxy = wrapWithAspect(
@@ -133,14 +143,14 @@ class ToolRegistryTest {
 
         assertTrue(result.contains("android"));
         verify(memoryManager).upsertUserPreference(userId.toString(), "mobile_os", "android");
-        // updateUserPreference has supportUndo = false, so undoPayload is null
+        // updateUserPreference now implements Undoable with supportUndo = true
         verify(auditService).recordToolAction(
                 eq(userId),
                 eq("UPDATE_USER_PREF"),
                 eq("updateUserPreference"),
                 isNull(),
                 anyString(),
-                isNull(),
+                argThat(payload -> payload != null && payload.contains("\"category\":\"MEMORY\"")),
                 eq(AgentAuditLog.Status.SUCCESS),
                 eq(AgentAuditLog.HitlStatus.NOT_REQUIRED)
         );
@@ -155,7 +165,13 @@ class ToolRegistryTest {
                 userContextManager,
                 auditService,
                 actionConfirmationService,
-                storageGrpcClient
+                new UndoSnapshotCaptureService(
+                        JsonMapper.builder()
+                                .findAndAddModules()
+                                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                                .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                                .build()
+                )
         );
 
         StorageReadTools readToolsProxy = wrapWithAspect(
@@ -230,7 +246,7 @@ class ToolRegistryTest {
                 eq("updateUserPreference"),
                 isNull(),
                 anyString(),
-                isNull(),
+                argThat(payload -> payload != null && payload.contains("\"category\":\"MEMORY\"")),
                 eq(AgentAuditLog.Status.SUCCESS),
                 eq(AgentAuditLog.HitlStatus.NOT_REQUIRED)
         );

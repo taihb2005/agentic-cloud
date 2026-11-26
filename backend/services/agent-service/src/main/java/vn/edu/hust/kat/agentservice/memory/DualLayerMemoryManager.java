@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import vn.edu.hust.kat.agentservice.config.AgentMemoryProperties;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -69,6 +70,24 @@ public class DualLayerMemoryManager {
         } catch (Exception e) {
             log.error("Failed to delete user preference for userId={}, key={}: {}", userId, prefKey, e.getMessage(), e);
             throw new IllegalStateException("Could not delete user preference", e);
+        }
+    }
+
+    public Optional<PgVectorMemoryStore.PreferenceSnapshot> findUserPreference(String userId, String prefKey) {
+        try {
+            return pgVectorMemoryStore.findPreference(userId, prefKey);
+        } catch (Exception e) {
+            log.warn("Failed to find user preference for userId={}, key={}: {}", userId, prefKey, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    public void deleteUserMemoryById(String userId, String memoryId) {
+        try {
+            pgVectorMemoryStore.deleteMemoryById(userId, memoryId);
+        } catch (Exception e) {
+            log.error("Failed to delete memory by id for userId={}, memoryId={}: {}", userId, memoryId, e.getMessage(), e);
+            throw new IllegalStateException("Could not delete user memory", e);
         }
     }
 

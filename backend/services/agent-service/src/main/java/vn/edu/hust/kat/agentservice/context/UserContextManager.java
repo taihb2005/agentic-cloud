@@ -17,6 +17,7 @@ import java.util.UUID;
 public class UserContextManager {
 
     private static final ThreadLocal<String> CONFIRMATION_TOKEN_HOLDER = new ThreadLocal<>();
+    private static final ThreadLocal<ChatTurnContext> TURN_CONTEXT_HOLDER = new ThreadLocal<>();
 
     public UUID getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -45,5 +46,21 @@ public class UserContextManager {
 
     public void clearCurrentConfirmationToken() {
         CONFIRMATION_TOKEN_HOLDER.remove();
+    }
+
+    public void setCurrentTurnContext(ChatTurnContext turnContext) {
+        if (turnContext != null) {
+            TURN_CONTEXT_HOLDER.set(turnContext);
+        } else {
+            TURN_CONTEXT_HOLDER.remove();
+        }
+    }
+
+    public ChatTurnContext getCurrentTurnContext() {
+        return TURN_CONTEXT_HOLDER.get();
+    }
+
+    public void clearCurrentTurnContext() {
+        TURN_CONTEXT_HOLDER.remove();
     }
 }

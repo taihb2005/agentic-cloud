@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
@@ -35,6 +36,7 @@ public class PgVectorMemoryStore {
     public static final String META_USER_ID = "user_id";
     public static final String META_MEMORY_TYPE = "memory_type";
     public static final String META_PREF_KEY = "pref_key";
+    public static final String META_PREF_VALUE = "pref_value";
     public static final String META_CREATED_AT = "created_at";
     public static final String META_UPDATED_AT = "updated_at";
 
@@ -81,6 +83,7 @@ public class PgVectorMemoryStore {
         metaMap.put(META_USER_ID, userId);
         metaMap.put(META_MEMORY_TYPE, TYPE_USER_PREFERENCE);
         metaMap.put(META_PREF_KEY, normalizedKey);
+        metaMap.put(META_PREF_VALUE, prefValue.trim());
         metaMap.put(META_CREATED_AT, now);
         metaMap.put(META_UPDATED_AT, now);
 
@@ -106,6 +109,49 @@ public class PgVectorMemoryStore {
         validateNonBlank(userId, "userId");
         embeddingStore.removeAll(metadataKey(META_USER_ID).isEqualTo(userId));
         log.info("Deleted all long-term contexts for userId={}", userId);
+    }
+
+    public Optional<PreferenceSnapshot> findPreference(String userId, String prefKey) {
+        validateNonBlank(userId, "userId");
+        String normalizedKey = normalizePrefKey(prefKey);
+
+        Embedding queryEmbedding = embeddingModel.embed("User preference [" + normalizedKey + "]").content();
+        Filter prefFilter = metadataKey(META_USER_ID).isEqualTo(userId)
+                .and(metadataKey(META_PREF_KEY).isEqualTo(normalizedKey));
+
+        EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(1)
+                .minScore(0.0)
+                .filter(prefFilter)
+                .build();
+
+        EmbeddingSearchResult<TextSegment> result = embeddingStore.search(request);
+        if (result == null || result.matches() == null || result.matches().isEmpty()) {
+            return Optional.empty();
+        }
+
+        var match = result.matches().get(0);
+        TextSegment segment = match.embedded();
+        String rawValue = segment != null ? segment.metadata().getString(META_PREF_VALUE) : null;
+        if ((rawValue == null || rawValue.isBlank()) && segment != null && segment.text() != null) {
+            String prefix = String.format("User preference [%s]: ", normalizedKey);
+            rawValue = segment.text().startsWith(prefix)
+                    ? segment.text().substring(prefix.length())
+                    : segment.text();
+        }
+
+        return Optional.of(new PreferenceSnapshot(match.embeddingId(), normalizedKey, rawValue));
+    }
+
+    public void deleteMemoryById(String userId, String memoryId) {
+        validateNonBlank(userId, "userId");
+        validateNonBlank(memoryId, "memoryId");
+        embeddingStore.remove(memoryId.trim());
+        log.info("Deleted long-term memory by id: userId={}, memoryId={}", userId, memoryId);
+    }
+
+    public record PreferenceSnapshot(String memoryId, String preferenceKey, String value) {
     }
 
     public List<String> searchContexts(String userId, String query, int maxResults, double minScore) {

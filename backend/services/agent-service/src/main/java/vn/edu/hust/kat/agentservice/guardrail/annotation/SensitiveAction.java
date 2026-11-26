@@ -15,4 +15,5 @@ import java.lang.annotation.Target;
 public @interface SensitiveAction {
     String actionType();
     boolean requireConfirmationToken() default true;
+    boolean supportUndo() default false;
 }

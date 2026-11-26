@@ -23,6 +23,7 @@ import vn.edu.hust.kat.storageservice.repository.FsNodeRepository;
 import vn.edu.hust.kat.storageservice.service.*;
 import vn.edu.hust.kat.storageservice.utils.Constants;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -393,6 +394,159 @@ public class UserStorageGrpcService extends StorageServiceGrpc.StorageServiceImp
         } catch (Exception e) {
             handleError(e, responseObserver);
         }
+    }
+
+    @Override
+    public void restoreNode(
+            RestoreNodeGrpcRequest request,
+            StreamObserver<RestoreNodeGrpcResponse> responseObserver
+    ) {
+        try {
+            UUID userId = parseUserId(request.getUserId());
+            BatchOperationResponse<RestoreResult, NodeFailureResult> batchResult =
+                    fsNodeTrashService.restoreNodes(userId, List.of(request.getNodeId()));
+
+            if (batchResult.getFailedCount() > 0 && !batchResult.getFailed().isEmpty()) {
+                throwFromOperationFailure(batchResult.getFailed().get(0));
+            }
+
+            RestoreResult restored = !batchResult.getSucceeded().isEmpty()
+                    ? batchResult.getSucceeded().get(0)
+                    : null;
+
+            RestoreNodeGrpcResponse response = RestoreNodeGrpcResponse.newBuilder()
+                    .setNodeId(restored != null ? nullSafe(restored.getId()) : nullSafe(request.getNodeId()))
+                    .setParentId(restored != null ? nullSafe(restored.getParentId()) : "")
+                    .setName(restored != null ? nullSafe(restored.getName()) : "")
+                    .setIsFolder(restored != null && Boolean.TRUE.equals(restored.getIsFolder()))
+                    .setNodeStatus(restored != null ? nullSafe(restored.getNodeStatus()) : "ACTIVE")
+                    .setRestoredCount(restored != null && restored.getRestoredCount() != null ? restored.getRestoredCount() : 1)
+                    .setMessage("Đã khôi phục node từ thùng rác thành công")
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            handleError(e, responseObserver);
+        }
+    }
+
+    @Override
+    public void getNodeShareDetail(
+            GetNodeShareDetailRequest request,
+            StreamObserver<NodeShareDetailGrpcResponse> responseObserver
+    ) {
+        try {
+            UUID userId = parseUserId(request.getUserId());
+            Long nodeId = fsNodeService.parseNodeId(request.getNodeId());
+            NodeShareDetailResponse detail = fsNodeShareService.getShareDetail(userId, nodeId);
+
+            responseObserver.onNext(mapToNodeShareDetail(detail));
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            handleError(e, responseObserver);
+        }
+    }
+
+    @Override
+    public void revokeAllShare(
+            RevokeAllShareRequest request,
+            StreamObserver<RevokeAllShareResponse> responseObserver
+    ) {
+        try {
+            UUID userId = parseUserId(request.getUserId());
+            Long nodeId = fsNodeService.parseNodeId(request.getNodeId());
+            fsNodeShareService.revokeAllShare(userId, nodeId);
+
+            RevokeAllShareResponse response = RevokeAllShareResponse.newBuilder()
+                    .setNodeId(String.valueOf(nodeId))
+                    .setMessage("Đã thu hồi toàn bộ chia sẻ của node " + nodeId)
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            handleError(e, responseObserver);
+        }
+    }
+
+    @Override
+    public void restoreShareConfig(
+            RestoreShareConfigRequest request,
+            StreamObserver<NodeShareDetailGrpcResponse> responseObserver
+    ) {
+        try {
+            UUID userId = parseUserId(request.getUserId());
+            Long nodeId = fsNodeService.parseNodeId(request.getNodeId());
+            String shareMode = request.getShareMode() != null ? request.getShareMode().trim().toUpperCase() : "";
+
+            if (shareMode.isBlank()
+                    || FsNodeShareService.MODE_PRIVATE.equalsIgnoreCase(shareMode)
+                    || "NONE".equalsIgnoreCase(shareMode)) {
+                fsNodeShareService.revokeAllShare(userId, nodeId);
+                NodeShareDetailResponse detail = fsNodeShareService.getShareDetail(userId, nodeId);
+                responseObserver.onNext(mapToNodeShareDetail(detail));
+                responseObserver.onCompleted();
+                return;
+            }
+
+            List<UUID> sharedUserIds = request.getSharedUserIdsList().stream()
+                    .filter(s -> s != null && !s.isBlank())
+                    .map(UUID::fromString)
+                    .toList();
+
+            LocalDateTime expiresAt = null;
+            if (request.getExpiresAt() != null && !request.getExpiresAt().isBlank()) {
+                expiresAt = LocalDateTime.parse(request.getExpiresAt().trim());
+            }
+
+            ConfigureShareRequest shareRequest = ConfigureShareRequest.builder()
+                    .shareMode(shareMode)
+                    .permission(request.getPermission() != null && !request.getPermission().isBlank()
+                            ? request.getPermission().trim().toUpperCase()
+                            : "VIEW")
+                    .userIds(sharedUserIds.isEmpty() ? null : sharedUserIds)
+                    .expiresAt(expiresAt)
+                    .maxAccessCount(request.getMaxAccessCount() > 0 ? request.getMaxAccessCount() : null)
+                    .overrideExisting(true)
+                    .build();
+
+            NodeShareDetailResponse detail = fsNodeShareService.configureShare(userId, nodeId, shareRequest);
+            responseObserver.onNext(mapToNodeShareDetail(detail));
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            handleError(e, responseObserver);
+        }
+    }
+
+    private NodeShareDetailGrpcResponse mapToNodeShareDetail(NodeShareDetailResponse detail) {
+        boolean isPublic = FsNodeShareService.MODE_PUBLIC_LINK.equalsIgnoreCase(detail.getShareMode())
+                || "PUBLIC".equalsIgnoreCase(detail.getShareMode());
+
+        NodeShareDetailGrpcResponse.Builder builder = NodeShareDetailGrpcResponse.newBuilder()
+                .setNodeId(detail.getNodeId() != null ? String.valueOf(detail.getNodeId()) : "")
+                .setNodeName(nullSafe(detail.getNodeName()))
+                .setIsFolder(Boolean.TRUE.equals(detail.getIsFolder()))
+                .setShareMode(nullSafe(detail.getShareMode()))
+                .setStatus(nullSafe(detail.getStatus()))
+                .setPermission(nullSafe(detail.getPermission()))
+                .setIsPublic(isPublic)
+                .setShareToken(nullSafe(detail.getShareToken()))
+                .setSharedUrl(nullSafe(detail.getSharedUrl()))
+                .setIsPasswordProtected(Boolean.TRUE.equals(detail.getIsPasswordProtected()))
+                .setExpiresAt(detail.getExpiresAt() != null ? detail.getExpiresAt().toString() : "")
+                .setMaxAccessCount(detail.getMaxAccessCount() != null ? detail.getMaxAccessCount() : 0);
+
+        if (detail.getUsers() != null) {
+            for (SharedUserItemResponse user : detail.getUsers()) {
+                builder.addSharedUsers(SharedUserGrpcItem.newBuilder()
+                        .setUserId(user.getUserId() != null ? user.getUserId().toString() : "")
+                        .setUsername(nullSafe(user.getUsername()))
+                        .setPermission(nullSafe(user.getPermission()))
+                        .build());
+            }
+        }
+        return builder.build();
     }
 
     private UUID parseUserId(String rawUserId) {

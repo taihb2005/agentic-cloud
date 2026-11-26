@@ -31,6 +31,14 @@ service StorageService {
   rpc PermanentDeleteNode(PermanentDeleteNodeRequest) returns (PermanentDeleteNodeResponse);
 
   rpc CreatePublicShare(CreatePublicShareRequest) returns (CreatePublicShareResponse);
+
+  rpc RestoreNode(RestoreNodeGrpcRequest) returns (RestoreNodeGrpcResponse);
+
+  rpc GetNodeShareDetail(GetNodeShareDetailRequest) returns (NodeShareDetailGrpcResponse);
+
+  rpc RevokeAllShare(RevokeAllShareRequest) returns (RevokeAllShareResponse);
+
+  rpc RestoreShareConfig(RestoreShareConfigRequest) returns (NodeShareDetailGrpcResponse);
 }
 
 message GetUserStorageRequest {
@@ -172,4 +180,66 @@ message CreatePublicShareResponse {
   string shared_url = 6;
   string share_token = 7;
   string status = 8;
+}
+
+message RestoreNodeGrpcRequest {
+  string user_id = 1;
+  string node_id = 2;
+}
+
+message RestoreNodeGrpcResponse {
+  string node_id = 1;
+  string parent_id = 2;
+  string name = 3;
+  bool is_folder = 4;
+  string node_status = 5;
+  int32 restored_count = 6;
+  string message = 7;
+}
+
+message SharedUserGrpcItem {
+  string user_id = 1;
+  string username = 2;
+  string permission = 3;
+}
+
+message GetNodeShareDetailRequest {
+  string user_id = 1;
+  string node_id = 2;
+}
+
+message NodeShareDetailGrpcResponse {
+  string node_id = 1;
+  string node_name = 2;
+  bool is_folder = 3;
+  string share_mode = 4;
+  string status = 5;
+  string permission = 6;
+  bool is_public = 7;
+  string share_token = 8;
+  string shared_url = 9;
+  bool is_password_protected = 10;
+  string expires_at = 11;
+  int32 max_access_count = 12;
+  repeated SharedUserGrpcItem shared_users = 13;
+}
+
+message RevokeAllShareRequest {
+  string user_id = 1;
+  string node_id = 2;
+}
+
+message RevokeAllShareResponse {
+  string node_id = 1;
+  string message = 2;
+}
+
+message RestoreShareConfigRequest {
+  string user_id = 1;
+  string node_id = 2;
+  string share_mode = 3;
+  string permission = 4;
+  string expires_at = 5;
+  int32 max_access_count = 6;
+  repeated string shared_user_ids = 7;
 }

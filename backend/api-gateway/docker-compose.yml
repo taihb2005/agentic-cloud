@@ -4,6 +4,7 @@ services:
       context: ../
       dockerfile: ./api-gateway/Dockerfile
     container_name: api-gateway
+    restart: unless-stopped
     ports:
       - "8089:8089"
     environment:

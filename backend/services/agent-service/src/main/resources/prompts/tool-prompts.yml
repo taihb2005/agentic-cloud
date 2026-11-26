@@ -31,24 +31,24 @@ tools:
       newName: "Tên mới cho tệp tin hoặc thư mục"
 
   createFolder:
-    description: "Tạo thư mục mới trong một thư mục cha (hoặc thư mục gốc nếu parentId để trống)"
+    description: "Tạo thư mục mới trong một thư mục cha chỉ định"
     parameters:
       folderName: "Tên thư mục mới cần tạo"
-      parentId: "ID của thư mục cha (để trống hoặc truyền 'root' nếu tạo ở thư mục gốc)"
+      parentId: "ID của thư mục cha. Nếu cần tạo ở thư mục cha, truyên chuỗi rỗng hoặc 'root'"
 
   moveNode:
     description: "Di chuyển một tệp tin hoặc thư mục vào một thư mục đích"
     parameters:
       nodeId: "ID của tệp tin hoặc thư mục cần di chuyển"
-      targetFolderId: "ID của thư mục đích (hoặc 'root' để di chuyển về thư mục gốc)"
+      targetFolderId: "ID của thư mục đích. Truyền 'root' để chuyển về thư mục gốc"
 
   moveToTrash:
-    description: "Đưa tệp tin hoặc thư mục vào thùng rác (xóa mềm - có thể khôi phục được)"
+    description: "Đưa tệp tin hoặc thư mục vào thùng rác. Đây là hành động xóa mềm, không phải xóa dữ liệu thật"
     parameters:
       nodeId: "ID của tệp tin hoặc thư mục cần chuyển vào thùng rác"
 
   toggleStar:
-    description: "Đánh dấu sao (yêu thích) hoặc bỏ đánh dấu sao cho một tệp tin/thư mục"
+    description: "Đánh dấu sao hoặc bỏ đánh dấu sao cho một tệp tin/thư mục"
     parameters:
       nodeId: "ID của tệp tin hoặc thư mục cần gắn/bỏ sao"
       starred: "true để gắn sao, false để bỏ sao"
