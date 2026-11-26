@@ -170,22 +170,22 @@ export function FileView<TMetadata>({
 			}}
 		>
 			<header className="flex min-h-[var(--fb-header-h,52px)] min-w-0 items-center gap-2 border-b border-[var(--fb-border)] px-[var(--fb-pad)] py-2">
-				<button aria-label="Back to folder" className={ICON_BUTTON} onClick={() => guard(onClose)} type="button">
+				<button aria-label="Quay lại thư mục" className={ICON_BUTTON} onClick={() => guard(onClose)} type="button">
 					<ChevronLeft aria-hidden="true" className="size-4" />
 				</button>
 				<div className="min-w-0 flex-1">{breadcrumbs((path) => guard(() => onNavigate(path)))}</div>
 				{onStep && position && position.total > 1 ? (
 					<span className="flex shrink-0 items-center gap-1 text-[var(--fb-font-sm)] text-[var(--fb-muted)]">
 						<button
-							aria-label="Previous file"
+							aria-label="Tệp trước"
 							className={ICON_BUTTON}
 							onClick={() => guard(() => onStep(-1))}
 							type="button"
 						>
 							<ChevronLeft aria-hidden="true" className="size-4" />
 						</button>
-						{position.index} of {position.total}
-						<button aria-label="Next file" className={ICON_BUTTON} onClick={() => guard(() => onStep(1))} type="button">
+						{position.index} / {position.total}
+						<button aria-label="Tệp tiếp theo" className={ICON_BUTTON} onClick={() => guard(() => onStep(1))} type="button">
 							<ChevronRight aria-hidden="true" className="size-4" />
 						</button>
 					</span>
@@ -207,7 +207,7 @@ export function FileView<TMetadata>({
 				</div>
 				{editor ? (
 					<div
-						aria-label="View mode"
+						aria-label="Chế độ xem"
 						className="flex shrink-0 overflow-hidden rounded-[var(--fb-radius)] border border-[var(--fb-border)]"
 						role="group"
 					>
@@ -223,7 +223,7 @@ export function FileView<TMetadata>({
 								onClick={() => setMode(option)}
 								type="button"
 							>
-								{option === 'edit' ? 'Edit' : 'Preview'}
+								{option === 'edit' ? 'Chỉnh sửa' : 'Xem trước'}
 							</button>
 						))}
 					</div>
@@ -233,22 +233,21 @@ export function FileView<TMetadata>({
 			{phase.type === 'conflict' ? (
 				<Banner tone="danger">
 					<span className="min-w-0 flex-1">
-						<strong>This file changed since you opened it.</strong> Reload to get the latest version, or keep yours and
-						overwrite those changes.
+						<strong>Tệp này đã thay đổi kể từ khi bạn mở.</strong> Tải lại để nhận phiên bản mới nhất, hoặc giữ phiên bản của bạn và ghi đè những thay đổi đó.
 					</span>
 					<button className={SECONDARY} onClick={() => void load()} type="button">
-						Reload
+						Tải lại
 					</button>
 					<button className={DANGER} onClick={() => void write()} type="button">
-						Keep my version
+						Giữ phiên bản của tôi
 					</button>
 				</Banner>
 			) : null}
 			{pendingLeave ? (
 				<Banner tone="neutral">
-					<span className="min-w-0 flex-1 font-semibold">Discard unsaved changes?</span>
+					<span className="min-w-0 flex-1 font-semibold">Hủy các thay đổi chưa lưu?</span>
 					<button className={SECONDARY} onClick={() => setPendingLeave(null)} type="button">
-						Keep editing
+						Tiếp tục chỉnh sửa
 					</button>
 					<button
 						className={DANGER}
@@ -260,7 +259,7 @@ export function FileView<TMetadata>({
 						}}
 						type="button"
 					>
-						Discard
+						Hủy bỏ
 					</button>
 				</Banner>
 			) : null}
@@ -268,7 +267,7 @@ export function FileView<TMetadata>({
 				<Banner tone="danger">
 					<span className="min-w-0 flex-1">{error}</span>
 					<button className={SECONDARY} onClick={() => void load()} type="button">
-						Try again
+						Thử lại
 					</button>
 				</Banner>
 			) : null}
@@ -276,7 +275,7 @@ export function FileView<TMetadata>({
 			<div className="min-h-0 min-w-0 flex-1 overflow-auto bg-[var(--fb-bg)] p-[var(--fb-pad)]">
 				{phase.type === 'loading' ? (
 					<p className="m-0 text-[var(--fb-muted)]" role="status">
-						Loading…
+						Đang tải…
 					</p>
 				) : mode === 'edit' && editor ? (
 					Editor ? (
@@ -289,7 +288,7 @@ export function FileView<TMetadata>({
 						/>
 					) : (
 						<textarea
-							aria-label={`${item.name} contents`}
+							aria-label={`Nội dung ${item.name}`}
 							className="block h-full min-h-[min(420px,55dvh)] w-full min-w-0 resize-y rounded-[var(--fb-radius)] border border-[var(--fb-border)] bg-[var(--fb-surface)] p-4 font-mono text-[calc(var(--fb-font)-1px)] leading-relaxed text-[var(--fb-text)] outline-none focus:border-[var(--fb-accent)] [@media(pointer:coarse)]:text-[16px]"
 							onChange={(event) => setEdited(event.target.value)}
 							spellCheck={false}
@@ -308,9 +307,9 @@ export function FileView<TMetadata>({
 						>
 							<Icon className="size-8" strokeWidth={1.5} />
 						</span>
-						<div className="font-semibold">No preview for this file</div>
+						<div className="font-semibold">Không có bản xem trước cho tệp này</div>
 						<div className="text-[var(--fb-font-sm)] text-[var(--fb-muted)]">
-							Download it to open it on your device.
+							Tải tệp xuống để mở trên thiết bị của bạn.
 						</div>
 					</div>
 				)}
@@ -320,13 +319,13 @@ export function FileView<TMetadata>({
 				{mode === 'edit' && editor ? (
 					<>
 						<span aria-live="polite" className={tooLong ? 'font-semibold text-[var(--fb-danger)]' : ''}>
-							{formatBytes(bytes)} of {formatBytes(maxBytes)}
-							{dirty ? ' · Unsaved changes' : ''}
+							{formatBytes(bytes)} / {formatBytes(maxBytes)}
+							{dirty ? ' · Thay đổi chưa lưu' : ''}
 						</span>
 						{/* Save blockers sit in the footer so they never push the editor down while typing. */}
 						{invalid || tooLong ? (
 							<span className="min-w-0 truncate font-semibold text-[var(--fb-danger)]" role="alert">
-								{invalid ?? `Too long. Shorten it to ${formatBytes(maxBytes)} or less to save.`}
+								{invalid ?? `Nội dung quá dài. Hãy rút ngắn xuống ${formatBytes(maxBytes)} hoặc ít hơn để lưu.`}
 							</span>
 						) : null}
 						<span aria-hidden="true" className="mr-auto" />
@@ -337,7 +336,7 @@ export function FileView<TMetadata>({
 							</span>
 						) : null}
 						<button className={SECONDARY} onClick={() => guard(discardEdits)} type="button">
-							Cancel
+							Hủy
 						</button>
 						<button
 							className={PRIMARY}
@@ -346,30 +345,30 @@ export function FileView<TMetadata>({
 							type="button"
 						>
 							<Check aria-hidden="true" className="size-3.5" />
-							{phase.type === 'saving' ? 'Saving…' : 'Save'}
+							{phase.type === 'saving' ? 'Đang lưu…' : 'Lưu'}
 						</button>
 					</>
 				) : (
 					<>
 						<span className="mr-auto">
-							{item.modifiedAt ? `Modified ${new Date(item.modifiedAt).toLocaleString()}` : ''}
+							{item.modifiedAt ? `Đã sửa đổi: ${new Date(item.modifiedAt).toLocaleString('vi-VN')}` : ''}
 						</span>
 						{url ? (
 							<a
-								aria-label={`Open original ${item.name}`}
+								aria-label={`Mở bản gốc ${item.name}`}
 								className={`${SECONDARY} no-underline`}
 								href={url}
 								rel="noreferrer"
 								target="_blank"
 							>
 								<ExternalLink aria-hidden="true" className="size-3.5" />
-								Open original
+								Mở bản gốc
 							</a>
 						) : null}
 						{onDownload ? (
-							<button aria-label={`Download ${item.name}`} className={PRIMARY} onClick={onDownload} type="button">
+							<button aria-label={`Tải xuống ${item.name}`} className={PRIMARY} onClick={onDownload} type="button">
 								<Download aria-hidden="true" className="size-3.5" />
-								Download
+								Tải xuống
 							</button>
 						) : null}
 					</>

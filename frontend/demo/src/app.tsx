@@ -30,38 +30,38 @@ type DemoMode = {
 const DEMO_MODES: DemoMode[] = [
 	{
 		id: 'full',
-		label: 'Full',
-		description: 'All optional in-memory capabilities enabled.'
+		label: 'Đầy đủ',
+		description: 'Bật toàn bộ tính năng bộ nhớ tùy chọn.'
 	},
 	{
 		id: 'readonly',
-		label: 'Read-only',
-		description: 'Viewer mode with mutation affordances removed.'
+		label: 'Chỉ xem',
+		description: 'Chế độ người xem, tắt các quyền chỉnh sửa.'
 	},
 	{
 		id: 'minimal',
-		label: 'Minimal',
-		description: 'Mutations, server zip, and client-zip fallback omitted.'
+		label: 'Tối giản',
+		description: 'Bỏ qua thao tác sửa đổi và nén zip.'
 	},
 	{
 		id: 'policy',
-		label: 'Upload policy',
-		description: 'MIME, size, and quota rejection paths enabled.'
+		label: 'Chính sách tải lên',
+		description: 'Bật kiểm tra định dạng MIME, kích thước và hạn mức.'
 	},
 	{
 		id: 'compact',
-		label: 'Compact',
-		description: 'Same markup with compact density tokens.'
+		label: 'Thu gọn',
+		description: 'Giao diện tương tự với mật độ hiển thị thu nhỏ.'
 	},
 	{
 		id: 'empty',
-		label: 'Host empty',
-		description: 'Custom root label and React content for a host-specific empty state.'
+		label: 'Thư mục trống',
+		description: 'Nhãn gốc tùy chỉnh và trạng thái trống.'
 	},
 	{
 		id: 'denied',
-		label: 'Denied',
-		description: 'Access-denied loading state from the adapter.'
+		label: 'Từ chối',
+		description: 'Trạng thái từ chối truy cập từ adapter.'
 	}
 ]
 
@@ -156,7 +156,7 @@ export function App() {
 				<FileBrowserProvider>
 					<section className="flex flex-wrap items-center gap-2 rounded-[var(--fb-radius)] border border-[var(--fb-border)] bg-[var(--fb-surface)] p-2">
 						<div className="mr-auto w-full min-w-0 px-1 lg:w-auto">
-							<h1 className="m-0 text-[14px] font-semibold">React File Browser (In-Memory Demo)</h1>
+							<h1 className="m-0 text-[14px] font-semibold">Trình duyệt tệp React (Thử nghiệm bộ nhớ)</h1>
 							<p className="m-0 mt-0.5 text-[12px] text-[var(--fb-muted)]">{activeMode.description}</p>
 						</div>
 						<button
@@ -167,7 +167,7 @@ export function App() {
 							☁️ Kết nối Agentic Cloud
 						</button>
 						<select
-							aria-label="Demo mode"
+							aria-label="Chế độ thử nghiệm"
 							className="min-h-[calc(var(--fb-gap)*11)] w-full min-w-0 rounded-[var(--fb-radius)] border border-[var(--fb-border)] bg-[var(--fb-surface)] px-[calc(var(--fb-gap)*2)] text-[16px] sm:hidden"
 							onChange={(event) => setMode(event.target.value as DemoMode['id'])}
 							value={mode}
@@ -208,21 +208,21 @@ export function App() {
 							emptyState={
 								mode === 'empty'
 									? {
-											description: <span>Upload a source to begin indexing.</span>,
-											title: <strong>No RAG sources</strong>
+											description: <span>Tải lên một nguồn dữ liệu để bắt đầu lập chỉ mục.</span>,
+											title: <strong>Không có nguồn dữ liệu RAG</strong>
 										}
 									: undefined
 							}
 							key={mode}
 							readOnly={mode === 'readonly'}
-							rootLabel={mode === 'empty' ? 'RAG' : 'Files'}
+							rootLabel={mode === 'empty' ? 'RAG' : 'Tệp tin'}
 							uploadConflictResolutions={mode === 'policy' ? ['keep-both', 'skip'] : undefined}
 							uploadPolicy={uploadPolicy}
 							warnZipSizeBytes={64}
 						/>
 					) : (
 						<div className="grid min-h-[min(520px,100svh)] place-items-center rounded-[var(--fb-radius)] border border-[var(--fb-border)] bg-[var(--fb-surface)] text-[12px] text-[var(--fb-muted)]">
-							Loading demo files
+							Đang tải tệp mẫu...
 						</div>
 					)}
 				</FileBrowserProvider>

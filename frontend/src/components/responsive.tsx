@@ -191,12 +191,12 @@ export function ActionSheet({ children, label, onClose }: { children: ReactNode;
 				<header className="mb-2 flex items-center justify-between gap-[calc(var(--fb-gap)*2)] border-b border-[var(--fb-border)] pb-2">
 					<h2 className="m-0 min-w-0 truncate text-[15px] font-bold">{label}</h2>
 					<button
-						aria-label={`Close ${label}`}
+						aria-label={`Đóng ${label}`}
 						className="min-h-[calc(var(--fb-gap)*11)] shrink-0 rounded-[var(--fb-radius)] px-[calc(var(--fb-gap)*3)] font-semibold text-[color-mix(in_oklch,var(--fb-accent)_80%,var(--fb-text))] focus-visible:outline-2 focus-visible:outline-[var(--fb-accent)]"
 						onClick={onClose}
 						type="button"
 					>
-						Close
+						Đóng
 					</button>
 				</header>
 				{children}

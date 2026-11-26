@@ -106,7 +106,7 @@ export const AuthModal: React.FC<{ onSkipDemo?: () => void }> = ({ onSkipDemo })
 							onChange={(e) => setEmail(e.target.value)}
 							required
 							className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
-							placeholder="Email"
+							placeholder="Địa chỉ email"
 						/>
 					</div>
 				)}

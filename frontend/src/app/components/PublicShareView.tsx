@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { apiClient } from '../../adapters/agentic-cloud/api-client'
+import { useNotification } from '../context/NotificationContext'
 import type { NodeResponse, PublicShareInfoResponse } from '../../adapters/agentic-cloud/types'
 
 function formatBytes(bytes?: number | null): string {
@@ -14,6 +15,7 @@ export const PublicShareView: React.FC<{
 	shareToken: string
 	onBackHome: () => void
 }> = ({ shareToken, onBackHome }) => {
+	const { showToast } = useNotification()
 	const [info, setInfo] = useState<PublicShareInfoResponse | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -66,11 +68,14 @@ export const PublicShareView: React.FC<{
 			if (res.success && res.data?.access_token) {
 				setSessionToken(res.data.access_token)
 				setIsPasswordRequired(false)
+				showToast({ type: 'success', message: 'Mở khóa tệp thành công!' })
 			} else {
 				throw new Error(res.message || 'Mật khẩu không chính xác')
 			}
 		} catch (err: unknown) {
-			setUnlockError(err instanceof Error ? err.message : 'Mở khóa thất bại')
+			const msg = err instanceof Error ? err.message : 'Mở khóa thất bại'
+			setUnlockError(msg)
+			showToast({ type: 'error', message: msg })
 		} finally {
 			setUnlocking(false)
 		}
@@ -101,6 +106,7 @@ export const PublicShareView: React.FC<{
 		try {
 			const targetId = nodeId ?? info?.node_id
 			if (!targetId) return
+			showToast({ type: 'info', message: 'Đang tạo liên kết tải xuống...' })
 			const res = await apiClient.getPublicDownloadUrl(shareToken, targetId, sessionToken || undefined)
 			if (res.success && res.data?.url) {
 				const a = document.createElement('a')
@@ -110,9 +116,10 @@ export const PublicShareView: React.FC<{
 				document.body.appendChild(a)
 				a.click()
 				a.remove()
+				showToast({ type: 'success', message: 'Bắt đầu tải xuống tệp' })
 			}
 		} catch (err: unknown) {
-			alert(err instanceof Error ? err.message : 'Tải xuống thất bại')
+			showToast({ type: 'error', message: err instanceof Error ? err.message : 'Tải xuống thất bại' })
 		}
 	}
 
@@ -125,7 +132,7 @@ export const PublicShareView: React.FC<{
 						☁️
 					</div>
 					<div>
-						<h1 className="text-base font-bold text-gray-900 dark:text-white">Agentic Cloud Storage</h1>
+						<h1 className="text-base font-bold text-gray-900 dark:text-white">Agentic Cloud - Lưu trữ đám mây</h1>
 						<p className="text-xs text-gray-400">Liên kết chia sẻ công khai</p>
 					</div>
 				</div>

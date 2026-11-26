@@ -119,38 +119,38 @@ const TEXT_MIME_TYPES = new Set([
 ])
 
 const TYPE_LABELS: Record<string, string> = {
-	pdf: 'PDF document',
-	doc: 'Word document',
-	docx: 'Word document',
-	xls: 'Excel spreadsheet',
-	xlsx: 'Excel spreadsheet',
-	ppt: 'PowerPoint deck',
-	pptx: 'PowerPoint deck',
-	csv: 'CSV spreadsheet',
-	tsv: 'TSV spreadsheet',
-	md: 'Markdown',
-	markdown: 'Markdown',
-	txt: 'Plain text',
-	json: 'JSON',
-	html: 'HTML page',
-	htm: 'HTML page',
-	svg: 'SVG image',
-	zip: 'ZIP archive'
+	pdf: 'Tài liệu PDF',
+	doc: 'Tài liệu Word',
+	docx: 'Tài liệu Word',
+	xls: 'Bảng tính Excel',
+	xlsx: 'Bảng tính Excel',
+	ppt: 'Bản trình bày PowerPoint',
+	pptx: 'Bản trình bày PowerPoint',
+	csv: 'Bảng tính CSV',
+	tsv: 'Bảng tính TSV',
+	md: 'Tài liệu Markdown',
+	markdown: 'Tài liệu Markdown',
+	txt: 'Văn bản thuần',
+	json: 'Tệp JSON',
+	html: 'Trang HTML',
+	htm: 'Trang HTML',
+	svg: 'Hình ảnh SVG',
+	zip: 'Tệp nén ZIP'
 }
 
 const CATEGORY_LABELS: Record<FileBrowserFileCategory, string> = {
-	folder: 'Folder',
-	pdf: 'PDF document',
-	image: 'Image',
+	folder: 'Thư mục',
+	pdf: 'Tài liệu PDF',
+	image: 'Hình ảnh',
 	video: 'Video',
-	audio: 'Audio',
-	archive: 'Archive',
-	spreadsheet: 'Spreadsheet',
-	presentation: 'Presentation',
-	document: 'Document',
-	code: 'Code',
-	text: 'Text',
-	other: 'File'
+	audio: 'Âm thanh',
+	archive: 'Tệp nén',
+	spreadsheet: 'Bảng tính',
+	presentation: 'Bản trình bày',
+	document: 'Tài liệu',
+	code: 'Mã nguồn',
+	text: 'Văn bản',
+	other: 'Tệp tin'
 }
 
 const CATEGORY_ICONS: Record<FileBrowserFileCategory, LucideIcon> = {
@@ -203,7 +203,7 @@ export function getFileCategory<TMetadata>(item: FileNode<TMetadata>): FileBrows
 }
 
 export function getFileTypeLabel<TMetadata>(item: FileNode<TMetadata>): string {
-	if (item.kind === 'folder') return 'Folder'
+	if (item.kind === 'folder') return 'Thư mục'
 	return TYPE_LABELS[getFileExtension(item.name)] ?? CATEGORY_LABELS[getFileCategory(item)]
 }
 

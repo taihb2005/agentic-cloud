@@ -233,8 +233,8 @@ export class AgenticCloudStorageAdapter implements FileBrowserAdapter<Record<str
 		if (nodeIds.length === 0) return
 
 		const res = await this.client.post('/api/v1/storage-service/nodes/move', {
-			target_parent_id: String(targetParentId),
-			node_ids: nodeIds
+			src_node_ids: nodeIds,
+			dst_node_id: String(targetParentId)
 		})
 
 		if (!res.success) {
@@ -268,7 +268,7 @@ export class AgenticCloudStorageAdapter implements FileBrowserAdapter<Record<str
 		if (nodeIds.length === 0) return
 
 		const res = await this.client.delete('/api/v1/storage-service/nodes', {
-			node_ids: nodeIds.join(',')
+			node_ids: nodeIds
 		})
 
 		if (!res.success) {

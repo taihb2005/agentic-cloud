@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Star } from 'lucide-react'
 import {
 	FileBrowser,
 	FileBrowserProvider,
@@ -12,12 +12,16 @@ import { docxPreviewer } from '../plugins/docx'
 import { markdownEditor, markdownPreviewer } from '../plugins/markdown'
 import { xlsxEditor, xlsxPreviewer } from '../plugins/xlsx'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { NotificationProvider, useNotification } from './context/NotificationContext'
 import { AuthModal } from './components/AuthModal'
 import { Header } from './components/Header'
 import { Sidebar, type SidebarTab } from './components/Sidebar'
 import { ShareModal } from './components/ShareModal'
 import { SharedWithMeView } from './components/SharedWithMeView'
 import { PublicShareView } from './components/PublicShareView'
+import { TrashView } from './components/TrashView'
+import { StarredView } from './components/StarredView'
+import { apiClient } from '../adapters/agentic-cloud/api-client'
 
 const PREVIEWERS = [
 	codePreviewer,
@@ -40,8 +44,10 @@ const EDITORS = [
 
 const AgenticCloudInner: React.FC<{ onSwitchDemo?: () => void }> = ({ onSwitchDemo }) => {
 	const { isAuthenticated, isLoading, adapter, user } = useAuth()
+	const { showToast } = useNotification()
 	const [currentTab, setCurrentTab] = useState<SidebarTab>('files')
 	const [shareTarget, setShareTarget] = useState<{ id: string | number; name: string; isFolder: boolean } | null>(null)
+	const [, setStarUpdateTick] = useState(0)
 
 	// URL query parameter (?path=...) navigation state
 	const [currentPath, setCurrentPath] = useState<string>(() => {
@@ -141,6 +147,15 @@ const AgenticCloudInner: React.FC<{ onSwitchDemo?: () => void }> = ({ onSwitchDe
 				<main className="relative flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden bg-white p-4 dark:bg-neutral-900">
 					{currentTab === 'shared' ? (
 						<SharedWithMeView />
+					) : currentTab === 'trash' ? (
+						<TrashView />
+					) : currentTab === 'starred' ? (
+						<StarredView
+							onNavigateFolder={(folderPath) => {
+								setCurrentTab('files')
+								handlePathChange(folderPath)
+							}}
+						/>
 					) : (
 						<FileBrowserProvider>
 							<div className="flex h-full w-full flex-col min-h-0">
@@ -167,31 +182,74 @@ const AgenticCloudInner: React.FC<{ onSwitchDemo?: () => void }> = ({ onSwitchDe
 									path={currentPath}
 									onPathChange={handlePathChange}
 									className="flex-1 min-h-0 h-full w-full"
-									rootLabel={user?.username ? `${user.username}'s Drive` : 'Tệp của tôi'}
+									rootLabel={user?.username ? `Kho lưu trữ của ${user.username}` : 'Tệp của tôi'}
+									emptyState={{
+										title: 'Thư mục này còn trống',
+										description: 'Tạo thư mục hoặc tải tệp lên để bắt đầu lưu trữ.'
+									}}
 									previewers={PREVIEWERS}
 									editors={EDITORS}
 									initialView="list"
 									density="comfortable"
-									renderItemMeta={(item) => (
-										<button
-											type="button"
-											onClick={(e) => {
-												e.stopPropagation()
-												if (item.id) {
-													setShareTarget({
-														id: item.id,
-														name: item.name,
-														isFolder: item.kind === 'folder'
-													})
-												}
-											}}
-											className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-900"
-											title="Chia sẻ tệp hoặc thư mục này"
-										>
-											<span>🔗</span>
-											<span>Chia sẻ</span>
-										</button>
-									)}
+									renderItemMeta={(item) => {
+										const isStarred = Boolean((item.metadata as Record<string, unknown> | undefined)?.isStarred)
+										return (
+											<div className="inline-flex items-center gap-1">
+												<button
+													type="button"
+													onClick={async (e) => {
+														e.stopPropagation()
+														if (item.id) {
+															try {
+																const nextState = !isStarred
+																await apiClient.toggleStar(item.id, nextState)
+																if (item.metadata) {
+																	;(item.metadata as Record<string, unknown>).isStarred = nextState
+																}
+																setStarUpdateTick((t) => t + 1)
+																showToast({
+																	type: 'success',
+																	message: nextState ? `Đã gắn sao "${item.name}"` : `Đã hủy gắn sao "${item.name}"`
+																})
+															} catch (err: unknown) {
+																showToast({
+																	type: 'error',
+																	message: err instanceof Error ? err.message : 'Không thể cập nhật sao'
+																})
+															}
+														}
+													}}
+													className={`inline-flex items-center justify-center rounded-md p-1 transition ${
+														isStarred
+															? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+															: 'text-gray-400 hover:bg-gray-100 hover:text-amber-500 dark:hover:bg-neutral-800'
+													}`}
+													title={isStarred ? 'Hủy gắn sao' : 'Gắn sao mục này'}
+												>
+													<Star size={14} fill={isStarred ? 'currentColor' : 'none'} />
+												</button>
+
+												<button
+													type="button"
+													onClick={(e) => {
+														e.stopPropagation()
+														if (item.id) {
+															setShareTarget({
+																id: item.id,
+																name: item.name,
+																isFolder: item.kind === 'folder'
+															})
+														}
+													}}
+													className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-900"
+													title="Chia sẻ tệp hoặc thư mục này"
+												>
+													<span>🔗</span>
+													<span>Chia sẻ</span>
+												</button>
+											</div>
+										)
+									}}
 								/>
 							</div>
 						</FileBrowserProvider>
@@ -217,8 +275,10 @@ export const AgenticCloudApp: React.FC<{ onSwitchDemo?: () => void; gatewayUrl?:
 	gatewayUrl
 }) => {
 	return (
-		<AuthProvider gatewayUrl={gatewayUrl}>
-			<AgenticCloudInner onSwitchDemo={onSwitchDemo} />
-		</AuthProvider>
+		<NotificationProvider>
+			<AuthProvider gatewayUrl={gatewayUrl}>
+				<AgenticCloudInner onSwitchDemo={onSwitchDemo} />
+			</AuthProvider>
+		</NotificationProvider>
 	)
 }

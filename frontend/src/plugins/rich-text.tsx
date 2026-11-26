@@ -7,33 +7,33 @@ import Squire from 'squire-rte'
 type Command = { id: string; label: string; icon: LucideIcon; tag: string; run: (editor: Squire) => void }
 
 const COMMANDS: Array<Command | '|'> = [
-	{ id: 'bold', label: 'Bold', icon: Bold, tag: 'B', run: (editor) => toggle(editor, 'B', 'bold', 'removeBold') },
+	{ id: 'bold', label: 'In đậm', icon: Bold, tag: 'B', run: (editor) => toggle(editor, 'B', 'bold', 'removeBold') },
 	{
 		id: 'italic',
-		label: 'Italic',
+		label: 'In nghiêng',
 		icon: Italic,
 		tag: 'I',
 		run: (editor) => toggle(editor, 'I', 'italic', 'removeItalic')
 	},
 	'|',
-	{ id: 'heading', label: 'Heading', icon: Heading2, tag: 'H2', run: toggleHeading },
+	{ id: 'heading', label: 'Tiêu đề', icon: Heading2, tag: 'H2', run: toggleHeading },
 	{
 		id: 'bullets',
-		label: 'Bulleted list',
+		label: 'Danh sách dấu đầu dòng',
 		icon: List,
 		tag: 'UL',
 		run: (editor) => (editor.hasFormat('UL') ? editor.removeList() : editor.makeUnorderedList())
 	},
 	{
 		id: 'numbers',
-		label: 'Numbered list',
+		label: 'Danh sách đánh số',
 		icon: ListOrdered,
 		tag: 'OL',
 		run: (editor) => (editor.hasFormat('OL') ? editor.removeList() : editor.makeOrderedList())
 	},
 	'|',
-	{ id: 'link', label: 'Link', icon: LinkIcon, tag: 'A', run: () => undefined },
-	{ id: 'code', label: 'Code', icon: Code, tag: 'CODE', run: (editor) => editor.toggleCode() }
+	{ id: 'link', label: 'Liên kết', icon: LinkIcon, tag: 'A', run: () => undefined },
+	{ id: 'code', label: 'Mã nguồn', icon: Code, tag: 'CODE', run: (editor) => editor.toggleCode() }
 ]
 
 function toggle(editor: Squire, tag: string, add: 'bold' | 'italic', remove: 'removeBold' | 'removeItalic') {
@@ -169,7 +169,7 @@ export function RichTextSurface({
 		>
 			<style>{RICH_TEXT_CSS}</style>
 			<div
-				aria-label="Formatting"
+				aria-label="Định dạng"
 				className="flex min-w-0 items-center gap-0.5 overflow-x-auto border-b border-[var(--fb-border)] bg-[var(--fb-surface-2)] p-1.5"
 				role="toolbar"
 			>
@@ -202,7 +202,7 @@ export function RichTextSurface({
 						}}
 					>
 						<input
-							aria-label="Link address"
+							aria-label="Địa chỉ liên kết"
 							autoFocus
 							className="h-[30px] w-[220px] min-w-0 rounded-[calc(var(--fb-radius)-2px)] border border-[var(--fb-border)] bg-[var(--fb-surface)] px-2 text-[calc(var(--fb-font)-1px)] text-[var(--fb-text)] outline-none focus:border-[var(--fb-accent)]"
 							onChange={(event) => setLinkUrl(event.target.value)}
@@ -220,7 +220,7 @@ export function RichTextSurface({
 							onMouseDown={(event) => event.preventDefault()}
 							type="submit"
 						>
-							Add link
+							Thêm liên kết
 						</button>
 					</form>
 				) : null}

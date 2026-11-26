@@ -90,7 +90,7 @@ export const pdfPreviewer: FileBrowserPreviewer = {
 	component: ({ item, url }) => (
 		<object aria-label={item.name} className={FRAME_CLASS} data={url} type="application/pdf">
 			<a className="font-semibold text-[var(--fb-accent)] underline" href={url} rel="noreferrer" target="_blank">
-				Open {item.name}
+				Mở {item.name}
 			</a>
 		</object>
 	)

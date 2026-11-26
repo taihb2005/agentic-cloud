@@ -341,11 +341,17 @@ Lấy thông tin cá nhân và thông tin không gian lưu trữ của người 
 
 ---
 
-### 4.4. Xóa người dùng (`DELETE /user-service/users/{id}`)
+### 4.4. Xóa người dùng (`DELETE /user-service/users/{id}` và `DELETE /user-service/users/me`)
 
-- **Endpoint:** `DELETE /user-service/users/{id}`
-- **Phân quyền:** `@PreAuthorize("hasRole('ADMIN')")` (Chỉ dành cho ADMIN)
-- **Path Parameter:**
+Xóa vĩnh viễn (hard delete) tài khoản người dùng trong `user-service`, đồng thời phát sự kiện Kafka `USER_DELETED` sang `storage-service` để xóa cứng toàn bộ dữ liệu lưu trữ trên Cloud (DB & MinIO).
+
+- **Endpoint:**
+  - `DELETE /user-service/users/me` (Xóa tài khoản của chính người dùng đang đăng nhập)
+  - `DELETE /user-service/users/{id}` (Xóa tài khoản theo ID)
+- **Phân quyền:**
+  - `DELETE /user-service/users/me`: Mọi người dùng đã xác thực
+  - `DELETE /user-service/users/{id}`: `@PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")` (Chỉ quản trị viên hoặc chính chủ tài khoản)
+- **Path Parameter (`DELETE /user-service/users/{id}`):**
   - `id` (UUID, Bắt buộc): ID tài khoản cần xóa.
 - **Response `200 OK` (`ApiResponse<Void>`):**
 
@@ -359,7 +365,7 @@ Lấy thông tin cá nhân và thông tin không gian lưu trữ của người 
 ```
 
 - **Mã lỗi thường gặp:**
-  - `403 Forbidden`: Không có quyền ADMIN.
+  - `403 Forbidden`: Không có quyền ADMIN và không phải chủ sở hữu tài khoản.
   - `404 Not Found`: Không tìm thấy user cần xóa.
 
 ---

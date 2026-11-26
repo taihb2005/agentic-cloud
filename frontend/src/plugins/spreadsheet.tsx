@@ -210,14 +210,14 @@ export function Spreadsheet({
 
 function buildMenu(worksheet: WorksheetInstance, column: number, row: number, role: string): MenuItem[] {
 	const rowItems: MenuItem[] = [
-		{ title: 'Insert row above', onclick: () => void worksheet.insertRow(1, row, 1) },
-		{ title: 'Insert row below', onclick: () => void worksheet.insertRow(1, row) },
-		{ title: 'Delete row', onclick: () => void worksheet.deleteRow(row, 1) }
+		{ title: 'Chèn hàng phía trên', onclick: () => void worksheet.insertRow(1, row, 1) },
+		{ title: 'Chèn hàng phía dưới', onclick: () => void worksheet.insertRow(1, row) },
+		{ title: 'Xóa hàng', onclick: () => void worksheet.deleteRow(row, 1) }
 	]
 	const columnItems: MenuItem[] = [
-		{ title: 'Insert column left', onclick: () => void worksheet.insertColumn(1, column, true) },
-		{ title: 'Insert column right', onclick: () => void worksheet.insertColumn(1, column, false) },
-		{ title: 'Delete column', onclick: () => void worksheet.deleteColumn(column, 1) }
+		{ title: 'Chèn cột bên trái', onclick: () => void worksheet.insertColumn(1, column, true) },
+		{ title: 'Chèn cột bên phải', onclick: () => void worksheet.insertColumn(1, column, false) },
+		{ title: 'Xóa cột', onclick: () => void worksheet.deleteColumn(column, 1) }
 	]
 	const hasRow = Number.isInteger(row) && row >= 0
 	const hasColumn = Number.isInteger(column) && column >= 0

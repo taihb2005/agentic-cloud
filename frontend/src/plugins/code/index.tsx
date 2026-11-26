@@ -178,14 +178,14 @@ function MarkupSurface({
 				onSave={onSave}
 			/>
 			<div
-				aria-label={`${item.name} live preview`}
+				aria-label={`Xem trước trực tiếp ${item.name}`}
 				className="min-h-[min(520px,60dvh)] min-w-0 overflow-auto rounded-[var(--fb-radius)] border border-[var(--fb-border)] bg-[var(--fb-surface-2)]"
 				role="group"
 			>
 				{isSvg(item) ? (
 					// An <img> renders SVG without running its scripts or loading external resources.
 					<img
-						alt={`${item.name} preview`}
+						alt={`Xem trước ${item.name}`}
 						className="m-auto block max-h-full max-w-full p-4"
 						src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`}
 					/>
@@ -195,7 +195,7 @@ function MarkupSurface({
 						className="size-full min-h-[min(520px,60dvh)] border-0 bg-white"
 						sandbox=""
 						srcDoc={source}
-						title={`${item.name} preview`}
+						title={`Xem trước ${item.name}`}
 					/>
 				)}
 			</div>
@@ -258,7 +258,7 @@ function JsonSurface({
 					}}
 					type="button"
 				>
-					Format
+					Định dạng
 				</button>
 			</div>
 			<CodeSurface

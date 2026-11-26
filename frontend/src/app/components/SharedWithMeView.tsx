@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { apiClient } from '../../adapters/agentic-cloud/api-client'
+import { useNotification } from '../context/NotificationContext'
 import type { SharedWithMeNodeResponse } from '../../adapters/agentic-cloud/types'
 
 function formatBytes(bytes?: number | null): string {
@@ -13,6 +14,7 @@ function formatBytes(bytes?: number | null): string {
 export const SharedWithMeView: React.FC<{
 	onOpenNode?: (nodeId: number | string, nodeName: string, isFolder: boolean) => void
 }> = ({ onOpenNode }) => {
+	const { showToast } = useNotification()
 	const [items, setItems] = useState<SharedWithMeNodeResponse[]>([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -67,6 +69,10 @@ export const SharedWithMeView: React.FC<{
 
 	const handleDownloadFile = async (node: SharedWithMeNodeResponse) => {
 		try {
+			showToast({
+				type: 'info',
+				message: `Bắt đầu tải về "${node.name}"...`
+			})
 			const res = await apiClient.post<import('../../adapters/agentic-cloud/types').DownloadUrlsResponse>(
 				'/api/v1/storage-service/files/download-urls',
 				{ files: [{ node_id: String(node.node_id) }] },
@@ -79,14 +85,21 @@ export const SharedWithMeView: React.FC<{
 				const downloadUrl = res.data.download_urls[0].url
 				const a = document.createElement('a')
 				a.href = downloadUrl
-				a.download = node.node_name
+				a.download = node.name
 				a.target = '_blank'
 				document.body.appendChild(a)
 				a.click()
 				a.remove()
+				showToast({
+					type: 'success',
+					message: `Tải xuống hoàn tất: ${node.name}`
+				})
 			}
 		} catch (err: unknown) {
-			alert(err instanceof Error ? err.message : 'Tải xuống thất bại')
+			showToast({
+				type: 'error',
+				message: err instanceof Error ? err.message : 'Tải xuống thất bại'
+			})
 		}
 	}
 

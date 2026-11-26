@@ -233,7 +233,11 @@ export class ApiClient {
 		})
 	}
 
-	async delete<T>(endpoint: string, query?: Record<string, string | number | boolean | undefined>): Promise<ApiResponse<T>> {
+	async delete<T>(
+		endpoint: string,
+		body?: unknown,
+		query?: Record<string, string | number | boolean | undefined>
+	): Promise<ApiResponse<T>> {
 		let path = endpoint
 		if (query) {
 			const params = new URLSearchParams()
@@ -247,7 +251,10 @@ export class ApiClient {
 				path += (path.includes('?') ? '&' : '?') + qs
 			}
 		}
-		return this.request<T>(path, { method: 'DELETE' })
+		return this.request<T>(path, {
+			method: 'DELETE',
+			body: body ? JSON.stringify(body) : undefined
+		})
 	}
 
 	// ==================== User Service APIs ====================
@@ -381,6 +388,47 @@ export class ApiClient {
 			{ node_id: Number(nodeId) },
 			headers
 		)
+	}
+
+	// ==================== Storage Service: Trash, Move, Star APIs ====================
+
+	async moveNodes(srcNodeIds: string[], dstNodeId: string): Promise<ApiResponse<unknown>> {
+		return this.post('/api/v1/storage-service/nodes/move', {
+			src_node_ids: srcNodeIds,
+			dst_node_id: dstNodeId
+		})
+	}
+
+	async softDeleteNodes(nodeIds: string[]): Promise<ApiResponse<unknown>> {
+		return this.delete('/api/v1/storage-service/nodes', { node_ids: nodeIds })
+	}
+
+	async getTrash(params?: {
+		page?: number
+		size?: number
+		sort?: string
+	}): Promise<ApiResponse<PagedResponse<import('./types').NodeResponse>>> {
+		return this.get<PagedResponse<import('./types').NodeResponse>>('/api/v1/storage-service/nodes/trash', params)
+	}
+
+	async restoreTrash(nodeIds: string[]): Promise<ApiResponse<unknown>> {
+		return this.post('/api/v1/storage-service/trash/restore', { node_ids: nodeIds })
+	}
+
+	async permanentDeleteTrash(nodeIds?: string[]): Promise<ApiResponse<unknown>> {
+		return this.delete('/api/v1/storage-service/nodes/trash/permanent', { node_ids: nodeIds || [] })
+	}
+
+	async getStarredNodes(params?: {
+		page?: number
+		size?: number
+		sort?: string
+	}): Promise<ApiResponse<PagedResponse<import('./types').NodeResponse>>> {
+		return this.get<PagedResponse<import('./types').NodeResponse>>('/api/v1/storage-service/nodes/starred', params)
+	}
+
+	async toggleStar(nodeId: string | number, starred: boolean): Promise<ApiResponse<import('./types').NodeResponse>> {
+		return this.patch<import('./types').NodeResponse>(`/api/v1/storage-service/nodes/${nodeId}`, { starred })
 	}
 }
 

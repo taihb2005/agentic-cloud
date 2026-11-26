@@ -15,20 +15,25 @@ Tài liệu này mô tả chi tiết các RESTful API dùng để duyệt cây t
 
 ---
 
-## 1. Duyệt danh sách File & Folder con
+## 1. Duyệt danh sách File & Folder con / Tìm kiếm trên toàn bộ Workspace
 
-Lấy danh sách các file/folder con trực tiếp của một thư mục (hoặc thư mục gốc), có hỗ trợ tìm kiếm theo tên, loại node, MIME type và phân trang.
+Lấy danh sách các file/folder con trực tiếp của một thư mục (hoặc thư mục gốc), hoặc tìm kiếm đệ quy trên toàn bộ workspace theo tên, loại node, MIME type và phân trang.
 
 - **Method & Endpoint:** `GET /storage-service/nodes`
 - **Controller:** `FsNodeController.getChildNodes`
+- **Cơ chế Phạm vi Tìm kiếm:**
+  - Nếu không truyền `parent_id` (hoặc để trống) và **không có bộ lọc tìm kiếm**, API trả về các mục con trực tiếp của thư mục gốc (`root`).
+  - Nếu không truyền `parent_id` nhưng **có truyền ít nhất một bộ lọc** (`name`, `node_type`, `mime_type`), API tự động tìm kiếm đệ quy trên **toàn bộ workspace** của người dùng.
+  - Nếu muốn chỉ lọc các mục con trực tiếp tại thư mục gốc, truyền `parent_id=root` (hoặc `recursive=false`). Nếu muốn tìm kiếm đệ quy trong một thư mục con cụ thể, truyền `parent_id=<id>` kèm `recursive=true`.
 - **Đầu vào (Query Parameters):**
 
 | Tham số | Kiểu dữ liệu | Mặc định | Mô tả |
 |---|---|:---:|---|
-| `parent_id` | String | `null` | ID của thư mục cha. Để `null` hoặc bỏ trống để lấy thư mục gốc (Root) |
+| `parent_id` | String | `null` | ID của thư mục cha. Để `null` hoặc bỏ trống để lấy thư mục gốc (khi duyệt) hoặc tìm trên toàn bộ workspace (khi có bộ lọc). Truyền `"root"` để cố định ở thư mục gốc |
 | `node_type` | String | `null` | Bộ lọc loại node: `FILE` hoặc `FOLDER`. Bỏ trống để lấy cả hai |
-| `name` | String | `null` | Lọc theo tên file/folder (tìm kiếm chứa từ khóa) |
+| `name` | String | `null` | Lọc theo tên file/folder (tìm kiếm chứa từ khóa, không phân biệt hoa thường) |
 | `mime_type` | String | `null` | Lọc theo kiểu MIME (ví dụ: `application/pdf`) |
+| `recursive` | Boolean | `null` | Tìm kiếm đệ quy mọi cấp thư mục con (mặc định tự động bật khi `parent_id` trống và có bộ lọc tìm kiếm) |
 | `page` | Integer | `0` | Chỉ số trang hiện tại (bắt đầu từ 0) |
 | `size` | Integer | `20` | Số lượng bản ghi trên mỗi trang |
 | `sort` | String / List | `name,asc` | Tiêu chí sắp xếp (ví dụ: `name,asc` hoặc `created_at,desc`) |
@@ -87,9 +92,11 @@ Lấy danh sách các file/folder con trực tiếp của một thư mục (ho�
 
 ---
 
-## 2. Tạo Thư mục mới
+## 2. Tạo Thư mục mới (Đơn lẻ & Đệ quy)
 
-Tạo một folder mới bên trong thư mục chỉ định hoặc tại thư mục gốc.
+### 2.1. Tạo Thư mục Đơn lẻ
+
+Tạo một folder mới trực tiếp bên trong thư mục chỉ định hoặc tại thư mục gốc.
 
 - **Method & Endpoint:** `POST /storage-service/nodes/folders`
 - **Controller:** `FsNodeFolderController.createFolder`
@@ -104,7 +111,7 @@ Tạo một folder mới bên trong thư mục chỉ định hoặc tại thư m
 
 | Thuộc tính | Kiểu dữ liệu | Bắt buộc | Mô tả |
 |---|---|:---:|---|
-| `name` | String | Có | Tên thư mục mới cần tạo |
+| `name` | String | Có | Tên thư mục đơn lẻ mới cần tạo (không chứa dấu `/` hoặc `\`) |
 | `parent_id` | String | Không | ID thư mục cha. Truyền `null` hoặc bỏ trống để tạo tại Root |
 
 - **Đầu ra `200 OK` (`ApiResponse<NodeResponse>`):**
@@ -131,6 +138,82 @@ Tạo một folder mới bên trong thư mục chỉ định hoặc tại thư m
     "deleted_at": null
   },
   "timestamp": "2026-10-30T10:15:00Z"
+}
+```
+
+### 2.2. Tạo Cây Thư mục Đệ quy
+
+Tạo một đường dẫn gồm nhiều cấp thư mục lồng nhau (ví dụ: `"Du-an-2026/Tai-lieu/Bao-cao-Q1"`, giới hạn tối đa **10 cấp**).
+- Các thư mục cha trung gian trên đường dẫn nếu đã tồn tại (và là `FOLDER`) sẽ được tự động tái sử dụng.
+- Báo lỗi `400 Bad Request` nếu:
+  - Một cấp trung gian đã tồn tại nhưng là `FILE`.
+  - Thư mục lá cuối cùng đã tồn tại từ trước.
+  - Đường dẫn vượt quá 10 cấp hoặc chứa cấp rỗng (`//`), `.` hoặc `..`.
+- Toàn bộ thao tác mang tính nguyên tử (Transactional): nếu xảy ra lỗi ở bất kỳ cấp nào, hệ thống tự động rollback Database và dọn sạch các object thư mục vừa sinh trên MinIO.
+
+- **Method & Endpoint:** `POST /storage-service/nodes/folders/recursive`
+- **Controller:** `FsNodeFolderController.createFolderRecursive`
+- **Đầu vào (Request Body - `CreateRecursiveFolderRequest`):**
+
+```json
+{
+  "path": "Du-an-2026/Tai-lieu/Bao-cao-Q1",
+  "parent_id": "1"
+}
+```
+
+| Thuộc tính | Kiểu dữ liệu | Bắt buộc | Mô tả |
+|---|---|:---:|---|
+| `path` | String | Có | Đường dẫn thư mục tương đối phân tách bằng `/` (tối đa 10 cấp). Alias: `folder_path`, `folderPath`, `name` |
+| `parent_id` | String | Không | ID thư mục cha gốc nơi bắt đầu tạo. Truyền `null`, bỏ trống hoặc `"root"` để tạo từ Root. Alias: `parentId` |
+
+- **Đầu ra `200 OK` (`ApiResponse<RecursiveFolderCreationResponse>`):**
+
+```json
+{
+  "success": true,
+  "message": "Tạo thư mục đệ quy thành công",
+  "code": 200,
+  "data": {
+    "leaf_node": {
+      "id": 15,
+      "parent_id": 14,
+      "path": "root.1.13.14.15",
+      "name": "Bao-cao-Q1",
+      "is_folder": true,
+      "node_status": "ACTIVE",
+      "mime_type": null,
+      "size_bytes": 0,
+      "etag": "\"d41d8cd98f00b204e9800998ecf8427e\"",
+      "file_hash": null,
+      "is_starred": false,
+      "created_at": "2026-10-30T10:18:00",
+      "updated_at": "2026-10-30T10:18:00",
+      "deleted_at": null
+    },
+    "first_created_node_id": 14,
+    "created_count": 2,
+    "reused_count": 1,
+    "created_nodes": [
+      {
+        "id": 14,
+        "parent_id": 13,
+        "path": "root.1.13.14",
+        "name": "Tai-lieu",
+        "is_folder": true,
+        "node_status": "ACTIVE"
+      },
+      {
+        "id": 15,
+        "parent_id": 14,
+        "path": "root.1.13.14.15",
+        "name": "Bao-cao-Q1",
+        "is_folder": true,
+        "node_status": "ACTIVE"
+      }
+    ]
+  },
+  "timestamp": "2026-10-30T10:18:00Z"
 }
 ```
 

@@ -76,8 +76,9 @@ Mọi phản hồi JSON từ `storage-service` đều bọc trong cấu trúc ch
 
 | Method  | Path | Request (Query / Body) | Response (`data`) | Trạng thái | Mô tả chi tiết |
 | :--- | :--- | :--- | :--- | :---: | :--- |
-| `GET` | `/storage-service/nodes` | Query: `parent_id`, `node_type`, `name`, `mime_type`, `page`, `size`, `sort` | `PagedResponse<NodeResponse>` | **Đã triển khai** | Liệt kê các node con trực tiếp. Bỏ trống `parent_id` để lấy thư mục gốc (Root). |
-| `POST` | `/storage-service/nodes/folders` | Body: `CreateFolderRequest` (`name`, `parent_id`) | `NodeResponse` | **Đã triển khai** | Tạo thư mục mới ở trạng thái `ACTIVE`. |
+| `GET` | `/storage-service/nodes` | Query: `parent_id`, `node_type`, `name`, `mime_type`, `recursive`, `page`, `size`, `sort` | `PagedResponse<NodeResponse>` | **Đã triển khai** | Duyệt các node con trực tiếp hoặc tìm kiếm toàn bộ workspace (khi bỏ trống `parent_id` kèm bộ lọc hoặc `recursive=true`). |
+| `POST` | `/storage-service/nodes/folders` | Body: `CreateFolderRequest` (`name`, `parent_id`) | `NodeResponse` | **Đã triển khai** | Tạo một thư mục đơn lẻ mới ở trạng thái `ACTIVE`. |
+| `POST` | `/storage-service/nodes/folders/recursive` | Body: `CreateRecursiveFolderRequest` (`path`, `parent_id`) | `RecursiveFolderCreationResponse` | **Đã triển khai** | Tạo cây thư mục đệ quy theo đường dẫn (ví dụ `A/B/C`, tối đa 10 cấp, tái sử dụng thư mục cha nếu đã tồn tại). |
 | `GET` | `/storage-service/nodes/{id}` | Path: `id` (String) | `NodeResponse` | **Đã triển khai** | Lấy metadata chi tiết của một node. |
 | `PATCH` | `/storage-service/nodes/{id}` | Body: `UpdateNodeRequest` (`name`, `starred`) | `NodeResponse` | **Đã triển khai** | Đổi tên hoặc cập nhật trạng thái quan trọng (`starred`). |
 | `DELETE`| `/storage-service/nodes` | Body: `BatchNodesRequest` (`node_ids`) | `BatchOperationResponse<DeleteResult, NodeFailureResult>` | **Đã triển khai** | **Xóa mềm (Soft Delete):** Đưa danh sách node vào thùng rác. |

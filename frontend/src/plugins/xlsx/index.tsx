@@ -99,6 +99,6 @@ export const xlsxEditor: FileBrowserEditor = {
 	match: isXlsx,
 	read: 'binary',
 	maxBytes: 10 * 1024 * 1024,
-	saveWarning: 'Saving keeps cell values only. Formatting, formulas and charts are lost.',
+	saveWarning: 'Việc lưu chỉ giữ lại giá trị ô. Định dạng, công thức và biểu đồ sẽ bị mất.',
 	component: ({ content, item, onChange }) => <Workbook content={content} item={item} onChange={onChange} />
 }

@@ -94,8 +94,9 @@ Các mã lỗi nghiệp vụ chuẩn trong `OperationFailure` (`FailureCode`):
 | | `GET` | `/storage-service/storage/users/storage/{id}` | Lấy metadata không gian lưu trữ và node gốc của user |
 | | `POST` | `/storage-service/storage/users/init` | Khởi tạo storage và thư mục root cho user |
 | | `POST` | `/storage-service/storage/users/{userId}/init` | Khởi tạo nhanh storage bằng path variable |
-| **Quản lý Thư mục** | `POST` | `/storage-service/nodes/folders` | Tạo mới một thư mục con |
-| **Duyệt & Thao tác Node** | `GET` | `/storage-service/nodes` | Duyệt danh sách file/folder con (hỗ trợ lọc và phân trang) |
+| **Quản lý Thư mục** | `POST` | `/storage-service/nodes/folders` | Tạo mới một thư mục con đơn lẻ |
+| | `POST` | `/storage-service/nodes/folders/recursive` | Tạo cây thư mục đệ quy theo đường dẫn (tối đa 10 cấp) |
+| **Duyệt & Thao tác Node** | `GET` | `/storage-service/nodes` | Duyệt danh sách file/folder con hoặc tìm kiếm trên toàn bộ workspace (hỗ trợ lọc và phân trang) |
 | | `GET` | `/storage-service/nodes/{id}` | Lấy thông tin metadata chi tiết của một node |
 | | `PATCH` | `/storage-service/nodes/{id}` | Đổi tên hoặc cập nhật trạng thái quan trọng (starred) |
 | | `DELETE` | `/storage-service/nodes` | Xóa mềm danh sách node (chuyển vào thùng rác) |
@@ -211,7 +212,7 @@ Base route: `/storage-service/storage/users` (hoặc `/storage/users`)
 
 Base route: `/storage-service/nodes/folders`
 
-#### 4.2.1. Tạo thư mục mới
+#### 4.2.1. Tạo thư mục đơn lẻ
 
 - **Endpoint:** `POST /storage-service/nodes/folders`
 - **Header:** `X-User-Id`
@@ -226,7 +227,7 @@ Base route: `/storage-service/nodes/folders`
 
 | Trường | Kiểu | Bắt buộc | Mô tả |
 |---|---|:---:|---|
-| `name` | string | Có | Tên thư mục cần tạo |
+| `name` | string | Có | Tên thư mục đơn lẻ cần tạo (không chứa dấu `/` hoặc `\`) |
 | `parent_id` | string | Không | ID thư mục cha. Để `null` hoặc không truyền để tạo tại Root |
 
 - **Response `200 OK` (`ApiResponse<NodeResponse>`):**
@@ -256,6 +257,79 @@ Base route: `/storage-service/nodes/folders`
 }
 ```
 
+#### 4.2.2. Tạo cây thư mục đệ quy (Recursive Folder Creation)
+
+Tạo một chuỗi thư mục lồng nhau theo đường dẫn phân tách bởi dấu `/` (ví dụ: `"Du-an-2026/Tai-lieu/Bao-cao-Q1"`, tối đa **10 cấp**).
+- **Quy tắc xử lý từng cấp:**
+  - Nếu thư mục cha trung gian trên đường dẫn đã tồn tại (và là `FOLDER`), hệ thống sẽ tự động **tái sử dụng** thư mục đó để đi tiếp cấp con.
+  - Nếu một cấp trung gian đã tồn tại nhưng là `FILE`, hoặc thư mục lá cuối cùng đã tồn tại, hệ thống trả về lỗi `400 Bad Request` và tự động rollback toàn bộ các cấp vừa tạo trong phiên đó (cả trên Database và MinIO).
+
+- **Endpoint:** `POST /storage-service/nodes/folders/recursive`
+- **Header:** `X-User-Id`
+- **Request Body (`CreateRecursiveFolderRequest`):**
+
+```json
+{
+  "path": "Du-an-2026/Tai-lieu/Bao-cao-Q1",
+  "parent_id": "1"
+}
+```
+
+| Trường | Kiểu | Bắt buộc | Mô tả |
+|---|---|:---:|---|
+| `path` | string | Có | Đường dẫn thư mục tương đối phân tách bằng `/` (tối đa 10 cấp). Hỗ trợ alias: `folder_path`, `folderPath`, `name` |
+| `parent_id` | string | Không | ID thư mục cha nơi bắt đầu tạo. Để `null`, bỏ trống hoặc `"root"` để bắt đầu từ Root. Alias: `parentId` |
+
+- **Response `200 OK` (`ApiResponse<RecursiveFolderCreationResponse>`):**
+
+```json
+{
+  "success": true,
+  "message": "Tạo thư mục đệ quy thành công",
+  "code": 200,
+  "data": {
+    "leaf_node": {
+      "id": 15,
+      "parent_id": 14,
+      "path": "root.1.13.14.15",
+      "name": "Bao-cao-Q1",
+      "is_folder": true,
+      "node_status": "ACTIVE",
+      "mime_type": null,
+      "size_bytes": 0,
+      "etag": "\"d41d8cd98f00b204e9800998ecf8427e\"",
+      "file_hash": null,
+      "is_starred": false,
+      "created_at": "2026-10-30T10:18:00",
+      "updated_at": "2026-10-30T10:18:00",
+      "deleted_at": null
+    },
+    "first_created_node_id": 14,
+    "created_count": 2,
+    "reused_count": 1,
+    "created_nodes": [
+      {
+        "id": 14,
+        "parent_id": 13,
+        "path": "root.1.13.14",
+        "name": "Tai-lieu",
+        "is_folder": true,
+        "node_status": "ACTIVE"
+      },
+      {
+        "id": 15,
+        "parent_id": 14,
+        "path": "root.1.13.14.15",
+        "name": "Bao-cao-Q1",
+        "is_folder": true,
+        "node_status": "ACTIVE"
+      }
+    ]
+  },
+  "timestamp": "2026-10-30T10:18:00Z"
+}
+```
+
 ---
 
 ### 4.3. Nhóm Duyệt & Thao tác Node (`FsNodeController`)
@@ -263,17 +337,22 @@ Base route: `/storage-service/nodes/folders`
 Base route: `/storage-service/nodes`  
 Header bắt buộc: `X-User-Id: <UUID>`
 
-#### 4.3.1. Lấy danh sách file/folder con (Duyệt thư mục)
+#### 4.3.1. Lấy danh sách file/folder con & Tìm kiếm trên toàn bộ Workspace
 
 - **Endpoint:** `GET /storage-service/nodes`
+- **Cơ chế Phạm vi Tìm kiếm (Browse vs. Workspace Search):**
+  - **Duyệt thư mục (Direct Children):** Khi không truyền bộ lọc tìm kiếm (hoặc truyền cụ thể `parent_id` như `"12"` hay `"root"` với `recursive` không bật), API chỉ trả về các file/folder con trực tiếp của thư mục cha đó (`nlevel + 1`).
+  - **Tìm kiếm toàn bộ Workspace (Workspace-wide Search):** Khi `parent_id` để trống (`null` / `""`) **và** có ít nhất một bộ lọc tìm kiếm (`name`, `node_type`, hoặc `mime_type`), hệ thống tự động tìm kiếm đệ quy trên toàn bộ workspace của người dùng (bỏ qua node gốc `root`).
+  - **Ép buộc tìm kiếm đệ quy (`recursive`):** Có thể truyền trực tiếp `recursive=true` để tìm kiếm đệ quy toàn bộ cây thư mục con bên dưới một `parent_id` bất kỳ, hoặc `recursive=false` để chỉ tìm ở cấp con trực tiếp.
 - **Query Parameters:**
 
 | Tham số | Kiểu | Mặc định | Mô tả |
 |---|---|:---:|---|
-| `parent_id` | string | `null` | ID thư mục cha (bỏ trống để lấy thư mục gốc) |
+| `parent_id` | string | `null` | ID thư mục cha (bỏ trống để lấy thư mục gốc khi duyệt, hoặc tìm trên toàn bộ workspace khi đi kèm bộ lọc; truyền `"root"` để cố định chỉ ở thư mục gốc) |
 | `node_type` | string | `null` | Lọc theo loại node: `FILE` hoặc `FOLDER` |
-| `name` | string | `null` | Lọc theo tên file/thư mục |
+| `name` | string | `null` | Lọc theo tên file/thư mục (không phân biệt hoa thường) |
 | `mime_type` | string | `null` | Lọc theo MIME type (ví dụ `application/pdf`) |
+| `recursive` | boolean | `null` | Tìm kiếm đệ quy mọi cấp thư mục con (mặc định tự động = `true` khi `parent_id` trống và có bộ lọc tìm kiếm) |
 | `page` | integer | `0` | Chỉ số trang |
 | `size` | integer | `20` | Kích thước trang |
 | `sort` | string/list | `name,asc` | Tiêu chí sắp xếp |

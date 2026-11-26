@@ -214,7 +214,7 @@ export function FileBrowser<TMetadata = unknown>({
 	initialView,
 	path,
 	onPathChange,
-	rootLabel = 'Files',
+	rootLabel = 'Tệp tin',
 	searchQuery,
 	initialSearchQuery,
 	onSearchQueryChange,
@@ -444,7 +444,7 @@ export function FileBrowser<TMetadata = unknown>({
 				return
 			}
 			browser.copySelection(paths)
-			setActionNotice(`Copied ${formatItemCount(paths.length)}`)
+			setActionNotice(`Đã sao chép ${formatItemCount(paths.length)}`)
 		},
 		[browser]
 	)
@@ -454,7 +454,7 @@ export function FileBrowser<TMetadata = unknown>({
 				return
 			}
 			browser.cutSelection(paths)
-			setActionNotice(`Cut ${formatItemCount(paths.length)}`)
+			setActionNotice(`Đã cắt ${formatItemCount(paths.length)}`)
 		},
 		[browser]
 	)
@@ -463,14 +463,14 @@ export function FileBrowser<TMetadata = unknown>({
 			return
 		}
 		await navigator.clipboard.writeText(paths.join(', '))
-		setActionNotice(paths.length === 1 ? 'Copied path' : `Copied ${paths.length} paths`)
+		setActionNotice(paths.length === 1 ? 'Đã sao chép đường dẫn' : `Đã sao chép ${paths.length} đường dẫn`)
 	}, [])
 	const pasteClipboardInto = useCallback(
 		async (toDir: string) => {
 			const pastedCount = browser.clipboard?.paths.length ?? 0
 			await browser.pasteInto(toDir)
 			if (pastedCount > 0) {
-				setActionNotice(`Pasted ${formatItemCount(pastedCount)}`)
+				setActionNotice(`Đã dán ${formatItemCount(pastedCount)}`)
 			}
 		},
 		[browser]
@@ -784,7 +784,7 @@ export function FileBrowser<TMetadata = unknown>({
 	}
 
 	function announceMove(count: number, toDir: string) {
-		setActionNotice(`Moved ${formatItemCount(count)} to ${getFileBrowserBasename(toDir) || rootLabel}`)
+		setActionNotice(`Đã di chuyển ${formatItemCount(count)} đến ${getFileBrowserBasename(toDir) || rootLabel}`)
 	}
 
 	async function moveSelectedItems() {
@@ -1247,26 +1247,26 @@ export function FileBrowser<TMetadata = unknown>({
 
 	const viewToggle = (
 		<div
-			aria-label="View"
+			aria-label="Chế độ xem"
 			className="flex shrink-0 overflow-hidden rounded-[var(--fb-radius)] border border-[var(--fb-border)] bg-[var(--fb-surface)]"
 			role="group"
 		>
 			<button
-				aria-label="List view"
+				aria-label="Dạng danh sách"
 				aria-pressed={browser.view === 'list'}
 				className={segmentButton(browser.view === 'list')}
 				onClick={() => browser.setView('list')}
-				title="List view"
+				title="Dạng danh sách"
 				type="button"
 			>
 				<List aria-hidden="true" className="size-4" strokeWidth={2} />
 			</button>
 			<button
-				aria-label="Grid view"
+				aria-label="Dạng lưới"
 				aria-pressed={browser.view === 'grid'}
 				className={segmentButton(browser.view === 'grid')}
 				onClick={() => browser.setView('grid')}
-				title="Grid view"
+				title="Dạng lưới"
 				type="button"
 			>
 				<LayoutGrid aria-hidden="true" className="size-4" strokeWidth={2} />
@@ -1277,27 +1277,27 @@ export function FileBrowser<TMetadata = unknown>({
 	const secondaryControls = (
 		<div className="flex min-w-0 flex-wrap items-center gap-3">
 			<SelectField
-				aria-label="Filter files"
+				aria-label="Lọc tệp"
 				icon={ListFilter}
 				onChange={(event) => browser.setFilterKind(event.target.value as 'all' | 'files' | 'folders')}
 				value={browser.filterKind}
 			>
-				<option value="all">All kinds</option>
-				<option value="folders">Folders</option>
-				<option value="files">Files</option>
+				<option value="all">Tất cả định dạng</option>
+				<option value="folders">Thư mục</option>
+				<option value="files">Tệp tin</option>
 			</SelectField>
 			<SelectField
-				aria-label="Sort files"
+				aria-label="Sắp xếp tệp"
 				icon={ArrowUpDown}
 				onChange={(event) => browser.setSortBy(event.target.value as 'name' | 'modifiedAt' | 'size')}
 				value={browser.sortBy}
 			>
-				<option value="name">Name</option>
-				<option value="modifiedAt">Modified</option>
-				<option value="size">Size</option>
+				<option value="name">Tên</option>
+				<option value="modifiedAt">Ngày sửa đổi</option>
+				<option value="size">Kích thước</option>
 			</SelectField>
 			<button
-				aria-label="Toggle sort direction"
+				aria-label="Đổi thứ tự sắp xếp"
 				className={toolButton(false)}
 				onClick={() => browser.setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))}
 				type="button"
@@ -1320,7 +1320,7 @@ export function FileBrowser<TMetadata = unknown>({
 					type="button"
 				>
 					<FolderPlus aria-hidden="true" className="size-4" />
-					New folder
+					Thư mục mới
 				</button>
 			) : null}
 			{isNarrow ? (
@@ -1333,7 +1333,7 @@ export function FileBrowser<TMetadata = unknown>({
 					}}
 					type="button"
 				>
-					Select items
+					Chọn mục
 				</button>
 			) : null}
 			{isNarrow && !readOnly && browser.clipboard ? (
@@ -1345,7 +1345,7 @@ export function FileBrowser<TMetadata = unknown>({
 					}}
 					type="button"
 				>
-					Paste here
+					Dán vào đây
 				</button>
 			) : null}
 		</div>
@@ -1484,7 +1484,7 @@ export function FileBrowser<TMetadata = unknown>({
 							{mobileSelection ? (
 								<div className="flex w-full min-w-0 items-center gap-[calc(var(--fb-gap)*2)]">
 									<button
-										aria-label="Exit selection"
+										aria-label="Thoát chọn"
 										className={`${toolButton(false)} border-transparent bg-transparent`}
 										onClick={exitMobileSelection}
 										type="button"
@@ -1492,14 +1492,14 @@ export function FileBrowser<TMetadata = unknown>({
 										<XIcon aria-hidden="true" className="size-4" />
 									</button>
 									<span className="mr-auto whitespace-nowrap text-[17px] font-bold">
-										{browser.selectedPaths.length} selected
+										Đã chọn {browser.selectedPaths.length}
 									</span>
 									<button
 										className={`${barButton('ghost')} font-semibold ${ACCENT_INK}`}
 										onClick={browser.selectAllLoaded}
 										type="button"
 									>
-										Select all
+										Chọn tất cả
 									</button>
 								</div>
 							) : (
@@ -1518,7 +1518,7 @@ export function FileBrowser<TMetadata = unknown>({
 									{isNarrow ? viewToggle : null}
 									{isNarrow ? (
 										<button
-											aria-label="Browser options"
+											aria-label="Tùy chọn trình duyệt"
 											aria-expanded={toolbarOpen}
 											aria-haspopup="dialog"
 											className={toolButton(false)}
@@ -1540,10 +1540,10 @@ export function FileBrowser<TMetadata = unknown>({
 											strokeWidth={2}
 										/>
 										<input
-											aria-label="Search files"
+											aria-label="Tìm kiếm tệp"
 											className={`h-[var(--fb-control-h)] min-h-[var(--fb-control-h)] w-full min-w-0 rounded-[var(--fb-radius)] border border-[var(--fb-border)] bg-[var(--fb-surface)] pl-9 pr-3 text-[16px] text-[var(--fb-text)] outline-none placeholder:text-[var(--fb-muted)] focus:border-[var(--fb-accent)] focus:ring-[3px] focus:ring-[color-mix(in_oklch,var(--fb-accent)_15%,transparent)] @min-[40rem]/fb:text-[var(--fb-font)] [@media(pointer:coarse)]:min-h-[calc(var(--fb-gap)*11)] [@media(pointer:coarse)]:text-[16px] ${CONTROL_MOTION}`}
 											onChange={(event) => browser.setSearchQuery(event.target.value)}
-											placeholder="Search this folder"
+											placeholder="Tìm kiếm trong thư mục này"
 											type="search"
 											value={browser.searchQuery}
 										/>
@@ -1552,7 +1552,7 @@ export function FileBrowser<TMetadata = unknown>({
 									{!isNarrow && !readOnly ? (
 										<button className={primaryButton()} onClick={() => uploadInputRef.current?.click()} type="button">
 											<Upload aria-hidden="true" className="size-4" />
-											Upload
+											Tải lên
 										</button>
 									) : null}
 								</div>
@@ -1584,8 +1584,8 @@ export function FileBrowser<TMetadata = unknown>({
 							) : browser.filteredItems.length === 0 ? (
 								<StateMessage
 									icon="folder"
-									title={emptyState ? emptyState.title : 'This folder is empty'}
-									value={emptyState ? emptyState.description : 'Create a folder or upload files to start.'}
+									title={emptyState ? emptyState.title : 'Thư mục này trống'}
+									value={emptyState ? emptyState.description : 'Tạo thư mục hoặc tải tệp lên để bắt đầu.'}
 								/>
 							) : browser.view === 'grid' ? (
 								<FileGrid
@@ -1662,8 +1662,8 @@ export function FileBrowser<TMetadata = unknown>({
 									<span className="grid size-[72px] place-items-center rounded-full bg-[var(--fb-accent)] text-[var(--fb-surface)]">
 										<Upload aria-hidden="true" className="size-8" strokeWidth={2} />
 									</span>
-									<span className={`text-[20px] font-bold ${ACCENT_INK}`}>Drop files to upload</span>
-									<span className="text-[var(--fb-font)] text-[var(--fb-muted)]">Folders keep their structure</span>
+									<span className={`text-[20px] font-bold ${ACCENT_INK}`}>Thả tệp để tải lên</span>
+									<span className="text-[var(--fb-font)] text-[var(--fb-muted)]">Thư mục giữ nguyên cấu trúc</span>
 								</div>
 							) : null}
 						</div>
@@ -1673,7 +1673,7 @@ export function FileBrowser<TMetadata = unknown>({
 						>
 							{mobileSelection ? (
 								<div
-									aria-label="Selection actions"
+									aria-label="Thao tác chọn"
 									className="flex w-full flex-wrap items-center gap-[calc(var(--fb-gap)*2)]"
 									role="toolbar"
 								>
@@ -1684,23 +1684,23 @@ export function FileBrowser<TMetadata = unknown>({
 										type="button"
 									>
 										<MoreHorizontal aria-hidden="true" className="size-4" />
-										Actions
+										Thao tác
 									</button>
 								</div>
 							) : null}
 							<span>
-								{browser.filteredItems.length} items
-								{browser.selectedPaths.length ? ` · ${browser.selectedPaths.length} selected` : ''}
+								{browser.filteredItems.length} mục
+								{browser.selectedPaths.length ? ` · Đã chọn ${browser.selectedPaths.length}` : ''}
 							</span>
 							{isNarrow && !readOnly && !mobileSelection ? (
 								<button
-									aria-label="Upload"
+									aria-label="Tải lên"
 									className={`${primaryButton()} absolute bottom-[calc(var(--fb-gap)*14)] right-4 rounded-full px-5 shadow-[0_10px_24px_color-mix(in_oklch,var(--fb-accent)_35%,transparent)]`}
 									onClick={() => uploadInputRef.current?.click()}
 									type="button"
 								>
 									<Upload aria-hidden="true" className="size-5" />
-									Upload
+									Tải lên
 								</button>
 							) : null}
 							{browser.hasMore ? (
@@ -1709,7 +1709,7 @@ export function FileBrowser<TMetadata = unknown>({
 									onClick={() => void browser.loadMore()}
 									type="button"
 								>
-									Load more
+									Tải thêm
 								</button>
 							) : (
 								<span />
@@ -1720,12 +1720,12 @@ export function FileBrowser<TMetadata = unknown>({
 			</div>
 
 			{isNarrow && toolbarOpen ? (
-				<ActionSheet label="Browser options" onClose={() => setToolbarOpen(false)}>
+				<ActionSheet label="Tùy chọn trình duyệt" onClose={() => setToolbarOpen(false)}>
 					{secondaryControls}
 				</ActionSheet>
 			) : null}
 			{mobileSelection && selectionActionsOpen ? (
-				<ActionSheet label="Selected item actions" onClose={() => setSelectionActionsOpen(false)}>
+				<ActionSheet label="Thao tác mục đã chọn" onClose={() => setSelectionActionsOpen(false)}>
 					<div
 						onClick={(event) => {
 							if ((event.target as Element).closest('button:not(:disabled)')) setSelectionActionsOpen(false)
@@ -1766,7 +1766,7 @@ export function FileBrowser<TMetadata = unknown>({
 			) : null}
 
 			{newFolderOpen ? (
-				<ResponsiveDialog label="New folder" narrow={isNarrow} onClose={() => setNewFolderOpen(false)}>
+				<ResponsiveDialog label="Thư mục mới" narrow={isNarrow} onClose={() => setNewFolderOpen(false)}>
 					<form
 						className={`${DIALOG_SURFACE} max-w-[420px]`}
 						onSubmit={(event) => {
@@ -1774,12 +1774,12 @@ export function FileBrowser<TMetadata = unknown>({
 							void createFolder()
 						}}
 					>
-						<h2 className={DIALOG_TITLE}>New folder</h2>
+						<h2 className={DIALOG_TITLE}>Thư mục mới</h2>
 						<label className="mt-4 flex flex-col gap-1.5 text-[calc(var(--fb-font)-1px)] font-semibold">
-							Folder name
+							Tên thư mục
 							<input
 								aria-invalid={newFolderError ? true : undefined}
-								aria-label="Folder name"
+								aria-label="Tên thư mục"
 								className={textInput(Boolean(newFolderError))}
 								onChange={(event) => {
 									setNewFolderName(event.target.value)
@@ -1802,10 +1802,10 @@ export function FileBrowser<TMetadata = unknown>({
 								}}
 								type="button"
 							>
-								Cancel
+								Hủy
 							</button>
 							<button className={primaryButton()} type="submit">
-								Create folder
+								Tạo thư mục
 							</button>
 						</div>
 					</form>
@@ -1813,7 +1813,7 @@ export function FileBrowser<TMetadata = unknown>({
 			) : null}
 
 			{renameItem ? (
-				<ResponsiveDialog label="Rename item" narrow={isNarrow} onClose={() => setRenameItem(null)}>
+				<ResponsiveDialog label="Đổi tên mục" narrow={isNarrow} onClose={() => setRenameItem(null)}>
 					<form
 						className={`${DIALOG_SURFACE} max-w-[420px]`}
 						onSubmit={(event) => {
@@ -1821,12 +1821,12 @@ export function FileBrowser<TMetadata = unknown>({
 							void renameSelectedItem()
 						}}
 					>
-						<h2 className={DIALOG_TITLE}>Rename</h2>
+						<h2 className={DIALOG_TITLE}>Đổi tên</h2>
 						<label className="mt-4 flex flex-col gap-1.5 text-[calc(var(--fb-font)-1px)] font-semibold">
-							New name
+							Tên mới
 							<input
 								aria-invalid={renameError ? true : undefined}
-								aria-label="New name"
+								aria-label="Tên mới"
 								className={textInput(Boolean(renameError))}
 								onChange={(event) => {
 									setRenameValue(event.target.value)
@@ -1850,10 +1850,10 @@ export function FileBrowser<TMetadata = unknown>({
 								}}
 								type="button"
 							>
-								Cancel
+								Hủy
 							</button>
 							<button className={primaryButton()} type="submit">
-								Rename item
+								Đổi tên mục
 							</button>
 						</div>
 					</form>
@@ -1861,7 +1861,7 @@ export function FileBrowser<TMetadata = unknown>({
 			) : null}
 
 			{deleteConfirmOpen ? (
-				<ResponsiveDialog label="Delete selected items" narrow={isNarrow} onClose={() => setDeleteConfirmOpen(false)}>
+				<ResponsiveDialog label="Xóa các mục đã chọn" narrow={isNarrow} onClose={() => setDeleteConfirmOpen(false)}>
 					<form
 						className={`${DIALOG_SURFACE} max-w-[420px]`}
 						onSubmit={(event) => {
@@ -1872,8 +1872,8 @@ export function FileBrowser<TMetadata = unknown>({
 						<span className="grid size-11 place-items-center rounded-full bg-[var(--fb-danger-soft)] text-[var(--fb-danger)]">
 							<Trash2 aria-hidden="true" className="size-5" />
 						</span>
-						<h2 className={`${DIALOG_TITLE} mt-3.5`}>Delete selected items</h2>
-						<p className={DIALOG_BODY}>This removes the selected entries from storage.</p>
+						<h2 className={`${DIALOG_TITLE} mt-3.5`}>Xóa các mục đã chọn</h2>
+						<p className={DIALOG_BODY}>Hành động này sẽ xóa các mục đã chọn khỏi bộ nhớ lưu trữ.</p>
 						<ul
 							className={`m-0 mt-3 max-h-32 list-none overflow-auto rounded-[var(--fb-radius)] border border-[var(--fb-border)] bg-[var(--fb-bg)] px-3 py-1.5 text-[calc(var(--fb-font)-1px)] ${SURFACE_MOTION}`}
 						>
@@ -1886,10 +1886,10 @@ export function FileBrowser<TMetadata = unknown>({
 						</ul>
 						<div className={DIALOG_ACTIONS}>
 							<button className={commandButton(false)} onClick={() => setDeleteConfirmOpen(false)} type="button">
-								Cancel
+								Hủy
 							</button>
 							<button className={dangerButton()} type="submit">
-								Delete selected
+								Xóa đã chọn
 							</button>
 						</div>
 					</form>
@@ -1897,7 +1897,7 @@ export function FileBrowser<TMetadata = unknown>({
 			) : null}
 
 			{moveDialogOpen ? (
-				<ResponsiveDialog label="Move selected items" narrow={isNarrow} onClose={() => setMoveDialogOpen(false)}>
+				<ResponsiveDialog label="Di chuyển các mục đã chọn" narrow={isNarrow} onClose={() => setMoveDialogOpen(false)}>
 					<form
 						className={`${DIALOG_SURFACE} max-w-[480px]`}
 						onSubmit={(event) => {
@@ -1905,8 +1905,8 @@ export function FileBrowser<TMetadata = unknown>({
 							void moveSelectedItems()
 						}}
 					>
-						<h2 className={DIALOG_TITLE}>Move selected items</h2>
-						<p className={`${DIALOG_BODY} mt-1`}>Choose a destination folder from the folder tree.</p>
+						<h2 className={DIALOG_TITLE}>Di chuyển các mục đã chọn</h2>
+						<p className={`${DIALOG_BODY} mt-1`}>Chọn một thư mục đích từ cây thư mục.</p>
 						<MoveDestinationPicker
 							currentPath={browser.currentPath}
 							destinations={moveDestinations}
@@ -1917,14 +1917,14 @@ export function FileBrowser<TMetadata = unknown>({
 							status={moveDestinationStatus}
 						/>
 						<div className="mt-3 truncate text-[var(--fb-font-sm)] text-[var(--fb-muted)]">
-							Destination: {moveDestination}
+							Đích đến: {moveDestination}
 						</div>
 						<div className={DIALOG_ACTIONS}>
 							<button className={commandButton(false)} onClick={() => setMoveDialogOpen(false)} type="button">
-								Cancel
+								Hủy
 							</button>
 							<button className={primaryButton()} type="submit">
-								Move here
+								Di chuyển đến đây
 							</button>
 						</div>
 					</form>
@@ -2083,15 +2083,15 @@ function applyUploadPolicy(
 		const reasons: string[] = []
 
 		if (policy.maxFileSizeBytes !== undefined && candidate.file.size > policy.maxFileSizeBytes) {
-			reasons.push(`File is larger than ${formatBytes(policy.maxFileSizeBytes)}`)
+			reasons.push(`Kích thước tệp vượt quá ${formatBytes(policy.maxFileSizeBytes)}`)
 		}
 
 		if (policy.allowedMimeTypes?.length && !isAllowedUploadType(candidate.file, policy.allowedMimeTypes)) {
-			reasons.push(`File type ${candidate.file.type || 'unknown'} is not allowed`)
+			reasons.push(`Định dạng tệp ${candidate.file.type || 'không xác định'} không được phép`)
 		}
 
 		if (policy.remainingQuotaBytes !== undefined && acceptedBytes + candidate.file.size > policy.remainingQuotaBytes) {
-			reasons.push(`Upload exceeds remaining quota of ${formatBytes(policy.remainingQuotaBytes)}`)
+			reasons.push(`Dung lượng tải lên vượt quá hạn mức còn lại là ${formatBytes(policy.remainingQuotaBytes)}`)
 		}
 
 		const customReason = policy.validate?.(candidate, {
@@ -2359,7 +2359,7 @@ function FileCard<TMetadata>({
 			{selectionMode ? (
 				<button
 					aria-checked={selected}
-					aria-label={`Select ${item.name}`}
+					aria-label={`Chọn ${item.name}`}
 					role="checkbox"
 					className="absolute left-0 top-0 z-10 grid size-[calc(var(--fb-gap)*11)] place-items-center"
 					data-fb-touch-control
@@ -2413,11 +2413,11 @@ function FileCard<TMetadata>({
 			)}
 			{readOnlyItem ? (
 				<span className="-mt-1 flex items-center gap-1 text-[var(--fb-font-sm)] text-[var(--fb-muted)]">
-					<Lock aria-hidden="true" className="size-3.5" /> Read-only
+					<Lock aria-hidden="true" className="size-3.5" /> Chỉ đọc
 				</span>
 			) : null}
 			<div className="flex min-w-0 gap-1 truncate text-[var(--fb-font-sm)] text-[var(--fb-muted)]">
-				<span>{item.kind === 'folder' ? 'Folder' : formatBytes(item.size ?? 0)}</span>
+				<span>{item.kind === 'folder' ? 'Thư mục' : formatBytes(item.size ?? 0)}</span>
 				{formatShortDate(item.modifiedAt) ? <span>· {formatShortDate(item.modifiedAt)}</span> : null}
 			</div>
 			<ItemMeta item={item} renderItemMeta={renderItemMeta} view="grid" />
@@ -2603,7 +2603,7 @@ function FileTable<TMetadata>({
 						<th className={`${headCell} ${checkboxCell}`} scope="col">
 							<button
 								aria-checked={allSelected ? true : selectedCount > 0 ? 'mixed' : false}
-								aria-label={allSelected ? 'Select none' : 'Select all items'}
+								aria-label={allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả mục'}
 								className={`grid place-items-center rounded-[5px] ${FOCUS_RING}`}
 								onClick={() => (allSelected ? browser.clearSelection() : browser.selectAllLoaded())}
 								role="checkbox"
@@ -2617,11 +2617,11 @@ function FileTable<TMetadata>({
 							</button>
 						</th>
 					) : null}
-					{sortHeader('Name', 'name')}
-					{!narrow ? sortHeader('Size', 'size', 'w-[140px] text-right') : null}
-					{!narrow ? sortHeader('Modified', 'modifiedAt', 'w-[160px] text-right') : null}
+					{sortHeader('Tên', 'name')}
+					{!narrow ? sortHeader('Kích thước', 'size', 'w-[140px] text-right') : null}
+					{!narrow ? sortHeader('Ngày sửa đổi', 'modifiedAt', 'w-[160px] text-right') : null}
 					<th className={`${headCell} w-[calc(var(--fb-control-h)+var(--fb-cell-x))]`} scope="col">
-						<span className="sr-only">Actions</span>
+						<span className="sr-only">Thao tác</span>
 					</th>
 				</tr>
 			</thead>
@@ -2709,7 +2709,7 @@ function FileTable<TMetadata>({
 										<ItemMeta item={item} renderItemMeta={renderItemMeta} view="list" />
 										{narrow ? (
 											<div className="flex flex-wrap gap-x-3 text-[var(--fb-font-sm)] text-[var(--fb-muted)]">
-												<span>{item.kind === 'folder' ? 'Folder' : formatBytes(item.size ?? 0)}</span>
+												<span>{item.kind === 'folder' ? 'Thư mục' : formatBytes(item.size ?? 0)}</span>
 												{item.modifiedAt ? <span>{formatModified(item.modifiedAt)}</span> : null}
 											</div>
 										) : null}
@@ -2718,7 +2718,7 @@ function FileTable<TMetadata>({
 							</td>
 							{!narrow ? (
 								<td className={`${bodyCell} text-right text-[calc(var(--fb-font)-1px)] text-[var(--fb-muted)]`}>
-									{item.kind === 'folder' ? 'Folder' : formatBytes(item.size ?? 0)}
+									{item.kind === 'folder' ? 'Thư mục' : formatBytes(item.size ?? 0)}
 								</td>
 							) : null}
 							{!narrow ? (
@@ -2761,7 +2761,7 @@ function ItemMenuButton<TMetadata>({
 	return (
 		<button
 			aria-haspopup="menu"
-			aria-label={`More actions for ${item.name}`}
+			aria-label={`Thêm thao tác cho ${item.name}`}
 			className={`inline-grid size-[var(--fb-control-h)] place-items-center rounded-[calc(var(--fb-radius)-2px)] text-[var(--fb-muted)] hover:bg-[var(--fb-surface-2)] hover:text-[var(--fb-text)] ${
 				narrow || selected
 					? ''
@@ -2783,7 +2783,7 @@ function ItemMenuButton<TMetadata>({
 
 function ReadOnlyMark() {
 	return (
-		<span className="inline-flex shrink-0 text-[var(--fb-muted)]" role="img" aria-label="Read-only" title="Read-only">
+		<span className="inline-flex shrink-0 text-[var(--fb-muted)]" role="img" aria-label="Chỉ đọc" title="Chỉ đọc">
 			<Lock aria-hidden="true" className="size-3.5" />
 		</span>
 	)
@@ -2871,7 +2871,7 @@ function ContextMenu<TMetadata>({
 
 	const content = (
 		<div
-			aria-label={isItemMenu ? 'Item actions' : 'Folder actions'}
+			aria-label={isItemMenu ? 'Thao tác mục' : 'Thao tác thư mục'}
 			className={`flex flex-col bg-[var(--fb-surface)] text-[var(--fb-font)] text-[var(--fb-text)] ${SURFACE_MOTION} ${
 				isSheet
 					? 'w-full'
@@ -2903,32 +2903,32 @@ function ContextMenu<TMetadata>({
 		>
 			{isItemMenu && single ? (
 				<ContextMenuButton onClick={() => run(() => onOpen(menu.item))}>
-					{menu.item.kind === 'folder' ? 'Open' : 'Preview'}
+					{menu.item.kind === 'folder' ? 'Mở' : 'Xem trước'}
 				</ContextMenuButton>
 			) : null}
 			{isItemMenu && single && canEdit ? (
-				<ContextMenuButton onClick={() => run(() => onEdit(menu.item))}>Edit</ContextMenuButton>
+				<ContextMenuButton onClick={() => run(() => onEdit(menu.item))}>Chỉnh sửa</ContextMenuButton>
 			) : null}
 			{isItemMenu && single && selectionWritable && browser.capabilities.rename ? (
-				<ContextMenuButton onClick={() => run(() => onRename(menu.item))}>Rename</ContextMenuButton>
+				<ContextMenuButton onClick={() => run(() => onRename(menu.item))}>Đổi tên</ContextMenuButton>
 			) : null}
 			{isItemMenu && selectionWritable && browser.capabilities.move ? (
-				<ContextMenuButton onClick={() => run(onMove)}>Move</ContextMenuButton>
+				<ContextMenuButton onClick={() => run(onMove)}>Di chuyển</ContextMenuButton>
 			) : null}
 			{isItemMenu && !readOnly && browser.capabilities.copy ? (
-				<ContextMenuButton onClick={() => run(onCopy)}>Copy</ContextMenuButton>
+				<ContextMenuButton onClick={() => run(onCopy)}>Sao chép</ContextMenuButton>
 			) : null}
 			{isItemMenu && selectionWritable && browser.capabilities.move ? (
-				<ContextMenuButton onClick={() => run(onCut)}>Cut</ContextMenuButton>
+				<ContextMenuButton onClick={() => run(onCut)}>Cắt</ContextMenuButton>
 			) : null}
 			{isItemMenu ? (
 				<>
 					<ContextMenuButton onClick={() => run(() => onCopyPath(menu.item))}>
 						{browser.selectedPaths.includes(menu.item.path) && browser.selectedPaths.length > 1
-							? 'Copy paths'
-							: 'Copy path'}
+							? 'Sao chép các đường dẫn'
+							: 'Sao chép đường dẫn'}
 					</ContextMenuButton>
-					{canDownload ? <ContextMenuButton onClick={() => run(onDownload)}>Download</ContextMenuButton> : null}
+					{canDownload ? <ContextMenuButton onClick={() => run(onDownload)}>Tải xuống</ContextMenuButton> : null}
 					{selectionWritable ? <div aria-hidden="true" className="mx-1.5 my-1 h-px bg-[var(--fb-border)]" /> : null}
 					{selectionWritable ? (
 						<ContextMenuButton
@@ -2938,7 +2938,7 @@ function ContextMenu<TMetadata>({
 								onClose()
 							}}
 						>
-							Delete
+							Xóa
 						</ContextMenuButton>
 					) : null}
 				</>
@@ -2947,20 +2947,20 @@ function ContextMenu<TMetadata>({
 					{!readOnly ? (
 						<>
 							{browser.capabilities.createFolder ? (
-								<ContextMenuButton onClick={() => run(onNewFolder)}>New folder</ContextMenuButton>
+								<ContextMenuButton onClick={() => run(onNewFolder)}>Thư mục mới</ContextMenuButton>
 							) : null}
-							<ContextMenuButton onClick={() => run(onUpload)}>Upload</ContextMenuButton>
+							<ContextMenuButton onClick={() => run(onUpload)}>Tải lên</ContextMenuButton>
 						</>
 					) : null}
 					{!readOnly && browser.clipboard ? (
-						<ContextMenuButton onClick={() => run(onPaste)}>Paste here</ContextMenuButton>
+						<ContextMenuButton onClick={() => run(onPaste)}>Dán vào đây</ContextMenuButton>
 					) : null}
 				</>
 			)}
 		</div>
 	)
 	return isSheet ? (
-		<ActionSheet label={isItemMenu ? 'Item actions' : 'Folder actions'} onClose={onClose}>
+		<ActionSheet label={isItemMenu ? 'Thao tác mục' : 'Thao tác thư mục'} onClose={onClose}>
 			{content}
 		</ActionSheet>
 	) : (
@@ -3009,17 +3009,17 @@ function UploadConflictDialog({
 	const conflictIndex = queue.conflictPaths.indexOf(path) + 1
 
 	return (
-		<ResponsiveDialog label="File conflict" narrow={narrow} onClose={onCancel}>
+		<ResponsiveDialog label="Xung đột tệp" narrow={narrow} onClose={onCancel}>
 			<div className={`${DIALOG_SURFACE} max-w-[480px]`}>
 				<div className="flex items-baseline justify-between gap-3">
-					<h2 className={DIALOG_TITLE}>File conflict</h2>
+					<h2 className={DIALOG_TITLE}>Xung đột tệp</h2>
 					<span className="shrink-0 text-[calc(var(--fb-font)-1px)] text-[var(--fb-muted)]">
-						Conflict {conflictIndex} of {queue.conflictPaths.length}
+						Xung đột {conflictIndex} / {queue.conflictPaths.length}
 					</span>
 				</div>
-				<p className={DIALOG_BODY}>{candidate.relativePath} already exists in this folder.</p>
+				<p className={DIALOG_BODY}>{candidate.relativePath} đã tồn tại trong thư mục này.</p>
 				<div className="mt-4 flex min-w-0 flex-col gap-1 rounded-[var(--fb-radius)] border-[1.5px] border-[var(--fb-accent)] bg-[color-mix(in_oklch,var(--fb-accent-soft)_70%,var(--fb-surface))] p-3">
-					<span className={`text-[var(--fb-font-sm)] ${ACCENT_INK}`}>Uploading</span>
+					<span className={`text-[var(--fb-font-sm)] ${ACCENT_INK}`}>Đang tải lên</span>
 					<span className="truncate text-[var(--fb-font)] font-semibold">{candidate.file.name}</span>
 					<span className="text-[var(--fb-font-sm)] text-[var(--fb-muted)]">{formatBytes(candidate.file.size)}</span>
 				</div>
@@ -3030,7 +3030,7 @@ function UploadConflictDialog({
 						onChange={(event) => onApplyToAllChange(event.target.checked)}
 						type="checkbox"
 					/>
-					Apply to all conflicts
+					Áp dụng cho tất cả xung đột
 				</label>
 				<div
 					className={`mt-6 flex flex-wrap justify-end gap-2 ${narrow ? 'flex-col [&>button]:w-full [&>button]:justify-center' : ''}`}
@@ -3040,7 +3040,7 @@ function UploadConflictDialog({
 						onClick={onCancel}
 						type="button"
 					>
-						Cancel
+						Hủy
 					</button>
 					{resolutions.map((resolution) => (
 						<button
@@ -3070,14 +3070,14 @@ function BulkFailureDialog({
 	const completedCount = error.succeededPaths.length
 
 	return (
-		<ResponsiveDialog label="Partial bulk failure" narrow={narrow} onClose={onClose}>
+		<ResponsiveDialog label="Lỗi xử lý hàng loạt" narrow={narrow} onClose={onClose}>
 			<div className={`${DIALOG_SURFACE} max-w-[440px]`}>
 				<div className="flex items-center gap-2.5">
 					<span aria-hidden="true" className="size-2.5 shrink-0 rounded-full bg-[var(--fb-warn)]" />
-					<h2 className={DIALOG_TITLE}>Partial bulk failure</h2>
+					<h2 className={DIALOG_TITLE}>Lỗi xử lý hàng loạt</h2>
 				</div>
 				<p className={DIALOG_BODY}>
-					{completedCount} of {error.totalCount} completed
+					Đã hoàn thành {completedCount} / {error.totalCount}
 				</p>
 				<ul
 					className={`m-0 mt-3 max-h-40 list-none overflow-auto rounded-[var(--fb-radius)] bg-[var(--fb-warn-soft)] px-3 py-2 text-[calc(var(--fb-font)-1px)] ${SURFACE_MOTION}`}
@@ -3093,7 +3093,7 @@ function BulkFailureDialog({
 				</ul>
 				<div className="mt-6 flex justify-end">
 					<button className={primaryButton()} onClick={onClose} type="button">
-						OK
+						Đã hiểu
 					</button>
 				</div>
 			</div>
@@ -3124,21 +3124,21 @@ function MoveDestinationPicker({
 		>
 			<MoveDestinationButton
 				active={selectedPath === currentPath}
-				label="Current folder"
+				label="Thư mục hiện tại"
 				onClick={() => onSelect(currentPath)}
 				path={currentPath}
 			/>
 			<MoveDestinationButton active={selectedPath === '/'} label={rootLabel} onClick={() => onSelect('/')} path="/" />
 			{status === 'loading' ? (
-				<div className="px-2.5 py-3 text-[calc(var(--fb-font)-1px)] text-[var(--fb-muted)]">Loading folders</div>
+				<div className="px-2.5 py-3 text-[calc(var(--fb-font)-1px)] text-[var(--fb-muted)]">Đang tải thư mục...</div>
 			) : null}
 			{status === 'error' ? (
 				<div className="px-2.5 py-3 text-[calc(var(--fb-font)-1px)] text-[var(--fb-danger)]">
-					{error ?? 'Could not load folders'}
+					{error ?? 'Không thể tải thư mục'}
 				</div>
 			) : null}
 			{status === 'ready' && destinations.length === 0 ? (
-				<div className="px-2.5 py-3 text-[calc(var(--fb-font)-1px)] text-[var(--fb-muted)]">No folders available.</div>
+				<div className="px-2.5 py-3 text-[calc(var(--fb-font)-1px)] text-[var(--fb-muted)]">Không có thư mục nào khả dụng.</div>
 			) : null}
 			{destinations.map((destination) => (
 				<MoveDestinationButton
@@ -3169,7 +3169,7 @@ function MoveDestinationButton({
 }) {
 	return (
 		<button
-			aria-label={`Move destination ${path}`}
+			aria-label={`Thư mục đích ${path}`}
 			className={`flex min-h-[34px] w-full min-w-0 items-center gap-2 rounded-[calc(var(--fb-radius)-2px)] pr-2 text-left text-[var(--fb-font)] ${FOCUS_RING} ${TOUCH_CONTROL} ${CONTROL_MOTION} ${
 				active ? `bg-[var(--fb-accent-soft)] font-semibold ${ACCENT_INK}` : 'hover:bg-[var(--fb-surface-2)]'
 			}`}
@@ -3226,57 +3226,57 @@ function ActionBar({
 
 	return (
 		<div
-			aria-label="Selection actions"
+			aria-label="Thao tác chọn"
 			className={`flex min-h-[var(--fb-bar-h)] min-w-0 flex-wrap items-center gap-2 px-[var(--fb-pad)] py-2 text-[calc(var(--fb-font)-1px)] ${SURFACE_MOTION}`}
 			role="toolbar"
 		>
 			<span className={`mr-1 whitespace-nowrap font-semibold ${hasSelection ? ACCENT_INK : 'text-[var(--fb-muted)]'}`}>
-				{selectedCount} selected
+				Đã chọn {selectedCount}
 			</span>
 			{hasSelection && canDownload ? (
 				<button className={barButton()} onClick={onDownload} type="button">
 					<Download aria-hidden="true" className="size-3.5" />
-					Download
+					Tải xuống
 				</button>
 			) : null}
 			{hasSelection && canRename && selectedCount === 1 ? (
 				<button className={barButton()} onClick={() => onRename()} type="button">
 					<Pencil aria-hidden="true" className="size-3.5" />
-					Rename
+					Đổi tên
 				</button>
 			) : null}
 			{hasSelection && canMove ? (
 				<button className={barButton()} onClick={onMove} type="button">
 					<FolderInput aria-hidden="true" className="size-3.5" />
-					Move
+					Di chuyển
 				</button>
 			) : null}
 			{hasSelection && canCopy ? (
 				<button className={barButton()} onClick={onCopy} type="button">
 					<CopyIcon aria-hidden="true" className="size-3.5" />
-					Copy
+					Sao chép
 				</button>
 			) : null}
 			{hasSelection && canCut ? (
 				<button className={barButton()} onClick={onCut} type="button">
 					<Scissors aria-hidden="true" className="size-3.5" />
-					Cut
+					Cắt
 				</button>
 			) : null}
 			{hasSelection && canDelete ? (
 				<button className={barButton('danger')} onClick={onDelete} type="button">
 					<Trash2 aria-hidden="true" className="size-3.5" />
-					Delete
+					Xóa
 				</button>
 			) : null}
 			<span className="ml-auto flex items-center gap-1">
 				<button className={barButton('ghost')} disabled={itemCount === 0} onClick={onSelectAll} type="button">
 					<CheckSquare aria-hidden="true" className="size-3.5" />
-					Select all
+					Chọn tất cả
 				</button>
 				<button className={barButton('ghost')} disabled={!hasSelection} onClick={onSelectNone} type="button">
 					<XIcon aria-hidden="true" className="size-3.5" />
-					Select none
+					Bỏ chọn tất cả
 				</button>
 			</span>
 		</div>
@@ -3348,10 +3348,10 @@ function Breadcrumbs({
 	const crumbText = `rounded-[calc(var(--fb-radius)-4px)] px-0.5 py-1 [@media(pointer:coarse)]:min-h-[calc(var(--fb-gap)*11)]`
 
 	return (
-		<nav aria-label="Breadcrumb" className="flex min-w-0 max-w-full items-center gap-1 text-[var(--fb-font)]">
+		<nav aria-label="Đường dẫn thư mục" className="flex min-w-0 max-w-full items-center gap-1 text-[var(--fb-font)]">
 			{narrow && parts.length > 0 ? (
 				<button
-					aria-label="Parent folder"
+					aria-label="Thư mục cha"
 					className={`${toolButton(false)} -ml-2 border-transparent bg-transparent text-[var(--fb-text)]`}
 					onClick={() => void onNavigate(getFileBrowserDirname(path))}
 					type="button"
@@ -3390,21 +3390,21 @@ function Breadcrumbs({
 								<button
 									aria-expanded={ancestorsOpen}
 									aria-haspopup={narrow ? 'dialog' : 'menu'}
-									aria-label="Collapsed breadcrumb"
+									aria-label="Đường dẫn thu gọn"
 									className={`inline-flex h-[26px] min-w-[26px] items-center justify-center rounded-[calc(var(--fb-radius)-4px)] px-1.5 text-[calc(var(--fb-font)-1px)] hover:text-[var(--fb-text)] ${FOCUS_RING} ${TOUCH_CONTROL} ${CONTROL_MOTION} ${
 										ancestorsOpen && !narrow
 											? `bg-[var(--fb-accent-soft)] ${ACCENT_INK}`
 											: 'bg-[var(--fb-surface-2)] text-[var(--fb-muted)]'
 									}`}
 									onClick={() => setAncestorsOpen((open) => !open)}
-									title={`${crumb.hidden.length} hidden ${crumb.hidden.length === 1 ? 'folder' : 'folders'}`}
+									title={`${crumb.hidden.length} thư mục ẩn`}
 									type="button"
 								>
 									…
 								</button>
 								{ancestorsOpen && !narrow ? (
 									<div
-										aria-label="Hidden folders"
+										aria-label="Các thư mục ẩn"
 										className="absolute left-0 top-[calc(100%+6px)] z-50 flex max-h-[min(360px,60dvh)] w-max min-w-[200px] max-w-[min(420px,80vw)] flex-col overflow-y-auto rounded-[calc(var(--fb-radius)+2px)] border border-[var(--fb-border)] bg-[var(--fb-surface)] p-1.5 shadow-[var(--fb-shadow,0_12px_32px_color-mix(in_oklch,black_35%,transparent))]"
 										onKeyDown={(event) => {
 											if (event.key === 'Escape' || event.key === 'Tab') {
@@ -3462,7 +3462,7 @@ function Breadcrumbs({
 				))}
 			</div>
 			{ancestorsOpen && narrow ? (
-				<ActionSheet label="Folder path" onClose={() => setAncestorsOpen(false)}>
+				<ActionSheet label="Đường dẫn thư mục" onClose={() => setAncestorsOpen(false)}>
 					<div className="flex min-w-0 flex-col">
 						{crumbs.map((crumb) => (
 							<button
@@ -3618,13 +3618,13 @@ function UploadRejectionAlert({
 }) {
 	return (
 		<div
-			aria-label="Upload rejected"
+			aria-label="Tải lên bị từ chối"
 			className="mx-[var(--fb-pad)] mb-2 min-w-0 rounded-[calc(var(--fb-radius)+2px)] border border-[var(--fb-border)] bg-[var(--fb-surface)] p-4 text-[calc(var(--fb-font)-1px)] text-[var(--fb-text)] [overflow-wrap:anywhere]"
 			role="alert"
 		>
 			<div className="flex items-start gap-3">
 				<div className="min-w-0 flex-1">
-					<div className="text-[var(--fb-font)] font-bold">Upload rejected</div>
+					<div className="text-[var(--fb-font)] font-bold">Tải lên bị từ chối</div>
 					<ul className="m-0 mt-2 flex list-none flex-col gap-2 p-0">
 						{rejections.map((rejection) => (
 							<li
@@ -3640,8 +3640,8 @@ function UploadRejectionAlert({
 						))}
 					</ul>
 				</div>
-				<button aria-label="Dismiss upload rejection" className={barButton()} onClick={onDismiss} type="button">
-					Dismiss
+				<button aria-label="Bỏ qua cảnh báo từ chối tải lên" className={barButton()} onClick={onDismiss} type="button">
+					Bỏ qua
 				</button>
 			</div>
 		</div>
@@ -3730,14 +3730,14 @@ function getDraggedPaths(dataTransfer: DataTransfer) {
 function getErrorState(error: Error | null) {
 	if (isAccessDeniedError(error)) {
 		return {
-			title: 'Access denied',
-			value: error?.message ?? 'You do not have access to this folder.'
+			title: 'Từ chối truy cập',
+			value: error?.message ?? 'Bạn không có quyền truy cập vào thư mục này.'
 		}
 	}
 
 	return {
-		title: 'Could not load this folder',
-		value: error?.message ?? 'Unknown error'
+		title: 'Không thể tải thư mục này',
+		value: error?.message ?? 'Lỗi không xác định'
 	}
 }
 
@@ -3773,7 +3773,7 @@ function isEditableEventTarget(target: EventTarget | null): boolean {
 }
 
 function formatItemCount(count: number) {
-	return `${count} ${count === 1 ? 'item' : 'items'}`
+	return `${count} mục`
 }
 
 function normalizeUploadConflictResolutions(resolutions: readonly FileBrowserUploadConflictResolution[]) {
@@ -3788,9 +3788,9 @@ function normalizeUploadConflictResolutions(resolutions: readonly FileBrowserUpl
 
 function formatUploadConflictResolution(resolution: FileBrowserUploadConflictResolution) {
 	if (resolution === 'keep-both') {
-		return 'Keep both'
+		return 'Giữ cả hai'
 	}
-	return resolution === 'replace' ? 'Replace' : 'Skip'
+	return resolution === 'replace' ? 'Ghi đè' : 'Bỏ qua'
 }
 
 function canDownloadItems<TMetadata>(items: FileNode<TMetadata>[], supportsBulkDownload: boolean) {
@@ -3811,7 +3811,7 @@ function formatScreenReaderStatus({
 	status: string
 }) {
 	const folderName = currentPath === '/' ? rootLabel : (currentPath.split('/').filter(Boolean).at(-1) ?? rootLabel)
-	return `${folderName} ${status}. ${itemCount} ${itemCount === 1 ? 'item' : 'items'}. ${selectedCount} selected.`
+	return `${folderName} ${status}. ${itemCount} mục. Đã chọn ${selectedCount} mục.`
 }
 
 const FOCUS_RING =
@@ -3988,18 +3988,18 @@ function formatModified(value: string) {
 	const now = new Date()
 	const startOfDay = (target: Date) => new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime()
 	const dayDelta = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000)
-	if (dayDelta === 0) return `Today, ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
-	if (dayDelta === 1) return 'Yesterday'
+	if (dayDelta === 0) return `Hôm nay, ${date.toLocaleTimeString('vi-VN', { hour: 'numeric', minute: '2-digit' })}`
+	if (dayDelta === 1) return 'Hôm qua'
 	return date.toLocaleDateString(
-		undefined,
+		'vi-VN',
 		date.getFullYear() === now.getFullYear()
-			? { month: 'short', day: 'numeric' }
-			: { month: 'short', day: 'numeric', year: 'numeric' }
+			? { month: 'numeric', day: 'numeric' }
+			: { year: 'numeric', month: 'numeric', day: 'numeric' }
 	)
 }
 
 function formatShortDate(value: string | undefined) {
 	if (!value) return null
 	const date = new Date(value)
-	return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+	return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString('vi-VN', { month: 'numeric', day: 'numeric' })
 }

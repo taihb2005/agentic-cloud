@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { apiClient } from '../../adapters/agentic-cloud/api-client'
+import { useNotification } from '../context/NotificationContext'
 import type {
 	ConfigureShareRequest,
 	NodeShareDetailResponse,
@@ -16,6 +17,7 @@ interface ShareModalProps {
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({ nodeId, nodeName, isFolder, onClose }) => {
+	const { showToast, confirm } = useNotification()
 	const [activeTab, setActiveTab] = useState<'USER_GROUP' | 'PUBLIC_LINK'>('PUBLIC_LINK')
 	const [loading, setLoading] = useState(true)
 	const [saving, setSaving] = useState(false)
@@ -146,7 +148,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ nodeId, nodeName, isFold
 				req.password = password.trim()
 			}
 			if (expiresAt) {
-				req.expiresAt = new Date(expiresAt).toISOString()
+				req.expires_at = new Date(expiresAt).toISOString()
 			}
 			if (maxAccessCount && maxAccessCount > 0) {
 				req.max_access_count = maxAccessCount
@@ -156,9 +158,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({ nodeId, nodeName, isFold
 			if (res.success && res.data) {
 				setShareDetail(res.data)
 				setSuccessMsg('Đã tạo liên kết chia sẻ công khai thành công!')
+				showToast({ type: 'success', message: 'Đã tạo liên kết chia sẻ công khai thành công!' })
 			}
 		} catch (err: unknown) {
-			setError(err instanceof Error ? err.message : 'Thiết lập liên kết thất bại')
+			const msg = err instanceof Error ? err.message : 'Thiết lập liên kết thất bại'
+			setError(msg)
+			showToast({ type: 'error', message: msg })
 		} finally {
 			setSaving(false)
 		}
@@ -167,7 +172,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({ nodeId, nodeName, isFold
 	// Save User Group Share
 	const handleSaveUserGroup = async () => {
 		if (selectedUsers.length === 0) {
-			setError('Vui lòng chọn ít nhất một người dùng để chia sẻ')
+			const msg = 'Vui lòng chọn ít nhất một người dùng để chia sẻ'
+			setError(msg)
+			showToast({ type: 'warning', message: msg })
 			return
 		}
 		setSaving(true)
@@ -183,10 +190,14 @@ export const ShareModal: React.FC<ShareModalProps> = ({ nodeId, nodeName, isFold
 			const res = await apiClient.configureShare(nodeId, req)
 			if (res.success && res.data) {
 				setShareDetail(res.data)
-				setSuccessMsg(`Đã chia sẻ thành công cho ${selectedUsers.length} người dùng!`)
+				const msg = `Đã chia sẻ thành công cho ${selectedUsers.length} người dùng!`
+				setSuccessMsg(msg)
+				showToast({ type: 'success', message: msg })
 			}
 		} catch (err: unknown) {
-			setError(err instanceof Error ? err.message : 'Chia sẻ thất bại')
+			const msg = err instanceof Error ? err.message : 'Chia sẻ thất bại'
+			setError(msg)
+			showToast({ type: 'error', message: msg })
 		} finally {
 			setSaving(false)
 		}
@@ -194,9 +205,15 @@ export const ShareModal: React.FC<ShareModalProps> = ({ nodeId, nodeName, isFold
 
 	// Revoke Share (revert to Private)
 	const handleRevokeShare = async () => {
-		if (!confirm('Bạn có chắc chắn muốn hủy chia sẻ mục này? Mọi người dùng hoặc liên kết sẽ không thể truy cập nữa.')) {
-			return
-		}
+		const ok = await confirm({
+			title: 'Hủy chia sẻ',
+			message: 'Bạn có chắc chắn muốn hủy chia sẻ mục này? Mọi người dùng hoặc liên kết sẽ không thể truy cập nữa.',
+			type: 'danger',
+			confirmText: 'Hủy chia sẻ',
+			cancelText: 'Giữ lại'
+		})
+		if (!ok) return
+
 		setSaving(true)
 		setError(null)
 		try {
@@ -206,8 +223,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ nodeId, nodeName, isFold
 			setPassword('')
 			setEnablePassword(false)
 			setSuccessMsg('Đã hủy chia sẻ. Tệp hiện ở chế độ riêng tư.')
+			showToast({ type: 'success', message: 'Đã hủy chia sẻ. Tệp hiện ở chế độ riêng tư.' })
 		} catch (err: unknown) {
-			setError(err instanceof Error ? err.message : 'Hủy chia sẻ thất bại')
+			const msg = err instanceof Error ? err.message : 'Hủy chia sẻ thất bại'
+			setError(msg)
+			showToast({ type: 'error', message: msg })
 		} finally {
 			setSaving(false)
 		}
@@ -223,6 +243,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ nodeId, nodeName, isFold
 		if (url) {
 			navigator.clipboard.writeText(url)
 			setCopied(true)
+			showToast({ type: 'success', message: 'Đã sao chép liên kết vào bộ nhớ tạm!' })
 			setTimeout(() => setCopied(false), 2000)
 		}
 	}

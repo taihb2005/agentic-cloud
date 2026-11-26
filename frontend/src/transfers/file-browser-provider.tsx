@@ -159,17 +159,17 @@ function FloatingTransferWidget({ manager, snapshot }: { manager: TransferManage
 
 	const content = (
 		<aside
-			aria-label="Transfers"
+			aria-label="Truyền tệp"
 			className={`fixed bottom-[calc(env(safe-area-inset-bottom)+var(--fb-gap)*28)] right-[max(calc(var(--fb-gap)*3),env(safe-area-inset-right))] z-50 flex max-h-[50dvh] max-w-[calc(100%-var(--fb-gap)*6)] flex-col rounded-[calc(var(--fb-radius)+2px)] border border-[var(--fb-border)] bg-[var(--fb-surface)] px-4 py-3.5 text-[13px] text-[var(--fb-text)] shadow-[0_12px_32px_color-mix(in_oklch,var(--fb-text)_12%,transparent)] sm:bottom-[calc(env(safe-area-inset-bottom)+var(--fb-gap)*5)] sm:right-[max(calc(var(--fb-gap)*5),env(safe-area-inset-right))] ${isExpanded ? 'w-[320px]' : 'w-auto'} ${WIDGET_SURFACE_MOTION}`}
 		>
 			<div className="flex shrink-0 items-center justify-between gap-2">
-				<div className="font-bold">Transfers</div>
+				<div className="font-bold">Truyền tệp</div>
 				<div className="ml-auto text-[12px] text-[var(--fb-muted)]">
-					{activeUploads.length + downloads.length} active
+					{activeUploads.length + downloads.length} đang xử lý
 				</div>
 				<button
 					aria-expanded={isExpanded}
-					aria-label={isExpanded ? 'Collapse transfers' : 'Expand transfers'}
+					aria-label={isExpanded ? 'Thu gọn danh sách truyền tệp' : 'Mở rộng danh sách truyền tệp'}
 					className={widgetIconButton()}
 					onClick={() => setExpanded(!isExpanded)}
 					type="button"
@@ -203,7 +203,7 @@ function FloatingTransferWidget({ manager, snapshot }: { manager: TransferManage
 							{download.status === 'ready' && download.url ? (
 								<div className="flex items-center justify-between gap-2 rounded-[var(--fb-radius)] bg-[var(--fb-ok-soft)] py-1 pl-1 pr-1.5">
 									<a
-										aria-label="Open prepared download"
+										aria-label="Mở tệp tải xuống đã chuẩn bị"
 										className={`inline-flex min-h-[calc(var(--fb-gap)*11)] min-w-0 items-center gap-1.5 rounded-[calc(var(--fb-radius)-2px)] px-2 py-1 font-semibold text-[color-mix(in_oklch,var(--fb-ok)_85%,var(--fb-text))] hover:bg-[color-mix(in_oklch,var(--fb-ok-soft)_60%,var(--fb-surface))] sm:min-h-8 [@media(pointer:coarse)]:min-h-[calc(var(--fb-gap)*11)] ${WIDGET_CONTROL_MOTION}`}
 										download
 										href={download.url}
@@ -213,7 +213,7 @@ function FloatingTransferWidget({ manager, snapshot }: { manager: TransferManage
 										<span className="truncate">{formatDownloadReadyLabel(download)}</span>
 									</a>
 									<button
-										aria-label="Dismiss download"
+										aria-label="Bỏ qua tải xuống"
 										className={widgetIconButton()}
 										onClick={() => manager.dismissDownload(download.id)}
 										type="button"
@@ -224,26 +224,26 @@ function FloatingTransferWidget({ manager, snapshot }: { manager: TransferManage
 							) : null}
 							{download.status === 'warning' ? (
 								<div className="flex items-center justify-between gap-2">
-									<span>Large client zip</span>
+									<span>Tệp zip client lớn</span>
 									<button
 										className={widgetTextButton()}
 										onClick={() => void manager.confirmBulkDownload(download.id)}
 										type="button"
 									>
-										Continue
+										Tiếp tục
 									</button>
 								</div>
 							) : null}
 							{download.status === 'preparing' ? (
 								<div className="flex flex-col gap-1.5">
-									<span className="font-semibold text-[var(--fb-text)]">Preparing zip</span>
+									<span className="font-semibold text-[var(--fb-text)]">Đang chuẩn bị tệp zip</span>
 									<span className="relative h-1.5 overflow-hidden rounded-full bg-[var(--fb-surface-2)]">
 										<span className="absolute inset-y-0 left-[20%] w-[30%] animate-pulse rounded-full bg-[var(--fb-accent)] motion-reduce:animate-none" />
 									</span>
 								</div>
 							) : null}
 							{download.status === 'failed' ? (
-								<span className="text-[var(--fb-danger)]">{download.error ?? 'Download failed'}</span>
+								<span className="text-[var(--fb-danger)]">{download.error ?? 'Tải xuống thất bại'}</span>
 							) : null}
 						</div>
 					))}
@@ -267,18 +267,18 @@ function UploadGroupCard({ group, manager }: { group: ActiveUploadGroup; manager
 		<div className={WIDGET_SURFACE_MOTION}>
 			<div className="flex items-center justify-between gap-2">
 				<div className="min-w-0">
-					<div className="truncate font-semibold">Uploading {group.group.name}</div>
+					<div className="truncate font-semibold">Đang tải lên {group.group.name}</div>
 					<div className="text-[12px] text-[var(--fb-muted)]">{formatUploadGroupSummary(group)}</div>
 				</div>
 				<button
-					aria-label={`Cancel upload group ${group.group.name}`}
+					aria-label={`Hủy nhóm tải lên ${group.group.name}`}
 					className={widgetIconButton()}
 					onClick={() => {
 						for (const upload of group.activeUploads) {
 							void manager.cancelUpload(upload.id)
 						}
 					}}
-					title="Cancel"
+					title="Hủy"
 					type="button"
 				>
 					<X aria-hidden="true" className="size-3.5" />
@@ -314,10 +314,10 @@ function UploadTransferRow({
 				<div className="flex shrink-0 items-center gap-1">
 					{['queued', 'uploading'].includes(upload.status) ? (
 						<button
-							aria-label={`Pause upload ${upload.name}`}
+							aria-label={`Tạm dừng tải lên ${upload.name}`}
 							className={widgetIconButton()}
 							onClick={() => manager.pauseUpload(upload.id)}
-							title="Pause"
+							title="Tạm dừng"
 							type="button"
 						>
 							<Pause aria-hidden="true" className="size-3.5" />
@@ -325,20 +325,20 @@ function UploadTransferRow({
 					) : null}
 					{['failed', 'paused'].includes(upload.status) ? (
 						<button
-							aria-label={`Resume upload ${upload.name}`}
+							aria-label={`Tiếp tục tải lên ${upload.name}`}
 							className={widgetIconButton()}
 							onClick={() => void manager.resumeUpload(upload.id)}
-							title="Resume"
+							title="Tiếp tục"
 							type="button"
 						>
 							<Play aria-hidden="true" className="size-3.5" />
 						</button>
 					) : null}
 					<button
-						aria-label={`Cancel upload ${upload.name}`}
+						aria-label={`Hủy tải lên ${upload.name}`}
 						className={widgetIconButton()}
 						onClick={() => void manager.cancelUpload(upload.id)}
-						title="Cancel"
+						title="Hủy"
 						type="button"
 					>
 						<X aria-hidden="true" className="size-3.5" />
@@ -372,20 +372,20 @@ function ResumeUploadsPrompt({
 }) {
 	const narrow = useNarrowViewport()
 	return createPortal(
-		<ResponsiveDialog label="Resume uploads" narrow={narrow} onClose={onDismiss}>
+		<ResponsiveDialog label="Tiếp tục tải lên" narrow={narrow} onClose={onDismiss}>
 			<div
 				className={`w-[min(400px,100%)] rounded-[calc(var(--fb-radius)+6px)] bg-[var(--fb-surface)] p-6 shadow-[0_24px_60px_color-mix(in_oklch,var(--fb-text)_28%,transparent)] ${WIDGET_SURFACE_MOTION}`}
 			>
-				<h2 className="m-0 text-[17px] font-bold">Resume uploads</h2>
+				<h2 className="m-0 text-[17px] font-bold">Tiếp tục tải lên</h2>
 				<p className="mt-2 text-[14px] leading-relaxed text-[var(--fb-muted)]">
-					Resume {count} upload{count === 1 ? '?' : 's?'}
+					Tiếp tục tải lên {count} tệp?
 				</p>
 				<div className="mt-6 flex flex-wrap justify-end gap-2">
 					<button className={widgetTextButton()} onClick={onDismiss} type="button">
-						Dismiss
+						Bỏ qua
 					</button>
 					<button className={widgetPrimaryButton()} onClick={onResume} type="button">
-						Resume uploads
+						Tiếp tục tải lên
 					</button>
 				</div>
 			</div>
@@ -441,25 +441,34 @@ function getActiveUploadGroups(uploads: UploadTransfer[]): ActiveUploadGroup[] {
 
 function formatUploadGroupSummary(group: ActiveUploadGroup): string {
 	const folders = group.group.createdFolders
-	const files = `${group.completedCount} of ${group.group.totalFiles} files`
+	const files = `${group.completedCount} / ${group.group.totalFiles} tệp`
 	if (folders <= 0) {
 		return files
 	}
 
-	return `${files}, ${folders} folder${folders === 1 ? '' : 's'} created`
+	return `${files}, ${folders} thư mục đã tạo`
 }
 
 function formatUploadStatus(upload: UploadTransfer): string {
+	const statusMap: Record<string, string> = {
+		queued: 'Đang chờ',
+		uploading: 'Đang tải lên',
+		failed: 'Thất bại',
+		paused: 'Đã tạm dừng',
+		completed: 'Hoàn tất'
+	}
+	const statusLabel = statusMap[upload.status] ?? upload.status
+
 	if (
 		upload.status !== 'uploading' ||
 		typeof upload.bytesPerSecond !== 'number' ||
 		!Number.isFinite(upload.bytesPerSecond) ||
 		upload.bytesPerSecond <= 0
 	) {
-		return upload.status
+		return statusLabel
 	}
 
-	return `${upload.status}, ${formatTransferBytes(upload.bytesPerSecond)}/s`
+	return `${statusLabel}, ${formatTransferBytes(upload.bytesPerSecond)}/s`
 }
 
 function formatTransferBytes(bytes: number): string {
@@ -479,7 +488,7 @@ function formatTransferBytes(bytes: number): string {
 function formatDownloadReadyLabel(download: BulkDownloadJob): string {
 	const expiresIn = download.expiresAt ? formatExpiresIn(download.expiresAt) : undefined
 
-	return expiresIn ? `Download ready, expires in ${expiresIn}` : 'Download ready'
+	return expiresIn ? `Tải xuống sẵn sàng, hết hạn sau ${expiresIn}` : 'Tải xuống sẵn sàng'
 }
 
 function formatExpiresIn(expiresAt: string): string | undefined {
@@ -489,12 +498,12 @@ function formatExpiresIn(expiresAt: string): string | undefined {
 	}
 
 	if (remainingMs < 60 * 60 * 1000) {
-		return `${Math.ceil(remainingMs / (60 * 1000))}m`
+		return `${Math.ceil(remainingMs / (60 * 1000))} phút`
 	}
 
 	if (remainingMs < 24 * 60 * 60 * 1000) {
-		return `${Math.ceil(remainingMs / (60 * 60 * 1000))}h`
+		return `${Math.ceil(remainingMs / (60 * 60 * 1000))} giờ`
 	}
 
-	return `${Math.ceil(remainingMs / (24 * 60 * 60 * 1000))}d`
+	return `${Math.ceil(remainingMs / (24 * 60 * 60 * 1000))} ngày`
 }
