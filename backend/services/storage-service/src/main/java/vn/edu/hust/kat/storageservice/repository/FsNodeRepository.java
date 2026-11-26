@@ -73,11 +73,25 @@ public interface FsNodeRepository extends JpaRepository<FsNode, Long>, JpaSpecif
             @Param("descendantNodeId") Long descendantNodeId
     );
 
+    default Page<FsNode> findChildNodesWithLtree(
+            UUID userId,
+            String parentPath,
+            Boolean isFolder,
+            String name,
+            String mimeType,
+            Pageable pageable
+    ) {
+        return findChildNodesWithLtree(userId, parentPath, isFolder, name, mimeType, false, pageable);
+    }
+
     @Query(value = """
         SELECT * FROM fs_nodes 
         WHERE user_id = :userId 
           AND path <@ CAST(:parentPath AS ltree) 
-          AND nlevel(path) = nlevel(CAST(:parentPath AS ltree)) + 1 
+          AND (
+              (CAST(:recursive AS boolean) = true AND path <> CAST(:parentPath AS ltree))
+              OR (CAST(:recursive AS boolean) = false AND nlevel(path) = nlevel(CAST(:parentPath AS ltree)) + 1)
+          )
           AND deleted_at IS NULL 
           AND (node_status IS NULL OR node_status != 'DELETED') 
           AND (CAST(:isFolder AS boolean) IS NULL OR is_folder = CAST(:isFolder AS boolean)) 
@@ -88,7 +102,10 @@ public interface FsNodeRepository extends JpaRepository<FsNode, Long>, JpaSpecif
         SELECT count(*) FROM fs_nodes 
         WHERE user_id = :userId 
           AND path <@ CAST(:parentPath AS ltree) 
-          AND nlevel(path) = nlevel(CAST(:parentPath AS ltree)) + 1 
+          AND (
+              (CAST(:recursive AS boolean) = true AND path <> CAST(:parentPath AS ltree))
+              OR (CAST(:recursive AS boolean) = false AND nlevel(path) = nlevel(CAST(:parentPath AS ltree)) + 1)
+          )
           AND deleted_at IS NULL 
           AND (node_status IS NULL OR node_status != 'DELETED') 
           AND (CAST(:isFolder AS boolean) IS NULL OR is_folder = CAST(:isFolder AS boolean)) 
@@ -102,6 +119,7 @@ public interface FsNodeRepository extends JpaRepository<FsNode, Long>, JpaSpecif
             @Param("isFolder") Boolean isFolder,
             @Param("name") String name,
             @Param("mimeType") String mimeType,
+            @Param("recursive") boolean recursive,
             Pageable pageable
     );
 

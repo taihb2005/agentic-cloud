@@ -35,21 +35,24 @@ public class FsNodeController {
     private final FsNodeFolderService fsFolderService;
 
     @GetMapping
-    @Operation(summary = "Lấy danh sách file/folder con (Duyệt thư mục)")
+    @Operation(summary = "Lấy danh sách file/folder con (Duyệt thư mục) hoặc tìm kiếm trên toàn bộ workspace")
     public ResponseEntity<ApiResponse<PagedResponse<NodeResponse>>> getChildNodes(
             @AuthenticationPrincipal FsUser user,
 
-            @Parameter(description = "ID của thư mục cha (null/bỏ trống để lấy thư mục gốc)")
+            @Parameter(description = "ID của thư mục cha (bỏ trống để lấy thư mục gốc khi duyệt, hoặc tìm trên toàn bộ workspace khi đi kèm bộ lọc)")
             @RequestParam(value = "parent_id", required = false) String parentId,
 
             @Parameter(description = "Bộ lọc loại node (FILE hoặc FOLDER)")
             @RequestParam(value = "node_type", required = false) String nodeType,
 
-            @Parameter(description = "Bộ lọc tên thư mục hoặc file trong thư mục hiện tại")
+            @Parameter(description = "Bộ lọc tên thư mục hoặc file")
             @RequestParam(value = "name", required = false) String name,
 
-            @Parameter(description = "Bộ lọc loại file")
+            @Parameter(description = "Bộ lọc loại file theo MIME type")
             @RequestParam(value = "mime_type", required = false) String mimeType,
+
+            @Parameter(description = "Tìm kiếm đệ quy mọi cấp thư mục con (mặc định tự động bật khi không truyền parent_id nhưng có bộ lọc tìm kiếm)")
+            @RequestParam(value = "recursive", required = false) Boolean recursive,
 
             @Parameter(description = "Trang hiện tại (bắt đầu từ 0)")
             @RequestParam(value = "page", defaultValue = "0") int page,
@@ -62,8 +65,8 @@ public class FsNodeController {
     ) {
         UUID userId = (user != null) ? user.getId() : null;
 
-        log.info("Lấy danh sách file/folder con: userId={}, parentId={}, nodeType={}, name={}, mimeType={}, page={}, size={}, sort={}",
-                userId, parentId, nodeType, name, mimeType, page, size, sorts.toString());
+        log.info("Lấy danh sách/tìm kiếm file/folder: userId={}, parentId={}, nodeType={}, name={}, mimeType={}, recursive={}, page={}, size={}, sort={}",
+                userId, parentId, nodeType, name, mimeType, recursive, page, size, sorts.toString());
 
         PagedResponse<NodeResponse> response = fsNodeService.getChildNodes(
                 userId,
@@ -71,6 +74,7 @@ public class FsNodeController {
                 nodeType,
                 name,
                 mimeType,
+                recursive,
                 page,
                 size,
                 sorts

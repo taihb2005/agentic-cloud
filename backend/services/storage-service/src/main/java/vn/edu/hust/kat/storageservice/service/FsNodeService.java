@@ -47,7 +47,7 @@ public class FsNodeService {
     }
 
     /**
-     * Lấy danh sách file/folder con (Duyệt thư mục).
+     * Lấy danh sách file/folder con (Duyệt thư mục hoặc tìm kiếm trên toàn workspace).
      */
     @Transactional(readOnly = true)
     public PagedResponse<NodeResponse> getChildNodes(
@@ -60,11 +60,31 @@ public class FsNodeService {
             int size,
             List<String> sorts
     ) {
+        return getChildNodes(userId, parentIdStr, nodeType, name, mimeType, null, page, size, sorts);
+    }
+
+    /**
+     * Lấy danh sách file/folder con hoặc tìm kiếm đệ quy trên workspace / nhánh thư mục.
+     * Nếu không truyền parentId (null/rỗng) nhưng có truyền ít nhất một bộ lọc (name, nodeType, mimeType),
+     * hệ thống tự động tìm kiếm trên toàn bộ workspace (recursive = true).
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<NodeResponse> getChildNodes(
+            UUID userId,
+            String parentIdStr,
+            String nodeType,
+            String name,
+            String mimeType,
+            Boolean recursive,
+            int page,
+            int size,
+            List<String> sorts
+    ) {
         if (userId == null) {
             throw new BadRequestException("User ID không hợp lệ");
         }
 
-        // 1. Lấy và kiểm tra hợp lệ thư mục cha
+        // 1. Lấy và kiểm tra hợp lệ thư mục cha (mặc định là Root nếu parentIdStr null/rỗng/"root")
         FsNode parentNode = resolveAndValidateNode(userId, parentIdStr, true);
 
         // 2. Chuẩn hóa các bộ lọc
@@ -72,18 +92,25 @@ public class FsNodeService {
         String trimmedName = (name != null && !name.isBlank()) ? name.trim() : null;
         String trimmedMimeType = (mimeType != null && !mimeType.isBlank()) ? mimeType.trim() : null;
 
+        boolean hasSearchFilter = (isFolder != null || trimmedName != null || trimmedMimeType != null);
+        boolean isParentUnspecified = (parentIdStr == null
+                || parentIdStr.isBlank()
+                || Constants.NULL.equalsIgnoreCase(parentIdStr.trim()));
+        boolean effectiveRecursive = (recursive != null) ? recursive : (isParentUnspecified && hasSearchFilter);
+
         // 3. Phân trang & Sắp xếp
         int pageNumber = Math.max(0, page);
         int pageSize = size > 0 ? size : 20;
         Pageable pageable = PageRequest.of(pageNumber, pageSize, parseSort(sorts));
 
-        // 4. Truy vấn danh sách node con bằng ltree
+        // 4. Truy vấn danh sách node con / tìm kiếm workspace bằng ltree
         Page<FsNode> nodePage = fsNodeRepository.findChildNodesWithLtree(
                 userId,
                 parentNode.getMaterializedPath(),
                 isFolder,
                 trimmedName,
                 trimmedMimeType,
+                effectiveRecursive,
                 pageable
         );
 

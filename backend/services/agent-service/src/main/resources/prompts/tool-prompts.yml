@@ -3,15 +3,15 @@ tools:
   # Storage Read Tools
   # ============================================================
   searchFilesByName:
-    description: "Duyệt hoặc tìm kiếm danh sách tệp tin/thư mục con trong một thư mục theo tên, loại node (FILE/FOLDER) hoặc MIME type"
+    description: "Tìm kiếm tệp tin/thư mục trên toàn bộ workspace hoặc duyệt danh sách con trực tiếp trong một thư mục theo tên, loại node (FILE/FOLDER) hoặc MIME type"
     parameters:
-      parentId: "ID của thư mục cha (null hoặc bỏ trống để lấy thư mục gốc)"
+      parentId: "ID của thư mục cha cần tìm. Để null hoặc bỏ trống '' khi muốn tìm kiếm trên TOÀN BỘ workspace. Truyền 'root' hoặc ID thư mục cụ thể khi chỉ muốn duyệt các mục con trực tiếp trong thư mục đó."
       nodeType: "Bộ lọc loại node (FILE hoặc FOLDER, bỏ trống để lấy cả hai)"
-      name: "Bộ lọc tên thư mục hoặc file trong thư mục hiện tại (bỏ trống để lấy tất cả)"
+      name: "Từ khóa tên thư mục hoặc tệp tin cần tìm (bỏ trống để lấy tất cả)"
       mimeType: "Bộ lọc loại file theo MIME type (bỏ trống nếu không lọc)"
       page: "Trang hiện tại (bắt đầu từ 0, mặc định 0)"
       size: "Số lượng bản ghi mỗi trang (mặc định 20)"
-      sort: "Bộ tiêu chí sắp xếp theo tên, tăng dần, hoặc giảm dần. Nếu muốn sắp xếp theo cả tên thì truyền bộ lọc cách nhau bởi dấu phẩy. Ví dụ 'name,asc'. Các bộ lọc sắp xếp hỗ trợ bao gồm "
+      sort: "Bộ tiêu chí sắp xếp theo tên, tăng dần, hoặc giảm dần. Nếu muốn sắp xếp theo cả tên thì truyền bộ lọc cách nhau bởi dấu phẩy. Ví dụ 'name,asc' hoặc 'updated_at,desc'."
 
   readFileContent:
     description: "Đọc nội dung văn bản trích xuất của một tệp tin dựa theo nodeId"
@@ -31,10 +31,10 @@ tools:
       newName: "Tên mới cho tệp tin hoặc thư mục"
 
   createFolder:
-    description: "Tạo thư mục mới trong một thư mục cha chỉ định"
+    description: "Tạo MỘT thư mục đơn lẻ. BẮT BUỘC phải có ID thực tế của thư mục cha (lấy từ kết quả trả về của lần gọi tool trước đó). Không được gọi song song nhiều lệnh createFolder nếu các thư mục có quan hệ cha-con. Không hỗ trợ tạo đệ quy trực tiếp mà cần gọi tuần tự"
     parameters:
-      folderName: "Tên thư mục mới cần tạo"
-      parentId: "ID của thư mục cha. Nếu cần tạo ở thư mục cha, truyên chuỗi rỗng hoặc 'root'"
+      folderName: "Tên của 1 thư mục duy nhất (tuyệt đối không chứa dấu '/')"
+      parentId: "ID của thư mục cha trực tiếp. Chỉ truyền 'root' nếu muốn tạo ở thư mục gốc ngoài cùng."
 
   moveNode:
     description: "Di chuyển một tệp tin hoặc thư mục vào một thư mục đích"
